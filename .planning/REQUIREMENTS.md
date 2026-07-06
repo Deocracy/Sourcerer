@@ -74,4 +74,33 @@ Scope decided at init: pixel-perfect Tauri shell + applet framework + **Notes as
 
 ## Traceability
 
-(filled by roadmap)
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| SHELL-01 | Phase 1 | Pending |
+| SHELL-02 | Phase 1 | Pending |
+| SHELL-03 | Phase 1 | Pending |
+| SHELL-04 | Phase 1 | Pending |
+| RAIL-01 | Phase 2 | Pending |
+| RAIL-02 | Phase 2 | Pending |
+| RAIL-03 | Phase 2 | Pending |
+| DOCK-01 | Phase 2 | Pending |
+| DOCK-02 | Phase 2 | Pending |
+| DOCK-03 | Phase 2 | Pending |
+| DOCK-04 | Phase 2 | Pending |
+| DOCK-05 | Phase 2 | Pending |
+| DOCK-06 | Phase 2 | Pending |
+| PERS-01 | Phase 3 | Pending |
+| PERS-02 | Phase 3 | Pending |
+| PERS-03 | Phase 3 | Pending |
+| PERS-04 | Phase 3 | Pending |
+| FWK-01 | Phase 4 | Pending |
+| FWK-02 | Phase 4 | Pending |
+| FWK-03 | Phase 4 | Pending |
+| FWK-04 | Phase 4 | Pending |
+| NOTE-01 | Phase 5 | Pending |
+| NOTE-02 | Phase 5 | Pending |
+| ASST-01 | Phase 6 | Pending |
+| ASST-02 | Phase 6 | Pending |
+| ASST-03 | Phase 6 | Pending |
+| HOME-01 | Phase 6 | Pending |
+| HOME-02 | Phase 6 | Pending |
