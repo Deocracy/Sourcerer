@@ -31,7 +31,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. User can minimize, maximize/restore, and close via the custom controls (wired to the Tauri window API), and drag the window only by the title-bar spacer — no button swallows clicks.
   3. Borders render as crisp 1px and metrics stay correct at 100% / 125% / 150% Windows display scaling.
   4. IBM Plex Sans/Mono/Serif render from locally bundled fonts with no network font loading.
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 01-01-PLAN.md — Scaffold Tauri+React18 app, frameless/shadowless window, seed tokens.css + fonts + grid, RED test harness
+- [ ] 01-02-PLAN.md — Title bar + window controls slice (turns SHELL-01/02 specs green, verifies local-only fonts)
+- [ ] 01-03-PLAN.md — Human-verify checkpoints: real frameless render + drag behavior + 1px/34px crispness at 100/125/150% DPI
 **UI hint**: yes
 
 ### Phase 2: Workspace Core
@@ -105,7 +109,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Shell Foundation | 0/TBD | Not started | - |
+| 1. Shell Foundation | 0/3 | Not started | - |
 | 2. Workspace Core | 0/TBD | Not started | - |
 | 3. Persistence & Layouts | 0/TBD | Not started | - |
 | 4. Applet Framework | 0/TBD | Not started | - |
