@@ -158,7 +158,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 4. Applet Framework | 0/TBD | Not started | - |
 | 5. Notes Applet | 0/TBD | Not started | - |
 | 6. Dashboard Assistant & Home | 0/TBD | Not started | - |
-| 7. Assistant Harness Core | 0/TBD | Not started | - |
+| 7. Assistant Harness Core | 0/5 | Not started | - |
 
 ### Phase 7: Assistant Harness Core
 
@@ -167,8 +167,17 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 **Depends on**: Phase 1 (buildable in parallel with Phases 2–5)
 **Architecture**: de-risked by spikes 001–005 (all VALIDATED, see `.planning/spikes/`). Parked spikes 006–008 (integration / persistence / tauri-seam) fold into this phase as build work, not throwaway experiments.
 **Note (2026-07-07)**: pulls "Real backend behind host.ai()" forward from the v2 deferral (see STATE.md Deferred Items) into this milestone.
-**Requirements**: TBD (new ASST-HARNESS-* reqs — real backend, distinct from Phase 6's stub-based ASST-01/02/03)
-**Plans:** 0 plans
+**Requirements**: TBD (tracked via CONTEXT.md decisions D-01..D-10; no ASST-HARNESS-* IDs minted)
+**Plans:** 5 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 7 to break down)
+**Wave 1** *(parallel — disjoint file trees)*
+- [ ] 07-01-PLAN.md — Sidecar harness core: Pi headless embed, lean prompt (D-10), mode registry + toggle (D-02/D-04), .env config (D-08), stdio streaming; package legitimacy gate
+- [ ] 07-03-PLAN.md — Rust host.ai() bridge: host_ai/set_modes Channel-streaming commands + Node sidecar spawn/own + honest-degrade (D-01/D-06)
+- [ ] 07-04-PLAN.md — Frontend host.ai() seam + minimal rail chat panel with streamed replies + mode toggle (D-01)
+
+**Wave 2** *(depends on 07-01)*
+- [ ] 07-02-PLAN.md — Databasise Research tools from /openapi.json (D-03/D-06/D-07) + file-backed sessions (D-09)
+
+**Wave 3** *(depends on 07-02/03/04)*
+- [ ] 07-05-PLAN.md — Live end-to-end human-verify: streamed chat, Research grounding, degrade, history reload
