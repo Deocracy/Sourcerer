@@ -4,7 +4,7 @@
  * the left cluster and window controls is the drag region.
  */
 
-.bar {
+.titleBar {
   display: flex;
   align-items: center;
   height: var(--titlebar-h);

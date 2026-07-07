@@ -2,51 +2,53 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useMaximizedState } from "./useMaximizedState";
 import styles from "./WindowControls.module.css";
 
+// Deferred to click-time (not module/render-time) so rendering WindowControls
+// outside a real (or mockIPC'd) Tauri context — e.g. TitleBar.test.tsx, which
+// asserts structure/aria-labels without invoking any window mocks — doesn't
+// crash the render tree.
+function withWindow(fn: (appWindow: ReturnType<typeof getCurrentWindow>) => Promise<void>) {
+  try {
+    fn(getCurrentWindow()).catch(console.error);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
 /**
- * WindowControls — the right cluster of the title bar (SHELL-02).
- * Three 46×34 buttons wired directly to the Tauri window API. Commands
- * fail silently to console (no user-facing error UI for native chrome).
- * The maximize/restore glyph + aria-label are driven by the real
- * isMaximized() state via useMaximizedState (D-02, no store).
+ * WindowControls — minimize / maximize-restore / close, wired directly to the
+ * Tauri window API (SHELL-02). Window-command failures fail silently to console
+ * per UI-SPEC Error state — no user-facing error UI for native window chrome.
+ * The maximize/restore icon + aria-label are driven by useMaximizedState (D-02:
+ * stateless, no store) rather than a click-only toggle (Pitfall 4).
  */
 export function WindowControls() {
   const isMaximized = useMaximizedState();
-
-  const minimize = () => getCurrentWindow().minimize().catch(console.error);
-  const toggleMaximize = () => getCurrentWindow().toggleMaximize().catch(console.error);
-  const close = () => getCurrentWindow().close().catch(console.error);
 
   return (
     <div className={styles.controls}>
       <button
         type="button"
-        className={styles.button}
+        className={styles.minimize}
         aria-label="Minimize window"
-        onClick={minimize}
+        onClick={() => withWindow((w) => w.minimize())}
       >
-        <span className={styles.minGlyph} aria-hidden="true">
-          —
-        </span>
+        —
       </button>
-
       <button
         type="button"
-        className={styles.button}
+        className={styles.maximize}
         aria-label={isMaximized ? "Restore window" : "Maximize window"}
-        onClick={toggleMaximize}
+        onClick={() => withWindow((w) => w.toggleMaximize())}
       >
-        <span className={styles.maxGlyph} aria-hidden="true" />
+        <span className={styles.maximizeGlyph} />
       </button>
-
       <button
         type="button"
-        className={`${styles.button} ${styles.close}`}
+        className={styles.close}
         aria-label="Close window"
-        onClick={close}
+        onClick={() => withWindow((w) => w.close())}
       >
-        <span className={styles.closeGlyph} aria-hidden="true">
-          ✕
-        </span>
+        ✕
       </button>
     </div>
   );
