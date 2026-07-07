@@ -121,10 +121,23 @@ nearest 4px):
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body (UI/labels/rail item labels) | 13px (Plex Sans) | 400 | 1.5 |
-| Label (mono badges, uppercase section headers, tab text) | 11-12px (Plex Mono) | 400/500 | 1 |
+| Label (mono badges, uppercase section headers, tab text) | 11-12px (Plex Mono) | 400 | 1 |
+| DIVI toggle chip (title bar) | 11px (Plex Mono) | 500 | 1 |
 | Rail glyph column | 18px (Plex Mono) | 400 | 1 |
 | Heading (applet titles — not exercised by rail/dock chrome, reference only) | 26px (Plex Serif) | 400 | 1.1 |
 | Wordmark ("Sourcerer") | 12px (Plex Sans) | 600 | 1 |
+
+**Weight exemption — 3rd weight locked by design handoff, not a discretionary choice.** This spec
+declares 3 font weights (400, 500, 600), exceeding the generic 2-weight guideline. Verified directly
+against `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/Sourcerer Bespoke Rails.dc.html`:
+line 67 sets the wordmark to `font-weight: 600`; line 68 sets the DIVI toggle chip to
+`font-weight: 500` explicitly (Plex Mono, 11px); line 111 sets the rail badge-count digit to
+`font-weight: 600` (Plex Sans, 9px). Weight 400 is the implicit default for every other label/body
+element (no explicit override in the handoff markup). All three weights are genuinely exercised by
+Phase-2 title-bar chrome built this phase (wordmark, DIVI chip, badge digits) — this mirrors
+CLAUDE.md's supporting-libraries table, which explicitly locks bundling weights 400/500/600 sans (plus
+400/500 mono) for pixel-fidelity reasons, not as a discretionary typography preference. Consolidating
+the DIVI chip to 400 or 600 would deviate from the adopted source of truth; it is not done here.
 
 Letter-spacing: mono uppercase labels (DIVI chip, section headers) use 0.04–0.18em tracking per
 element — reuse the existing `--ls-wordmark: 0.08em` token pattern, add `--ls-label-wide: 0.18em`
