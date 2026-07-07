@@ -89,6 +89,8 @@ Micro-label convention (applies to crumb, and to Mono labels added by later phas
 
 Accent reserved for: logo mark (ring + dot) and wordmark text only, plus the close button's hover-state glyph. Never use `#E6E4DE` as a generic "interactive element" color in Phase 1 — it is a specific-elements list, not a default.
 
+**Primary focal point:** the logo/wordmark cluster (top-left, accent `#E6E4DE`, clickable `openHome` handler) draws the eye first and stays stable across all applet states. Everything else in the bar is dim (`#6E6C66`) by default and only lifts to `#A5A29A`/accent on hover — the accent-vs-dim contrast is what establishes the hierarchy, not size or weight.
+
 ---
 
 ## Copywriting Contract
