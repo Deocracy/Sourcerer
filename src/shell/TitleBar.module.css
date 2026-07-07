@@ -1,0 +1,21 @@
+/*
+ * TitleBar — 34px custom title bar. Flat --color-bg background, 1px bottom
+ * border in --color-line, radius 0. 12px left inset; the flex spacer between
+ * the left cluster and window controls is the drag region.
+ */
+
+.bar {
+  display: flex;
+  align-items: center;
+  height: var(--titlebar-h);
+  padding-left: var(--titlebar-inset);
+  background: var(--color-bg);
+  border-bottom: var(--border-w) solid var(--color-line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.spacer {
+  flex: 1 1 auto;
+  align-self: stretch;
+}

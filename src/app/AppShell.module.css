@@ -11,11 +11,6 @@
   background: var(--color-bg);
 }
 
-.titleRow {
-  /* Row 1 — empty placeholder; plan 01-02 mounts the real TitleBar into it. */
-  height: var(--titlebar-h);
-}
-
 .body {
   /* Row 2 — empty flat panel; Phase 2 (dock) / Phase 6 (Home) populate it. */
   background: var(--color-bg);

@@ -1,0 +1,54 @@
+/*
+ * LogoCluster — left title-bar cluster. Accent (--color-fg) for the logo mark
+ * and wordmark (the primary focal point); dim (--color-dim) for the crumb.
+ * Rendered as a bare button so the whole cluster is the openHome hit target,
+ * but it must look like flat chrome — no button chrome, no radius.
+ */
+
+.cluster {
+  display: flex;
+  align-items: center;
+  gap: var(--cluster-gap);
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-fg);
+  font-family: var(--font-mono);
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.logo {
+  display: block;
+  width: var(--logo-circle);
+  height: var(--logo-circle);
+  color: var(--color-fg);
+  flex: 0 0 auto;
+}
+
+.wordmark {
+  font-family: var(--font-mono);
+  font-size: var(--fs-display);
+  font-weight: var(--fw-regular);
+  line-height: var(--lh-display);
+  letter-spacing: var(--ls-wordmark);
+  color: var(--color-fg);
+}
+
+.separator {
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+  color: var(--color-dim);
+}
+
+.crumb {
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-regular);
+  line-height: var(--lh-label);
+  color: var(--color-dim);
+}
