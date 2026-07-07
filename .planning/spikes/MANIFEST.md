@@ -11,6 +11,8 @@ Choose the assistant harness for Sourcerer's Dashboard Assistant and its connect
 - Modes can be toggled per use case or kept always-on by user choice.
 - Databasise (MCP/REST) is the first-class tool surface, not an afterthought.
 - Sourcerer may act as a coding agent when needed, but that is a mode, not the default identity.
+- The token cost center is **tool schemas, not prose** (spike 005): OMP's 22k+ is ~13k of 17 always-on tool schemas. Mode-gating must gate *tools*, not just prompt fragments — never mount a full coding toolset by default.
+- Control the assistant's `cwd` deliberately: Pi auto-injects the repo's `CLAUDE.md`/`AGENTS.md` as project context (a per-turn token tax that dwarfs the harness), and `noContextFiles` did not gate it in pi 0.74.2 (spike 005).
 
 ## Spikes
 
@@ -19,5 +21,5 @@ Choose the assistant harness for Sourcerer's Dashboard Assistant and its connect
 | 001 | pi-headless-embed | standard | Given Pi's agent core in a Node sidecar (no TUI), when a message is sent programmatically, then streamed text + tool calls come back over an API Tauri can proxy | VALIDATED | pi, embedding, rpc, sidecar, sse |
 | 002 | databasise-tools-over-pi | standard | Given Databasise's MCP/REST surface, when its tools are registered in the Pi harness, then a chat turn resolves a real wiki/search query end-to-end | VALIDATED | pi, databasise, openapi, tools, rest |
 | 003 | lean-prompt-modes | standard | Given a mode registry, when a mode is toggled, then only that mode's prompt+tools load and baseline stays under ~5k tokens | VALIDATED | modes, prompt-budget, architecture |
-| 004 | omp-component-harvest | standard | Given OMP's codebase, when one useful component is extracted and run under plain Pi, then it works standalone — plus liftable-components list with license/coupling notes | PENDING | omp, extensions, harvest |
-| 005 | token-baseline-benchmark | comparison | Given the same trivial task, when run under lean-Pi vs OMP vs opencode, then measured prompt-token baselines confirm or refute the "22k is overkill" claim | PENDING | benchmark, tokens, comparison |
+| 004 | omp-component-harvest | standard | Given OMP's codebase, when one useful component is extracted and run under plain Pi, then it works standalone — plus liftable-components list with license/coupling notes | VALIDATED | omp, extensions, harvest, mnemopi, memory |
+| 005 | token-baseline-benchmark | comparison | Given the same trivial task, when run under lean-Pi vs OMP vs opencode, then measured prompt-token baselines confirm or refute the "22k is overkill" claim | VALIDATED | benchmark, tokens, comparison |
