@@ -13,7 +13,7 @@ Sourcerer is built shell-outward: a pixel-perfect frameless window comes first, 
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Shell Foundation** - Frameless window, custom title bar, window controls, DPI-correct metrics, local fonts
+- [x] **Phase 1: Shell Foundation** - Frameless window, custom title bar, window controls, DPI-correct metrics, local fonts (completed 2026-07-07)
 - [ ] **Phase 2: Workspace Core** - Left rail (3 modes) + dock tree (tabs, 5-zone docking, splits, focus, clamps)
 - [ ] **Phase 3: Persistence & Layouts** - Crash-safe workspace persistence, schema versioning, named layouts
 - [ ] **Phase 4: Applet Framework** - Static registry, host API, high-fidelity demo stubs for every applet
@@ -46,7 +46,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 01-03-PLAN.md — Human-verify checkpoints: real frameless render + drag behavior + 1px/34px crispness at 100/125/150% DPI
+- [x] 01-03-PLAN.md — Human-verify checkpoints: real frameless render + drag behavior + 1px/34px crispness at 100/125/150% DPI
 
 **UI hint**: yes
 
@@ -136,7 +136,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Shell Foundation | 2/3 | In Progress|  |
+| 1. Shell Foundation | 3/3 | Complete   | 2026-07-07 |
 | 2. Workspace Core | 0/TBD | Not started | - |
 | 3. Persistence & Layouts | 0/TBD | Not started | - |
 | 4. Applet Framework | 0/TBD | Not started | - |
