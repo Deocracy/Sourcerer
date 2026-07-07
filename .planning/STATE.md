@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-07T02:28:38.269Z"
+last_updated: "2026-07-07T23:15:04.233Z"
 last_activity: 2026-07-07
 progress:
-  total_phases: 6
-  completed_phases: 0
+  total_phases: 7
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 2
-  percent: 0
+  completed_plans: 3
+  percent: 14
 ---
 
 # Project State
@@ -67,6 +67,10 @@ Recent decisions affecting current work:
 - [Phase ?]: 01-02: title bar wired to Tauri window API; maximize state via isMaximized()-on-onResized, stateless (D-02)
 - [Phase ?]: 01-02: verify:fonts node gate proves SHELL-04 (no Google Fonts, local IBM Plex bundled)
 
+### Roadmap Evolution
+
+- Phase 7 added (2026-07-07): Assistant Harness Core — real headless Pi sidecar behind host.ai(). Pulls "Real backend behind host.ai()" forward from the v2 deferral. Standalone, depends on Phase 1 only, buildable in parallel with Phases 2–5. De-risked by spikes 001–005.
+
 ### Pending Todos
 
 None yet.
@@ -90,6 +94,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-07T01:52:40.637Z
-Stopped at: Phase 1 context gathered
-Resume file: None
+Last session: 2026-07-07T23:15:04.225Z
+Stopped at: Phase 2 context gathered
+Resume file: .planning/phases/02-workspace-core/02-CONTEXT.md
