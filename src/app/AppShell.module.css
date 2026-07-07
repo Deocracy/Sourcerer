@@ -1,0 +1,22 @@
+/*
+ * App-shell CSS grid — the mount surface every later phase fills (D-01).
+ * Row 1: the 34px title bar (plan 01-02 mounts the real TitleBar here).
+ * Row 2: the empty 1fr body — flat --color-bg, no border, no placeholder text (UI-SPEC Body Area).
+ */
+
+.shell {
+  display: grid;
+  grid-template-rows: var(--titlebar-h) 1fr;
+  height: 100%;
+  background: var(--color-bg);
+}
+
+.titleRow {
+  /* Row 1 — empty placeholder; plan 01-02 mounts the real TitleBar into it. */
+  height: var(--titlebar-h);
+}
+
+.body {
+  /* Row 2 — empty flat panel; Phase 2 (dock) / Phase 6 (Home) populate it. */
+  background: var(--color-bg);
+}

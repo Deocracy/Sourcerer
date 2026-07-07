@@ -1,0 +1,89 @@
+/*
+ * Sourcerer design tokens — the full UI-SPEC token set (D-01).
+ * Every color, chrome metric, spacing step, and type role from
+ * .planning/phases/01-shell-foundation/01-UI-SPEC.md as CSS custom properties.
+ * Author all metrics in logical CSS px — trust the platform, no physical-pixel hacks (SHELL-03).
+ */
+
+:root {
+  /* ---- Color ---- */
+  --color-bg: #0a0a0b;            /* dominant — title bar + app window background */
+  --color-panel: #131418;         /* secondary — icon-button hover background */
+  --color-fg: #e6e4de;            /* accent — logo, wordmark, close-hover glyph */
+  --color-danger-hover: #7a2a24;  /* destructive — close button hover background */
+  --color-line: #1e1f22;          /* border/line — title bar + window outer border (1px) */
+  --color-dim: #6e6c66;           /* muted — default glyph + crumb color */
+  --color-fg-mid: #a5a29a;        /* muted-hover — minimize glyph hover color */
+
+  /* ---- Chrome metrics (fixed, locked by handoff — not on the 4pt scale) ---- */
+  --titlebar-h: 34px;             /* grid row 1 of the app shell */
+  --titlebar-inset: 12px;         /* padding-left on title bar container */
+  --cluster-gap: 9px;             /* gap between logo, wordmark, "·", crumb */
+  --logo-circle: 15px;            /* logo ring diameter */
+  --logo-stroke: 1.5px;           /* logo ring stroke */
+  --logo-dot: 5px;                /* filled dot inside logo ring */
+  --icon-btn-w: 34px;             /* rail/assistant icon-button zone (later phases) */
+  --icon-btn-h: 24px;
+  --winctl-w: 46px;               /* each window control zone width */
+  --winctl-h: 34px;               /* each window control zone height (full bar) */
+  --maximize-glyph: 10px;         /* square outline maximize glyph */
+  --border-w: 1px;                /* always 1px, never 2px+, never blurred */
+  --radius: 0;                    /* 0 everywhere (except the literal logo circle) */
+
+  /* ---- Spacing scale (4pt) ---- */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+
+  /* ---- Type: families ---- */
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-serif: "IBM Plex Serif", Georgia, serif;
+
+  /* ---- Type: sizes ---- */
+  --fs-display: 12px;             /* wordmark "Sourcerer" (Mono) */
+  --fs-label: 11px;               /* crumb "Home" (Mono) */
+  --fs-body: 13px;                /* project-wide body (Sans) */
+  --fs-heading: 26px;             /* project-wide heading (Serif) */
+
+  /* ---- Type: weights ---- */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+
+  /* ---- Type: line-heights ---- */
+  --lh-display: 1;
+  --lh-label: 1;
+  --lh-body: 1.5;
+  --lh-heading: 1.1;
+
+  /* ---- Type: letter-spacing ---- */
+  --ls-wordmark: 0.08em;
+}
+
+/* Minimal global reset so the app-shell grid fills the frameless window. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+}
