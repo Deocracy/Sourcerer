@@ -18,6 +18,6 @@ Choose the assistant harness for Sourcerer's Dashboard Assistant and its connect
 |---|------|------|-----------|---------|------|
 | 001 | pi-headless-embed | standard | Given Pi's agent core in a Node sidecar (no TUI), when a message is sent programmatically, then streamed text + tool calls come back over an API Tauri can proxy | VALIDATED | pi, embedding, rpc, sidecar, sse |
 | 002 | databasise-tools-over-pi | standard | Given Databasise's MCP/REST surface, when its tools are registered in the Pi harness, then a chat turn resolves a real wiki/search query end-to-end | VALIDATED | pi, databasise, openapi, tools, rest |
-| 003 | lean-prompt-modes | standard | Given a mode registry, when a mode is toggled, then only that mode's prompt+tools load and baseline stays under ~5k tokens | PENDING | modes, prompt-budget, architecture |
+| 003 | lean-prompt-modes | standard | Given a mode registry, when a mode is toggled, then only that mode's prompt+tools load and baseline stays under ~5k tokens | VALIDATED | modes, prompt-budget, architecture |
 | 004 | omp-component-harvest | standard | Given OMP's codebase, when one useful component is extracted and run under plain Pi, then it works standalone — plus liftable-components list with license/coupling notes | PENDING | omp, extensions, harvest |
 | 005 | token-baseline-benchmark | comparison | Given the same trivial task, when run under lean-Pi vs OMP vs opencode, then measured prompt-token baselines confirm or refute the "22k is overkill" claim | PENDING | benchmark, tokens, comparison |
