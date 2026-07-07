@@ -52,8 +52,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 ### Phase 2: Workspace Core
 
-**Goal**: A fully interactive dockable workspace — the three-mode left rail and the dock tree with tabs, 5-zone docking, splits, multi-instance, and deterministic focus — ported near-1:1 from the prototype's pointer-event algorithms.
+**Goal**: A fully interactive dockable workspace — the three-mode left rail and the dock tree with tabs, 5-zone docking, splits, multi-instance, and deterministic focus. Center dock = **dockview-core** (adopt-then-theme); rail = bespoke. Prototype pointer-event algorithms are the behavioral reference for the bespoke rail only.
 **Mode:** mvp
+**Design note (2026-07-07):** the new `design_handoff_bespoke_rails_shell` is source of truth and this phase also **reworks Phase 1 chrome** to match it — 40px title bar, DIVI-chip + corpus label, floating rounded window (Tauri `transparent:true`), green `#86A38C` accent. See REQUIREMENTS supersession banner.
 **Depends on**: Phase 1
 **Requirements**: RAIL-01, RAIL-02, RAIL-03, DOCK-01, DOCK-02, DOCK-03, DOCK-04, DOCK-05, DOCK-06
 **Success Criteria** (what must be TRUE):
@@ -64,7 +65,22 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. User can open multiple instances of one applet each with a stable instance id, and keyboard input routes deterministically to the focused pane (click/drag/close set focus predictably).
   5. Active-applet highlighting and per-item badge counts render per the design spec.
 
-**Plans**: TBD
+**Plans**: 6 plans
+
+Plans:
+**Wave 1**
+- [ ] 02-01-PLAN.md — Deps (zustand/nanoid/dockview-core) + Chrome-delta tokens + typed Zustand shell store
+**Wave 2** *(blocked on Wave 1)*
+- [ ] 02-02-PLAN.md — TitleBar chrome (DIVI chip, corpus label, rail toggles) + floating rounded window
+**Wave 3** *(blocked on Wave 2)*
+- [ ] 02-03-PLAN.md — Human-verify: floating window + DPI 100/125/150% + drag (D-03 re-verify)
+**Wave 4** *(blocked on Wave 3)*
+- [ ] 02-04-PLAN.md — Left rail: 3-mode render, pointer resize/snap, keyboard/double-click cycle, reorder + pin
+**Wave 5** *(blocked on Wave 4)*
+- [ ] 02-05-PLAN.md — Center dock: dockview integration, theme, panel dispatch, canary restore/default, focus, multi-instance
+**Wave 6** *(blocked on Wave 5)*
+- [ ] 02-06-PLAN.md — Rail drag-out-to-dock (D-01 28%-zone preview) + full-workspace human-verify
+
 **UI hint**: yes
 
 ### Phase 3: Persistence & Layouts
@@ -137,8 +153,22 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Shell Foundation | 3/3 | Complete   | 2026-07-07 |
-| 2. Workspace Core | 0/TBD | Not started | - |
+| 2. Workspace Core | 0/6 | Not started | - |
 | 3. Persistence & Layouts | 0/TBD | Not started | - |
 | 4. Applet Framework | 0/TBD | Not started | - |
 | 5. Notes Applet | 0/TBD | Not started | - |
 | 6. Dashboard Assistant & Home | 0/TBD | Not started | - |
+| 7. Assistant Harness Core | 0/TBD | Not started | - |
+
+### Phase 7: Assistant Harness Core
+
+**Goal**: A real, headless AI backend for the Dashboard Assistant — lean-Pi (`@earendil-works/pi-coding-agent`) embedded as a Node sidecar behind the `host.ai()` Tauri seam, with a lean baseline prompt, mode-gated tools (Notes/Research/Coding/Memory), Databasise REST tool projection, optional mnemopi memory, and file-backed sessions. Standalone: no dependency on the shell's Phases 2–5; consumed by Phase 6's assistant panel, which today targets a stubbed `ai()`.
+**Mode:** standard
+**Depends on**: Phase 1 (buildable in parallel with Phases 2–5)
+**Architecture**: de-risked by spikes 001–005 (all VALIDATED, see `.planning/spikes/`). Parked spikes 006–008 (integration / persistence / tauri-seam) fold into this phase as build work, not throwaway experiments.
+**Note (2026-07-07)**: pulls "Real backend behind host.ai()" forward from the v2 deferral (see STATE.md Deferred Items) into this milestone.
+**Requirements**: TBD (new ASST-HARNESS-* reqs — real backend, distinct from Phase 6's stub-based ASST-01/02/03)
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 7 to break down)
