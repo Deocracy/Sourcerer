@@ -38,7 +38,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 3 plansPlans:
 **Wave 1**
 
-- [ ] 01-01-PLAN.md — Scaffold Tauri+React18 app, frameless/shadowless window, seed tokens.css + fonts + grid, RED test harness
+- [x] 01-01-PLAN.md — Scaffold Tauri+React18 app, frameless/shadowless window, seed tokens.css + fonts + grid, RED test harness
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -136,7 +136,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Shell Foundation | 0/3 | Not started | - |
+| 1. Shell Foundation | 1/3 | In Progress|  |
 | 2. Workspace Core | 0/TBD | Not started | - |
 | 3. Persistence & Layouts | 0/TBD | Not started | - |
 | 4. Applet Framework | 0/TBD | Not started | - |
