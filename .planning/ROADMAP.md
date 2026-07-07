@@ -42,7 +42,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 01-02-PLAN.md — Title bar + window controls slice (turns SHELL-01/02 specs green, verifies local-only fonts)
+- [x] 01-02-PLAN.md — Title bar + window controls slice (turns SHELL-01/02 specs green, verifies local-only fonts)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -136,7 +136,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Shell Foundation | 1/3 | In Progress|  |
+| 1. Shell Foundation | 2/3 | In Progress|  |
 | 2. Workspace Core | 0/TBD | Not started | - |
 | 3. Persistence & Layouts | 0/TBD | Not started | - |
 | 4. Applet Framework | 0/TBD | Not started | - |

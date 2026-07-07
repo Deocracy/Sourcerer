@@ -7,7 +7,7 @@ Scope decided at init: pixel-perfect Tauri shell + applet framework + **Notes as
 ### Shell / Window (SHELL)
 
 - [x] **SHELL-01**: User sees a frameless single window with the custom 34px title bar (logo, app name, active applet crumb) matching design tokens
-- [ ] **SHELL-02**: User can minimize, maximize/restore, and close via the custom window controls (wired to Tauri window API), and drag the window by the title-bar spacer only — no button swallows clicks
+- [x] **SHELL-02**: User can minimize, maximize/restore, and close via the custom window controls (wired to Tauri window API), and drag the window by the title-bar spacer only — no button swallows clicks
 - [x] **SHELL-03**: User sees crisp 1px borders and correct metrics at 100%/125%/150% Windows display scaling
 - [x] **SHELL-04**: User sees IBM Plex Sans/Mono/Serif rendered from locally bundled fonts (no network font loading)
 
@@ -77,7 +77,7 @@ Scope decided at init: pixel-perfect Tauri shell + applet framework + **Notes as
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | SHELL-01 | Phase 1 | Complete |
-| SHELL-02 | Phase 1 | Pending |
+| SHELL-02 | Phase 1 | Complete |
 | SHELL-03 | Phase 1 | Complete |
 | SHELL-04 | Phase 1 | Complete |
 | RAIL-01 | Phase 2 | Pending |
