@@ -37,7 +37,7 @@ A real, headless lean-Pi AI backend embedded as a **Node sidecar behind the `hos
 - **D-02:** Build the **mode registry + toggle plumbing** (plain object + active-key `Set`, `session.reload()` → `setActiveToolsByName`, per spike 003). Ship it as a real seam, not a stub.
 - **D-03:** Wire **exactly one live proof mode: Research (Databasise tools)** — `wiki_resolve`, `kb_query`, `wiki_unresolved`, `wiki_unplaced` auto-generated from `/openapi.json` (spike 002). This is the one end-to-end proof that mode-gating works.
 - **D-04:** **Notes, Coding, Memory modes are deferred** to the empty seam — registered/added incrementally in later work. No tools built for them this phase.
-- **D-05:** **mnemopi memory is deferred** (no Bun HTTP sidecar this phase). It is the documented next mode to add via the same sidecar-projection pattern (spike 004).
+- **D-05 [informational]:** **mnemopi memory is deferred** (no Bun HTTP sidecar this phase) — nothing to implement this phase; recorded as the documented next mode to add via the same sidecar-projection pattern (spike 004).
 
 ### Databasise Availability
 - **D-06:** **Assume-running + graceful degrade.** The harness does NOT manage the Databasise process. If the server at `127.0.0.1:9621` is down, Research tool calls return an honest "wiki unavailable" and plain chat continues to work. Keeps Phase 7 decoupled from Databasise's venv/paths/lifecycle.
