@@ -18,13 +18,18 @@ New spikes follow these unless the question requires otherwise.
 
 - One directory per spike: `NNN-name/` with `server.mjs` (+ `index.html` for browser spikes),
   its own `package.json` + `node_modules`, and `README.md`.
-- External services run as small sidecars on `:48xx` ports; the Pi harness proxies them as
-  custom tools (the spike-002 projection pattern, reused in 004).
+- **Port map:** Pi harness on `:480N` (001→4801, 002→4802, 003→4803, 004→4804); external
+  component sidecars on `:489x` (mnemopi→4899). The harness proxies sidecars as custom tools
+  (the spike-002 projection pattern, reused in 004).
+- Spike-local agent state in `.pi-agent/` + `SessionManager.inMemory()` — never touch `~/.pi`.
 
 ## Patterns
 
 - **Experience the spike:** browser UI + forensic `/log` for interaction spikes (001–004).
   Pure benchmark/fact spikes (005) use stdout + a `results.json` forensic export instead.
+- **Configure prompt + context via `DefaultResourceLoader`**, not bare `createAgentSession` opts
+  (`systemPrompt`/`noContextFiles` were ignored as top-level opts in 0.74.2, spike 005; the loader
+  path is proven in spike 001).
 - **Tools register once, gate at runtime:** `noTools:"builtin"` + `customTools:[…]` at creation,
   then `setActiveToolsByName(active)` to narrow. A `tools:` allowlist at creation permanently
   filters the registry — never use it if modes toggle later (spike 003).

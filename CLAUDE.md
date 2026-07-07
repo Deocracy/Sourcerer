@@ -102,6 +102,8 @@ The **Databasise engine** (the existing Cozo+LightRAG wiki source-of-truth proje
 <!-- GSD:conventions-start source:CONVENTIONS.md -->
 ## Conventions
 
+- **Spike findings for Sourcerer** (Dashboard Assistant harness: Pi embedding, lean modes, Databasise tools, OMP memory — implementation patterns, constraints, gotchas) → `Skill("spike-findings-sourcerer")`
+
 Conventions not yet established. Will populate as patterns emerge during development.
 <!-- GSD:conventions-end -->
 

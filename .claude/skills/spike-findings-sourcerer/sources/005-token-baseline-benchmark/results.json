@@ -1,0 +1,54 @@
+{
+  "ruler": "gpt-tokenizer/o200k_base",
+  "rows": [
+    {
+      "harness": "omp",
+      "layer": "base identity prompt (system-prompt.md)",
+      "chars": 14373,
+      "tokens": 3575,
+      "note": "before tools/notices"
+    },
+    {
+      "harness": "opencode/gemini",
+      "layer": "base prompt (text only)",
+      "chars": 15372,
+      "tokens": 3265,
+      "note": ""
+    },
+    {
+      "harness": "opencode/beast",
+      "layer": "base prompt (text only)",
+      "chars": 11078,
+      "tokens": 2304,
+      "note": "used for gpt-oss/non-Claude models"
+    },
+    {
+      "harness": "opencode/anthropic",
+      "layer": "base prompt (text only)",
+      "chars": 8212,
+      "tokens": 1637,
+      "note": ""
+    },
+    {
+      "harness": "pi-default",
+      "layer": "harness prompt (builtin tools)",
+      "chars": 2527,
+      "tokens": 597,
+      "note": "Pi out-of-box coding agent"
+    },
+    {
+      "harness": "pi (stock template, tools off)",
+      "layer": "harness prompt floor",
+      "chars": 1654,
+      "tokens": 410,
+      "note": "Sourcerer's own prompt (spike 003) sits ~130 tok, below this"
+    }
+  ],
+  "omp_self_report": {
+    "textPromptTok": 2802,
+    "contextTok": 182,
+    "toolsTok": 13205,
+    "tools": 17,
+    "effectiveBaseline": 16189
+  }
+}
