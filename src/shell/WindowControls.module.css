@@ -1,0 +1,68 @@
+/*
+ * WindowControls — three 46×34 native-chrome buttons, radius 0, flat hover
+ * color shifts only (no transitions, no shadows — UI-SPEC Interaction Contract).
+ * Default glyphs are dim (--color-dim); hover lifts minimize glyph to fg-mid
+ * and close to accent-on-danger.
+ */
+
+.controls {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  -webkit-app-region: no-drag;
+}
+
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--winctl-w);
+  height: var(--winctl-h);
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-dim);
+  font-family: var(--font-mono);
+  cursor: pointer;
+}
+
+/* Minimize / maximize hover → panel background */
+.button:hover {
+  background: var(--color-panel);
+}
+
+.minGlyph {
+  font-size: var(--fs-display);
+  line-height: 1;
+  color: var(--color-dim);
+}
+
+.button:hover .minGlyph {
+  color: var(--color-fg-mid);
+}
+
+/* Maximize/restore: 10×10 1px-border square, dim border */
+.maxGlyph {
+  display: block;
+  width: var(--maximize-glyph);
+  height: var(--maximize-glyph);
+  border: var(--border-w) solid var(--color-dim);
+  border-radius: var(--radius);
+}
+
+/* Close hover → danger-hover background, accent glyph */
+.close:hover {
+  background: var(--color-danger-hover);
+}
+
+.closeGlyph {
+  font-size: var(--fs-display);
+  line-height: 1;
+  color: var(--color-dim);
+}
+
+.close:hover .closeGlyph {
+  color: var(--color-fg);
+}
