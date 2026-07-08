@@ -1,4 +1,5 @@
 import { shellStore, useShellStore } from "../store/shellStore";
+import { useRailDrag, getVisualRailOrder } from "./useRailDrag";
 import styles from "./Rail.module.css";
 
 export interface AppletDef {
@@ -107,40 +108,66 @@ export function Rail() {
   const railApplet = useShellStore((s) => s.railApplet);
   const badges = useShellStore((s) => s.badges);
 
-  const width =
-    railMode === "hidden"
+  const {
+    navRef,
+    liveSnap,
+    onResizePointerDown,
+    onResizeDoubleClick,
+    rowDrag,
+    onRowPointerDown,
+    togglePin,
+  } = useRailDrag();
+
+  const mode = liveSnap ? liveSnap.mode : railMode;
+  const width = liveSnap
+    ? liveSnap.mode === "expanded"
+      ? liveSnap.width
+      : liveSnap.mode === "compact"
+        ? 56
+        : 6
+    : railMode === "hidden"
       ? 6
       : railMode === "compact"
         ? 56
         : Math.max(132, Math.min(520, railWidth));
 
-  if (railMode === "hidden") {
+  if (mode === "hidden") {
     return (
-      <nav className={styles.rail} style={{ width }}>
+      <nav ref={navRef} className={styles.rail} style={{ width }}>
         <div
           className={styles.hiddenStrip}
           title="Reopen rail (Cmd/Ctrl-\\)"
           onClick={() => shellStore.getState().cycleRailMode()}
         />
-        <div className={styles.handle} title="Drag to resize · double-click to cycle" />
+        <div
+          className={styles.handle}
+          onPointerDown={onResizePointerDown}
+          onDoubleClick={onResizeDoubleClick}
+          title="Drag to resize · double-click to cycle"
+        />
       </nav>
     );
   }
 
-  const mainKeys = railOrder.filter((k) => !leftRailPinned.includes(k));
-  const pinnedKeys = railOrder.filter((k) => leftRailPinned.includes(k));
-  const orderedKeys = [...mainKeys, ...pinnedKeys];
-  const compact = railMode === "compact";
+  const orderedKeys = getVisualRailOrder(railOrder, leftRailPinned);
+  const compact = mode === "compact";
 
   return (
-    <nav className={styles.rail} style={{ width }}>
+    <nav ref={navRef} className={styles.rail} style={{ width }}>
       <div className={compact ? styles.listCompact : styles.listExpanded}>
         {orderedKeys.map((key, idx) => {
           const def = railDefs[key];
           if (!def) return null;
           const isActive = key === railApplet;
+          const isPinned = leftRailPinned.includes(key);
           const badgeCount = badges[key];
           const showBadge = Boolean(badgeCount);
+          const dropBefore = rowDrag != null && rowDrag.targetIndex === idx && rowDrag.key !== key;
+          const dropAfter =
+            rowDrag != null &&
+            idx === orderedKeys.length - 1 &&
+            rowDrag.targetIndex === orderedKeys.length &&
+            rowDrag.key !== key;
 
           if (compact) {
             const rowClass = isActive
@@ -152,8 +179,14 @@ export function Rail() {
                 data-rail-row={idx}
                 className={rowClass}
                 title={`${def.title} — drag to reorder, or out to dock`}
-                onClick={() => shellStore.getState().setRailApplet(key)}
+                onPointerDown={(e) => onRowPointerDown(key, e)}
               >
+                {dropBefore && (
+                  <div className={`${styles.dropLine} ${styles.dropLineCompactBefore}`} />
+                )}
+                {dropAfter && (
+                  <div className={`${styles.dropLine} ${styles.dropLineCompactAfter}`} />
+                )}
                 <span className={styles.glyphCompact}>{def.glyph}</span>
                 {showBadge && <div className={styles.badgeOverlay}>{badgeCount}</div>}
               </div>
@@ -167,11 +200,31 @@ export function Rail() {
               data-rail-row={idx}
               className={rowClass}
               title="Drag to reorder, or out to dock"
-              onClick={() => shellStore.getState().setRailApplet(key)}
+              onPointerDown={(e) => onRowPointerDown(key, e)}
             >
+              {dropBefore && (
+                <div className={`${styles.dropLine} ${styles.dropLineExpandedBefore}`} />
+              )}
+              {dropAfter && (
+                <div className={`${styles.dropLine} ${styles.dropLineExpandedAfter}`} />
+              )}
               <div className={styles.glyph}>{def.glyph}</div>
               <div className={styles.label}>{def.title}</div>
               {showBadge && <div className={styles.badgeInline}>{badgeCount}</div>}
+              <button
+                type="button"
+                className={
+                  isPinned ? `${styles.pinButton} ${styles.pinButtonActive}` : styles.pinButton
+                }
+                title={isPinned ? "Unpin from bottom group" : "Pin to bottom group"}
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  togglePin(key);
+                }}
+              >
+                {isPinned ? "●" : "○"}
+              </button>
             </div>
           );
         })}
@@ -212,7 +265,12 @@ export function Rail() {
           </div>
         )}
       </div>
-      <div className={styles.handle} title="Drag to resize · double-click to cycle" />
+      <div
+        className={styles.handle}
+        onPointerDown={onResizePointerDown}
+        onDoubleClick={onResizeDoubleClick}
+        title="Drag to resize · double-click to cycle"
+      />
     </nav>
   );
 }
