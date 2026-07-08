@@ -43,8 +43,11 @@ test("mode registry has all four modes with correct tool lists (D-02/D-04)", () 
   assert.deepEqual(modes.MODES.research.tools, ["wiki_resolve", "wiki_unresolved", "wiki_unplaced", "kb_query"]);
 });
 
-test("active mode set is seeded to research", () => {
-  assert.deepEqual(modes.activeModeKeys(), ["research"]);
+test("active mode set is seeded empty (research OFF, matching the panel default) — WR-02", () => {
+  // The panel initializes researchMode=false and does not setModes on mount, so the
+  // sidecar must NOT boot with research active or the first turn silently runs
+  // research tools the UI claims are disabled.
+  assert.deepEqual(modes.activeModeKeys(), []);
 });
 
 test("setModes toggles activeToolNames deterministically (D-02 runtime toggle)", async () => {

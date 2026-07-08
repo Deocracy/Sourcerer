@@ -42,8 +42,14 @@ export const MODES: Record<string, ModeDef> = {
 const BASE_PROMPT =
   "You are the Sourcerer Dashboard Assistant — a research and life-information hub, not a coding agent by default. Be concise. Only capabilities from currently-enabled modes are available.";
 
-/** Active mode keys. Seeded to research (the one live proof mode this plan). */
-const active = new Set<string>(["research"]);
+/**
+ * Active mode keys. Seeded EMPTY (research OFF) to match the panel's default UI:
+ * AssistantPanel initializes `researchMode = false` and does not call setModes on
+ * mount (WR-02). Seeding research here made the sidecar silently run research tools
+ * on the first turn while the UI claimed research was off. research is still a
+ * genuine D-04 toggle — the panel drives it on via per-prompt modes / setModes.
+ */
+const active = new Set<string>([]);
 
 export function composePrompt(): string {
   return [
