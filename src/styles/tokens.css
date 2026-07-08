@@ -9,14 +9,23 @@
   /* ---- Color ---- */
   --color-bg: #0a0a0b;            /* dominant — title bar + app window background */
   --color-panel: #131418;         /* secondary — icon-button hover background */
-  --color-fg: #e6e4de;            /* accent — logo, wordmark, close-hover glyph */
+  --color-panel-2: #0F1013;       /* recessed — inputs / tab containers */
+  --color-fg: #e6e4de;            /* primary text — logo, wordmark, close-hover glyph (demoted from accent role in Phase 2) */
+  --color-fg-secondary: #C5C2BA;  /* secondary text */
   --color-danger-hover: #7a2a24;  /* destructive — close button hover background */
+  --color-danger: #C42B1C;        /* destructive — close-button hover only (Phase 2 handoff) */
   --color-line: #1e1f22;          /* border/line — title bar + window outer border (1px) */
+  --color-line-2: #26272B;        /* stronger border */
   --color-dim: #6e6c66;           /* muted — default glyph + crumb color */
+  --color-dim-hover: #3A3B40;     /* hover border */
   --color-fg-mid: #a5a29a;        /* muted-hover — minimize glyph hover color */
+  --color-muted: #A5A29A;         /* muted text */
+  --color-faint: #6E6C66;         /* labels / captions */
+  --color-accent: #86A38C;        /* green — the 10% accent (Phase 2 Chrome Rework) */
+  --color-accent-hover: #A3BCA8;  /* accent hover */
 
   /* ---- Chrome metrics (fixed, locked by handoff — not on the 4pt scale) ---- */
-  --titlebar-h: 34px;             /* grid row 1 of the app shell */
+  --titlebar-h: 40px;             /* grid row 1 of the app shell (Phase 2: 34px -> 40px) */
   --titlebar-inset: 12px;         /* padding-left on title bar container */
   --cluster-gap: 9px;             /* gap between logo, wordmark, "·", crumb */
   --logo-circle: 15px;            /* logo ring diameter */
@@ -63,6 +72,29 @@
 
   /* ---- Type: letter-spacing ---- */
   --ls-wordmark: 0.08em;
+  --ls-label-wide: 0.18em;        /* widest tracked labels (session-name input, uppercase section headers) */
+
+  /* ---- Window (floating chrome) ---- */
+  --window-inset: 20px;           /* inset padding on the fixed backdrop */
+  --window-radius: 10px;          /* border-radius on the inner card (only place radius != 0) */
+  --window-border: 1px solid #1E1F22;
+  --window-shadow: 0 24px 70px -10px rgba(0, 0, 0, 0.75), 0 4px 14px rgba(0, 0, 0, 0.5);
+  --window-backdrop: radial-gradient(120% 120% at 50% -10%, #0E0F12 0%, #050506 60%, #030304 100%);
+
+  /* ---- Rail ---- */
+  --rail-hidden-w: 6px;           /* hidden hover-to-reopen strip */
+  --rail-compact-w: 56px;         /* compact icon-tile column */
+  --rail-expanded-default: 220px; /* default expanded width */
+  --rail-expanded-max: 520px;     /* max expanded width (clamp upper bound) */
+  --rail-close-at: 44px;          /* drag snap threshold: below -> hidden */
+  --rail-compact-at: 132px;       /* drag snap threshold: below -> compact, else expanded */
+  --rail-row-h: 36px;             /* expanded row height */
+  --rail-tile: 40px;              /* compact icon tile, square */
+  --rail-resize-handle-w: 6px;    /* right-edge resize grip width */
+  --rail-active-border: 2px solid var(--color-accent);
+
+  /* ---- Tab bar ---- */
+  --tab-bar-h: 34px;              /* dockview tab row, matches title-bar-adjacent bars */
 }
 
 /* Minimal global reset so the app-shell grid fills the frameless window. */
