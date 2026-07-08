@@ -1,5 +1,7 @@
 import { shellStore, useShellStore } from "../store/shellStore";
 import { useRailDrag, getVisualRailOrder } from "./useRailDrag";
+import { useRailDragOut } from "./useRailDragOut";
+import { RailDragGhost, DropZoneOverlay } from "./RailDragGhost";
 import { appletDefs, type AppletDef } from "./appletDefs";
 import styles from "./Rail.module.css";
 
@@ -37,15 +39,17 @@ export function Rail() {
   const railApplet = useShellStore((s) => s.railApplet);
   const badges = useShellStore((s) => s.badges);
 
-  const {
-    navRef,
-    liveSnap,
-    onResizePointerDown,
-    onResizeDoubleClick,
-    rowDrag,
-    onRowPointerDown,
-    togglePin,
-  } = useRailDrag();
+  const { navRef, liveSnap, onResizePointerDown, onResizeDoubleClick, togglePin } = useRailDrag();
+
+  // Row drag is owned by useRailDragOut (D-01): it supersedes useRailDrag's
+  // own row-reorder handling by extending the same gesture with a drag-OUT
+  // branch (past the rail's right edge -> ghost + green zone -> dock).
+  const { navRef: dragOutNavRef, rowDrag, onRowPointerDown, ghost, overlay } = useRailDragOut();
+
+  const setNavRefs = (el: HTMLElement | null) => {
+    navRef(el);
+    dragOutNavRef(el);
+  };
 
   const mode = liveSnap ? liveSnap.mode : railMode;
   const width = liveSnap
@@ -62,7 +66,7 @@ export function Rail() {
 
   if (mode === "hidden") {
     return (
-      <nav ref={navRef} className={styles.rail} style={{ width }}>
+      <nav ref={setNavRefs} className={styles.rail} style={{ width }}>
         <div
           className={styles.hiddenStrip}
           title="Reopen rail (Cmd/Ctrl-\\)"
@@ -82,7 +86,8 @@ export function Rail() {
   const compact = mode === "compact";
 
   return (
-    <nav ref={navRef} className={styles.rail} style={{ width }}>
+    <>
+    <nav ref={setNavRefs} className={styles.rail} style={{ width }}>
       <div className={compact ? styles.listCompact : styles.listExpanded}>
         {orderedKeys.map((key, idx) => {
           const def = railDefs[key];
@@ -201,5 +206,8 @@ export function Rail() {
         title="Drag to resize · double-click to cycle"
       />
     </nav>
+    {ghost && <RailDragGhost appletKey={ghost.key} x={ghost.x} y={ghost.y} />}
+    {overlay && <DropZoneOverlay rect={overlay.rect} direction={overlay.direction} />}
+    </>
   );
 }

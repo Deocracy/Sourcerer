@@ -1,0 +1,40 @@
+/*
+ * RailDragGhost — floating cursor ghost + green drop-zone overlay for the
+ * rail drag-out-to-dock seam (D-01). Both are `position: fixed` (no
+ * transformed ancestor in the shell tree) so they track the viewport
+ * regardless of which panel/pane they're drawn over.
+ */
+
+.ghost {
+  position: fixed;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: #131418;
+  border: 1px solid #26272b;
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.glyph {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.title {
+  line-height: 1;
+}
+
+.overlay {
+  position: fixed;
+  z-index: 999;
+  background: rgba(134, 163, 140, 0.18);
+  border: 1px solid #86a38c;
+  pointer-events: none;
+}

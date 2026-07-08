@@ -5,6 +5,7 @@ import { nanoid } from "nanoid";
 import { shellStore } from "../store/shellStore";
 import { appletDefs } from "./appletDefs";
 import { makeRenderer } from "./PanelBody";
+import type { DockDirection } from "./dockZones";
 import styles from "./Dock.module.css";
 
 // D-02 minimal persistence placeholder — Phase 3 (PERS-01..04) owns the real
@@ -12,6 +13,51 @@ import styles from "./Dock.module.css";
 // and discards it before it can re-crash (T-02-01).
 const LAYOUT_KEY = "sourcerer-dockview-bespoke-v2";
 const CANARY_KEY = `${LAYOUT_KEY}:canary`;
+
+// --- D-01 seam: single live dockview instance exposed to useRailDragOut ---
+// Dock.tsx owns the one dockview-core instance; the rail drag-out hook
+// bridges bespoke pointer logic into it via this module-scope handle rather
+// than spinning up a second dockview or threading the api through React
+// props/context for a single-instance-per-app shell.
+const dockApiRef: { current: DockviewApi | null } = { current: null };
+
+export interface DockGroupRect {
+  groupId: string;
+  rect: { left: number; top: number; width: number; height: number };
+}
+
+/** getDockGroupRects — live dockview group bounding rects for zone math
+ * (resolveDropZone consumes these). Returns [] before the dock has mounted. */
+export function getDockGroupRects(): DockGroupRect[] {
+  const api = dockApiRef.current;
+  if (!api) return [];
+  return api.groups.map((group) => {
+    const r = group.element.getBoundingClientRect();
+    return {
+      groupId: group.id,
+      rect: { left: r.left, top: r.top, width: r.width, height: r.height },
+    };
+  });
+}
+
+/** addAppletToDock — opens a fresh `${key}:${nanoid()}` panel instance,
+ * optionally positioned via `{referenceGroup, direction}` (D-01 drag-out
+ * split/tab-join). Omitting `position` keeps dockview's own default (active
+ * group, new tab) used by the "+" button and restore-default paths. */
+export function addAppletToDock(
+  key: string,
+  position?: { referenceGroup: string; direction?: DockDirection },
+): void {
+  const api = dockApiRef.current;
+  if (!api) return;
+  const def = appletDefs[key];
+  api.addPanel({
+    id: `${key}:${nanoid()}`,
+    component: key,
+    title: def?.title ?? key,
+    ...(position ? { position } : {}),
+  });
+}
 
 /**
  * Dock — mounts dockview-core as the center workspace (D-04: dockview owns
@@ -57,16 +103,15 @@ export function Dock() {
       },
     });
 
+    dockApiRef.current = api;
+
     // Fresh-instance-per-click helper (DOCK-01/DOCK-04): always a new panel
     // id, never an existing-panel activate, so repeated opens of the same
-    // key demonstrably coexist as separate instances.
+    // key demonstrably coexist as separate instances. Delegates to the
+    // shared module-scope helper so the rail drag-out hook (D-01) reuses the
+    // exact same panel-creation path, just with a `position` argument.
     function addApplet(key: string) {
-      const def = appletDefs[key];
-      api.addPanel({
-        id: `${key}:${nanoid()}`,
-        component: key,
-        title: def?.title ?? key,
-      });
+      addAppletToDock(key);
     }
 
     // The tab-bar "+" button has no Applet Catalog picker yet (that UI is
@@ -153,6 +198,7 @@ export function Dock() {
       clearTimeout(canaryTimer);
       layoutDisposable.dispose();
       focusDisposable.dispose();
+      if (dockApiRef.current === api) dockApiRef.current = null;
       api.dispose();
     };
   }, []);
