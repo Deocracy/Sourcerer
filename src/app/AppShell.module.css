@@ -20,9 +20,12 @@
 }
 
 .main {
-  /* Main workspace column — dockview (02-05) mounts here. The rail (02-04)
-   * is a sibling to the left, not nested inside this column. */
+  /* Main workspace column — dockview (02-05) mounts here via <Dock />, which
+   * fills this column with its own `position:absolute; inset:0` layer. The
+   * rail (02-04) is a sibling to the left, not nested inside this column. */
+  position: relative;
   flex: 1 1 auto;
   min-width: 0;
+  overflow: hidden;
   background: var(--color-bg);
 }

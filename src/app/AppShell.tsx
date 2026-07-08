@@ -1,5 +1,6 @@
 import { TitleBar } from "../shell/TitleBar";
 import { Rail } from "../shell/Rail";
+import { Dock } from "../shell/Dock";
 import { AssistantPanel } from "../assistant/AssistantPanel";
 import styles from "./AppShell.module.css";
 
@@ -21,7 +22,9 @@ export function AppShell() {
       <TitleBar />
       <div className={styles.body}>
         <Rail />
-        <div className={styles.main} />
+        <div className={styles.main}>
+          <Dock />
+        </div>
         <AssistantPanel />
       </div>
     </div>

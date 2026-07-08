@@ -1,0 +1,62 @@
+/*
+ * Dock — dockview-core theme map (D-04: theme the library, don't reimplement
+ * tabs/splits/resizers). `.sourcerer-dock` overrides the full `--dv-*`
+ * variable set the `dockview-theme-abyss` base theme exposes, copied verbatim
+ * from UI-SPEC "Dock Theme Tokens".
+ */
+
+.host {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+
+.mount {
+  position: absolute;
+  inset: 0;
+}
+
+.sourcerer-dock {
+  --dv-group-view-background-color: #0a0a0b;
+  --dv-tabs-and-actions-container-background-color: #0f1013;
+  --dv-tabs-and-actions-container-height: 34px;
+  --dv-tabs-and-actions-container-font-size: 12px;
+  --dv-activegroup-visiblepanel-tab-background-color: #0a0a0b;
+  --dv-activegroup-hiddenpanel-tab-background-color: #0f1013;
+  --dv-inactivegroup-visiblepanel-tab-background-color: #0d0e10;
+  --dv-inactivegroup-hiddenpanel-tab-background-color: #0f1013;
+  --dv-activegroup-visiblepanel-tab-color: #e6e4de;
+  --dv-activegroup-hiddenpanel-tab-color: #6e6c66;
+  --dv-inactivegroup-visiblepanel-tab-color: #a5a29a;
+  --dv-inactivegroup-hiddenpanel-tab-color: #6e6c66;
+  --dv-tab-divider-color: #1e1f22;
+  --dv-separator-border: #1e1f22;
+  --dv-paneview-header-border-color: #1e1f22;
+  --dv-drag-over-background-color: rgba(134, 163, 140, 0.14);
+  --dv-drag-over-border-color: #86a38c;
+  --dv-tab-close-icon-color: #6e6c66;
+  --dv-icon-hover-background-color: #1e1f22;
+  --dv-floating-box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  --dv-background-color: #0a0a0b;
+}
+
+/* "+" open-applet button — the tab bar's right header action (DOCK-01).
+ * Glyph-only, no text label, per UI-SPEC "Primary CTA" copy convention. */
+.addButton {
+  width: var(--icon-btn-w, 34px);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--color-faint);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.addButton:hover {
+  background: var(--dv-icon-hover-background-color, #1e1f22);
+  color: var(--color-fg);
+}
