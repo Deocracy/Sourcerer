@@ -1,0 +1,20 @@
+{
+  "name": "sourcerer-sidecar",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Headless Pi coding-agent sidecar for Sourcerer's host.ai() seam. Reads newline-delimited JSON prompt/setModes requests on stdin, streams newline-delimited JSON events on stdout.",
+  "scripts": {
+    "start": "node --experimental-strip-types src/index.ts",
+    "test": "node --experimental-strip-types --test test/harness.test.mjs"
+  },
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "^0.80.3",
+    "@earendil-works/pi-ai": "^0.80.3",
+    "typebox": "^1.1.38"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.1",
+    "typescript": "^5.7.3"
+  }
+}
