@@ -5,6 +5,7 @@
 // defineTool implementations are supplied by plan 07-02's Databasise adapter).
 // notes/coding/memory are registered as a REAL seam (D-04): empty tool lists, but
 // genuinely toggleable, not omitted keys.
+import { allDatabasiseTools } from "./tools/databasise.ts";
 
 export interface ModeDef {
   label: string;
@@ -80,25 +81,41 @@ export function bindSession(session: ModeToggleSession): void {
  * Runtime mode toggle (D-02). Order matters (spike 003 landmine): reload() FIRST
  * (re-reads systemPromptOverride -> new mode fragments), THEN setActiveToolsByName
  * (narrows tools + rebuilds the prompt). Reversing this order clobbers the prompt.
+ *
+ * D-09 note: index.ts now builds the first AgentSession lazily (on the first
+ * `prompt`, keyed by sessionId) rather than eagerly at boot, so a `setModes`
+ * request can legitimately arrive before any session exists yet. The `active`
+ * Set above is still updated in that case — the next session built reads it via
+ * composePrompt()/activeToolNames() — so there's nothing to drive on a session
+ * that doesn't exist yet; skip the reload rather than throwing.
  */
 export async function setModes(keys: string[]): Promise<void> {
   active.clear();
   for (const k of keys) {
     if (MODES[k]) active.add(k);
   }
-  if (!boundSession) {
-    throw new Error("modes.setModes() called before bindSession() — index.ts must bindSession after createAgentSession");
-  }
+  if (!boundSession) return;
   await boundSession.reload();
   boundSession.setActiveToolsByName(activeToolNames());
 }
 
+let cachedModeTools: unknown[] | null = null;
+
 /**
  * Tool DEFINITIONS (defineTool instances) for customTools registration at session
- * creation. Plan 07-02 supplies the real Databasise adapter implementations for the
- * research mode's tool names above and populates this array; it is intentionally
- * empty this plan (interface-first sequencing within the phase, not a scope cut —
- * D-03 ships in full via 07-02). Kept as `unknown[]` so index.ts compiles without
- * a hard dependency on the eventual tool-definition module.
+ * creation. Research mode's four D-03 tools now come from the live Databasise
+ * /openapi.json adapter (07-02, tools/databasise.ts); notes/coding/memory stay a
+ * genuine empty seam (D-04) until their tools are added incrementally.
+ *
+ * Exported as an async function (not a bare array, as 07-01 originally sketched)
+ * because tool generation performs a network fetch of /openapi.json (or the D-06
+ * offline-boot fallback) — that can't be synchronous. Memoized so repeated session
+ * builds (e.g. switching between file-backed sessions, D-09) don't re-fetch the
+ * spec or re-hit Databasise on every rebuild.
  */
-export const allModeTools: unknown[] = [];
+export async function allModeTools(): Promise<unknown[]> {
+  if (!cachedModeTools) {
+    cachedModeTools = await allDatabasiseTools();
+  }
+  return cachedModeTools;
+}

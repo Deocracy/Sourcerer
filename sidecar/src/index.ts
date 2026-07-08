@@ -12,7 +12,6 @@ import { fileURLToPath } from "node:url";
 import {
   createAgentSession,
   DefaultResourceLoader,
-  SessionManager,
   type AgentSession,
   type AgentSessionEvent,
   type ToolDefinition,
@@ -21,6 +20,7 @@ import { getModel, type KnownProvider } from "@earendil-works/pi-ai/compat";
 
 import { composePrompt, activeToolNames, bindSession, setModes, allModeTools } from "./modes.ts";
 import { readRequests, writeEvent, type SidecarRequest } from "./protocol.ts";
+import { FileSessionManager } from "./sessions.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -29,19 +29,33 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PI_PROVIDER = process.env.PI_PROVIDER || "cerebras";
 const PI_MODEL = process.env.PI_MODEL || "gpt-oss-120b";
 
+// D-09: one FileSessionManager for the whole sidecar process, lazily created on
+// first use so tests (and the very first buildSession() call) resolve the same
+// session dir every time rather than re-deriving it per call.
+let fileSessionManager: FileSessionManager | null = null;
+
 /**
  * Build the headless Pi session (D-10: lean baseline routed through
  * DefaultResourceLoader, never bare createAgentSession options).
  *
  * Exported separately from the stdio loop so tests can construct a session
  * without spawning a live turn (no network call, works with a dummy key).
+ *
+ * `sessionId` (D-09) selects/creates the JSONL-backed conversation this
+ * AgentSession is bound to; defaults to "default" so existing callers (and
+ * harness.test.mjs, which predates per-session wiring) keep working unchanged.
  */
-export async function buildSession(): Promise<{ session: AgentSession }> {
+export async function buildSession(sessionId: string = "default"): Promise<{ session: AgentSession }> {
   // cwd is set to the sidecar dir (NOT the repo root) so noContextFiles has nothing
   // to walk past even as a defense-in-depth measure — the flag already guards this.
   const cwd = __dirname;
   const agentDir = path.join(__dirname, ".pi-agent"); // sidecar-local; never touch ~/.pi
   fs.mkdirSync(agentDir, { recursive: true });
+
+  if (!fileSessionManager) {
+    fileSessionManager = new FileSessionManager(cwd);
+  }
+  const sessionManager = await fileSessionManager.open(sessionId);
 
   const resourceLoader = new DefaultResourceLoader({
     cwd,
@@ -70,8 +84,8 @@ export async function buildSession(): Promise<{ session: AgentSession }> {
     agentDir,
     model,
     noTools: "builtin", // NEVER "all" — that silently drops customTools too (spike 001 landmine)
-    customTools: allModeTools as ToolDefinition[], // empty this plan; 07-02 fills from the Databasise adapter
-    sessionManager: SessionManager.inMemory(), // placeholder — 07-02 swaps in the file-backed variant (D-09)
+    customTools: (await allModeTools()) as ToolDefinition[], // D-03: research's four Databasise tools + empty seams
+    sessionManager, // D-09: file-backed, keyed on sessionId — no more SessionManager.inMemory()
     resourceLoader,
   });
 
@@ -132,8 +146,27 @@ async function runPrompt(session: AgentSession, req: { id: string; message: stri
   }
 }
 
-async function handleRequest(session: AgentSession, req: SidecarRequest): Promise<void> {
+// D-09: one AgentSession per distinct sessionId, built lazily on first prompt and
+// cached for the life of the process so a chatty conversation doesn't reopen its
+// JSONL file (or re-fetch the Databasise /openapi.json, memoized separately in
+// modes.ts) on every turn. Multiple sessionIds may exist across a process
+// lifetime; only one prompt is ever in flight at a time (requests are handled
+// sequentially below), so bindSession()'s single module-level slot always
+// reflects the session the current/most-recent prompt or setModes() call acted on.
+const sessionsById = new Map<string, Promise<AgentSession>>();
+
+async function getOrCreateSession(sessionId: string): Promise<AgentSession> {
+  let sessionPromise = sessionsById.get(sessionId);
+  if (!sessionPromise) {
+    sessionPromise = buildSession(sessionId).then(({ session }) => session);
+    sessionsById.set(sessionId, sessionPromise);
+  }
+  return sessionPromise;
+}
+
+async function handleRequest(req: SidecarRequest): Promise<void> {
   if (req.type === "prompt") {
+    const session = await getOrCreateSession(req.sessionId);
     await runPrompt(session, req);
   } else if (req.type === "setModes") {
     await setModes(req.modes);
@@ -141,7 +174,9 @@ async function handleRequest(session: AgentSession, req: SidecarRequest): Promis
 }
 
 async function main(): Promise<void> {
-  const { session } = await buildSession();
+  // D-09: no session is built until the first prompt arrives (each prompt carries
+  // the sessionId that selects/creates its JSONL file) — the sidecar can announce
+  // ready immediately rather than eagerly building a "default" session up front.
   writeEvent({ type: "ready" });
 
   for await (const req of readRequests()) {
@@ -149,7 +184,7 @@ async function main(): Promise<void> {
     // a bad request never crashes the loop (protocol.ts already parses defensively,
     // and handleRequest's own errors are caught per-turn inside runPrompt).
     try {
-      await handleRequest(session, req);
+      await handleRequest(req);
     } catch (err) {
       const id = req.type === "prompt" ? req.id : "setModes";
       writeEvent({ type: "error", id, message: err instanceof Error ? err.message : String(err) });
