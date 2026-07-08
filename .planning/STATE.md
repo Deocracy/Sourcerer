@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-07T23:51:40.481Z"
-last_activity: 2026-07-07 -- Phase 07 planning complete
+last_updated: "2026-07-08T00:11:21.327Z"
+last_activity: 2026-07-08
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 14
-  completed_plans: 3
+  completed_plans: 4
   percent: 14
 ---
 
@@ -20,16 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-06)
 
 **Core value:** A pixel-perfect, fully interactive desktop shell where the applet framework demonstrably works end-to-end — Notes proves the loop, every other applet is a believable stub.
-**Current focus:** Phase 01 — shell-foundation
+**Current focus:** Phase 07 — assistant-harness-core-headless-pi-sidecar-behind-the-host-a
 
 ## Current Position
 
-Phase: 01 (shell-foundation) — EXECUTING
-Plan: 3 of 3
+Phase: 07 (assistant-harness-core-headless-pi-sidecar-behind-the-host-a) — EXECUTING
+Plan: 2 of 5
 Status: Ready to execute
-Last activity: 2026-07-07 -- Phase 07 planning complete
+Last activity: 2026-07-08
 
-Progress: [███████░░░] 67%
+Progress: [███░░░░░░░] 29%
 
 ## Performance Metrics
 
@@ -52,6 +52,7 @@ Progress: [███████░░░] 67%
 
 *Updated after each plan completion*
 | Phase 01 P02 | 14 | 3 tasks | 11 files |
+| Phase 02 P01 | 12 | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,8 @@ Recent decisions affecting current work:
 - [Roadmap]: Persistence split into its own phase (Phase 3) — crash-safety + schema versioning is a distinct critical-risk subsystem per PITFALLS.md.
 - [Phase ?]: 01-02: title bar wired to Tauri window API; maximize state via isMaximized()-on-onResized, stateless (D-02)
 - [Phase ?]: 01-02: verify:fonts node gate proves SHELL-04 (no Google Fonts, local IBM Plex bundled)
+- [Phase ?]: 02-01: shell store persists only D-02 subset; dockview-core pinned exact 2.0.0
+- [Phase ?]: 02-01: locked deps installed behind approved legitimacy gate (zustand 5.0.14, nanoid ^5, dockview-core 2.0.0)
 
 ### Roadmap Evolution
 
@@ -94,6 +97,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-07T23:27:38.121Z
+Last session: 2026-07-08T00:09:19.275Z
 Stopped at: Phase 7 context gathered
-Resume file: .planning/phases/07-assistant-harness-core-headless-pi-sidecar-behind-the-host-a/07-CONTEXT.md
+Resume file: None

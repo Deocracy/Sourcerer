@@ -99,6 +99,11 @@ None - no external service configuration required.
 - dockview-core installed and ready for the Dock integration plan.
 - Persistence is a deliberate D-02 placeholder on localStorage; Phase 3 (PERS-01..04) owns the real crash-safe/versioned contract.
 
+## Self-Check: PASSED
+
+- Files verified on disk: src/store/shellStore.ts, src/store/shellStore.test.ts, src/styles/tokens.css
+- Commits verified in git log: 9d2205e (feat tokens+deps), db97c7c (test RED), 3f9d58f (feat store)
+
 ---
 *Phase: 02-workspace-core*
 *Completed: 2026-07-07*

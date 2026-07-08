@@ -69,7 +69,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 Plans:
 **Wave 1**
-- [ ] 02-01-PLAN.md — Deps (zustand/nanoid/dockview-core) + Chrome-delta tokens + typed Zustand shell store
+- [x] 02-01-PLAN.md — Deps (zustand/nanoid/dockview-core) + Chrome-delta tokens + typed Zustand shell store
 **Wave 2** *(blocked on Wave 1)*
 - [ ] 02-02-PLAN.md — TitleBar chrome (DIVI chip, corpus label, rail toggles) + floating rounded window
 **Wave 3** *(blocked on Wave 2)*
@@ -153,7 +153,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Shell Foundation | 3/3 | Complete   | 2026-07-07 |
-| 2. Workspace Core | 0/6 | Not started | - |
+| 2. Workspace Core | 1/6 | In Progress|  |
 | 3. Persistence & Layouts | 0/TBD | Not started | - |
 | 4. Applet Framework | 0/TBD | Not started | - |
 | 5. Notes Applet | 0/TBD | Not started | - |

@@ -2,26 +2,28 @@
 
 Scope decided at init: pixel-perfect Tauri shell + applet framework + **Notes as the only real applet**. Databasise integration and the real AI backend are deliberately deferred (seams preserved).
 
+> **Design supersession (2026-07-07):** the source-of-truth handoff is now `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/` (built around dockview-core + zustand + dnd-kit). Adopted wholesale. Chrome deltas vs shipped Phase 1, **reworked in Phase 2**: title bar 34px→**40px** with DIVI-chip + corpus label (not logo+crumb); frameless edge-to-edge → **floating rounded window** (20px inset, 10px card radius, backdrop + shadow, Tauri `transparent:true`); primary accent white → **green `#86A38C`**. Fonts stay locally bundled (prototype's Google Fonts is convenience only).
+
 ## v1 Requirements
 
 ### Shell / Window (SHELL)
 
-- [x] **SHELL-01**: User sees a frameless single window with the custom 34px title bar (logo, app name, active applet crumb) matching design tokens
+- [x] **SHELL-01**: User sees a single window with the custom title bar matching design tokens — *(P1 shipped 34px frameless/logo+crumb; Phase 2 reworks to the new handoff: **40px** bar, floating rounded window, "Sourcerer" + DIVI chip + corpus label)*
 - [x] **SHELL-02**: User can minimize, maximize/restore, and close via the custom window controls (wired to Tauri window API), and drag the window by the title-bar spacer only — no button swallows clicks
 - [x] **SHELL-03**: User sees crisp 1px borders and correct metrics at 100%/125%/150% Windows display scaling
 - [x] **SHELL-04**: User sees IBM Plex Sans/Mono/Serif rendered from locally bundled fonts (no network font loading)
 
 ### Left Rail (RAIL)
 
-- [ ] **RAIL-01**: User can cycle the rail between expanded / compact / hidden modes via the grip (drag, double-click) and ⌘\
-- [ ] **RAIL-02**: User can reorder rail items by drag, pin items to the bottom group, and drag an item into the workspace to dock it as a new pane
-- [ ] **RAIL-03**: User sees active-applet highlighting and badge counts per the design spec
+- [x] **RAIL-01**: User can cycle the rail between expanded / compact / hidden modes via the grip (drag, double-click) and ⌘\
+- [x] **RAIL-02**: User can reorder rail items by drag, pin items to the bottom group, and drag an item into the workspace to dock it as a new pane
+- [x] **RAIL-03**: User sees active-applet highlighting and badge counts per the design spec
 
 ### Workspace / Dock Tree (DOCK)
 
 - [ ] **DOCK-01**: User can open applets in tabs; tab bars render per spec (34px, min-width 124px, active accent) with "+" to open an applet
 - [ ] **DOCK-02**: User can drag tabs to reorder within a bar, move between bars, dock into 5 zones of a pane (center/left/right/top/bottom), and split the whole workspace at its edges — with the prototype's preview UI
-- [ ] **DOCK-03**: User can resize splits via 5px resizers; closing the last tab of a pane prunes the tree correctly; empty tree renders Home
+- [ ] **DOCK-03**: User can resize splits via 5px resizers; closing the last tab of a pane prunes the tree correctly. *(Home model per new handoff: default panels open Wiki→Library, and Home is a DIVI overlay toggled from the title bar — not a bare "empty tree renders Home".)*
 - [ ] **DOCK-04**: User can open multiple instances of one applet, each with a stable instance id
 - [ ] **DOCK-05**: Keyboard input routes to the focused pane deterministically (explicit focus model: click/drag/close set focus predictably)
 - [ ] **DOCK-06**: All pane/rail/assistant resizes clamp to explicit min/max bounds (values extracted from the prototype)
@@ -80,9 +82,9 @@ Scope decided at init: pixel-perfect Tauri shell + applet framework + **Notes as
 | SHELL-02 | Phase 1 | Complete |
 | SHELL-03 | Phase 1 | Complete |
 | SHELL-04 | Phase 1 | Complete |
-| RAIL-01 | Phase 2 | Pending |
-| RAIL-02 | Phase 2 | Pending |
-| RAIL-03 | Phase 2 | Pending |
+| RAIL-01 | Phase 2 | Complete |
+| RAIL-02 | Phase 2 | Complete |
+| RAIL-03 | Phase 2 | Complete |
 | DOCK-01 | Phase 2 | Pending |
 | DOCK-02 | Phase 2 | Pending |
 | DOCK-03 | Phase 2 | Pending |
