@@ -21,11 +21,11 @@ Scope decided at init: pixel-perfect Tauri shell + applet framework + **Notes as
 
 ### Workspace / Dock Tree (DOCK)
 
-- [ ] **DOCK-01**: User can open applets in tabs; tab bars render per spec (34px, min-width 124px, active accent) with "+" to open an applet
-- [ ] **DOCK-02**: User can drag tabs to reorder within a bar, move between bars, dock into 5 zones of a pane (center/left/right/top/bottom), and split the whole workspace at its edges — with the prototype's preview UI
-- [ ] **DOCK-03**: User can resize splits via 5px resizers; closing the last tab of a pane prunes the tree correctly. *(Home model per new handoff: default panels open Wiki→Library, and Home is a DIVI overlay toggled from the title bar — not a bare "empty tree renders Home".)*
-- [ ] **DOCK-04**: User can open multiple instances of one applet, each with a stable instance id
-- [ ] **DOCK-05**: Keyboard input routes to the focused pane deterministically (explicit focus model: click/drag/close set focus predictably)
+- [x] **DOCK-01**: User can open applets in tabs; tab bars render per spec (34px, min-width 124px, active accent) with "+" to open an applet
+- [x] **DOCK-02**: User can drag tabs to reorder within a bar, move between bars, dock into 5 zones of a pane (center/left/right/top/bottom), and split the whole workspace at its edges — with the prototype's preview UI
+- [x] **DOCK-03**: User can resize splits via 5px resizers; closing the last tab of a pane prunes the tree correctly. *(Home model per new handoff: default panels open Wiki→Library, and Home is a DIVI overlay toggled from the title bar — not a bare "empty tree renders Home".)*
+- [x] **DOCK-04**: User can open multiple instances of one applet, each with a stable instance id
+- [x] **DOCK-05**: Keyboard input routes to the focused pane deterministically (explicit focus model: click/drag/close set focus predictably)
 - [x] **DOCK-06**: All pane/rail/assistant resizes clamp to explicit min/max bounds (values extracted from the prototype)
 
 ### Persistence & Layouts (PERS)
@@ -85,11 +85,11 @@ Scope decided at init: pixel-perfect Tauri shell + applet framework + **Notes as
 | RAIL-01 | Phase 2 | Complete |
 | RAIL-02 | Phase 2 | Complete |
 | RAIL-03 | Phase 2 | Complete |
-| DOCK-01 | Phase 2 | Pending |
-| DOCK-02 | Phase 2 | Pending |
-| DOCK-03 | Phase 2 | Pending |
-| DOCK-04 | Phase 2 | Pending |
-| DOCK-05 | Phase 2 | Pending |
+| DOCK-01 | Phase 2 | Complete |
+| DOCK-02 | Phase 2 | Complete |
+| DOCK-03 | Phase 2 | Complete |
+| DOCK-04 | Phase 2 | Complete |
+| DOCK-05 | Phase 2 | Complete |
 | DOCK-06 | Phase 2 | Complete |
 | PERS-01 | Phase 3 | Pending |
 | PERS-02 | Phase 3 | Pending |

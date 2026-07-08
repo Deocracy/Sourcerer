@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-08T01:29:45.253Z"
+last_updated: "2026-07-08T01:42:28.122Z"
 last_activity: 2026-07-08
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 14
-  completed_plans: 11
+  completed_plans: 12
   percent: 14
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-07-06)
 ## Current Position
 
 Phase: 02 (workspace-core) — EXECUTING
-Plan: 5 of 6 (02-01, 02-02 complete; next is 02-03 human-verify checkpoint)
+Plan: 6 of 6 (02-01, 02-02 complete; next is 02-03 human-verify checkpoint)
 Status: Ready to execute
 Last activity: 2026-07-08
 
@@ -33,7 +33,7 @@ Phase 07 (assistant-harness-core, running in parallel): 4 of 5 plans complete (0
 
 Note: `state.advance-plan` tracks a single project-wide plan counter and mis-attributes advances to whichever phase this "Current Position" block names when two phases execute in parallel (landmine, repeats each time — see prior note this replaced). After 07-02's completion this was manually corrected here (via `state.update-progress`, not `state.advance-plan`): Phase 02's plan number was NOT advanced by 07-02's completion. The aggregate `completed_plans` count in frontmatter is derived from `state.update-progress`'s disk-scan (recompute it if it drifts — Phase 01 + Phase 02 + Phase 07's actual SUMMARY.md counts on disk are the source of truth, not this note's numbers, since both phases execute in parallel and this note goes stale quickly). At last recompute during 07-02's completion: Phase 01 (3) + Phase 02 (4, including 02-04) + Phase 07 (07-01, 07-02, 07-03, 07-04 = 4) = 11.
 
-Progress: [████████░░] 79%
+Progress: [█████████░] 86%
 
 ## Performance Metrics
 
@@ -63,6 +63,7 @@ Progress: [████████░░] 79%
 | Phase 07 P04 | ~35min | 3 tasks | 6 files |
 | Phase 07 P02 | 55min | 2 tasks | 8 files |
 | Phase 02 P04 | 25min | 3 tasks | 7 files |
+| Phase 02-workspace-core P05 | 35min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -92,6 +93,8 @@ Recent decisions affecting current work:
 - [Phase 02]: Rail self-sizes from the shell store rather than AppShell computing/passing width, since the 02-03 checkpoint fixed the body row to a flat flex layout
 - [Phase 02]: Rail badge renders as a 12px pill in both expanded and compact modes, following UI-SPEC literally over the prototype's plain-text expanded badge
 - [Phase 02]: Pin-to-bottom-group implemented as a hover-visible per-row toggle button (togglePin) rather than a drag-into-footer gesture
+- [Phase ?]: addApplet(key) always creates a fresh instance (no existing-panel activate) to satisfy DOCK-04 multi-instance coexistence
+- [Phase ?]: Dock '+' tab-bar action cycles appletDefs keys instead of an Applet Catalog picker (Phase 4 scope)
 
 ### Roadmap Evolution
 
@@ -120,6 +123,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-08T01:29:45.241Z
+Last session: 2026-07-08T01:42:20.870Z
 Stopped at: Completed 02-04-PLAN.md
 Resume file: None
