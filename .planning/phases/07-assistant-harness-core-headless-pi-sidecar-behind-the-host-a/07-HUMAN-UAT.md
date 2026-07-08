@@ -1,5 +1,5 @@
 ---
-status: gaps_found
+status: complete
 phase: 07-assistant-harness-core-headless-pi-sidecar-behind-the-host-a
 source: [07-VERIFICATION.md, 07-05-PLAN.md]
 started: 2026-07-07
@@ -8,7 +8,7 @@ updated: 2026-07-07
 
 ## Current Test
 
-[live end-to-end run complete — 3/4 pass, D-09 filed as a gap]
+[all tests complete — 4/4 pass; D-09 gap closed by plan 07-06 and retested live]
 
 ## Environment used
 
@@ -32,20 +32,20 @@ result: PASS (after fix) — app did not crash/hang and plain chat worked from t
 
 ### 4. History survives restart (D-09)
 expected: after app restart, the prior session's turns reload into the panel from the JSONL store.
-result: ISSUE (gap) — sidecar persistence works (proven: a fresh sidecar process on the same sessionId recalled prior turns), but the PANEL mints a new sessionId every launch and there is NO protocol path to fetch prior turns for display, so the panel opens blank after restart. See Gaps.
+result: PASS (after gap closure, retested 2026-07-07) — plan 07-06 added the loadSession protocol path (sidecar `history` event, Rust `load_session` command, panel sessionId persistence + replay on mount). Rebuilt release exe, sent messages, closed, relaunched: prior turns rendered in the panel on open. Initial ISSUE record preserved below in Gaps (now CLOSED).
 
 ## Summary
 
 total: 4
-passed: 3
-issues: 1
+passed: 4
+issues: 0
 pending: 0
 skipped: 0
 blocked: 0
 
 ## Gaps
 
-### GAP-07-D09: chat history does not reload/render on app restart
+### GAP-07-D09 (CLOSED 2026-07-07 by plan 07-06): chat history does not reload/render on app restart
 - **Decision:** D-09 — CONTEXT: "the current session's turns render on open, so history survives restart." User explicitly wants chat history working.
 - **Observed:** After closing and relaunching the app, the assistant panel opens empty. Prior turns are safely on disk (JSONL, file-backed sessions) and reload into the model's context if the same sessionId is reused (verified with a two-process test), but the UI never reopens or renders them.
 - **Root cause (two-fold, both frontend/protocol — engine is fine):**

@@ -158,7 +158,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 4. Applet Framework | 0/TBD | Not started | - |
 | 5. Notes Applet | 0/TBD | Not started | - |
 | 6. Dashboard Assistant & Home | 0/TBD | Not started | - |
-| 7. Assistant Harness Core | 5/6 | In Progress|  |
+| 7. Assistant Harness Core | 6/6 | Complete   | 2026-07-08 |
 
 ### Phase 7: Assistant Harness Core
 
@@ -168,7 +168,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 **Architecture**: de-risked by spikes 001–005 (all VALIDATED, see `.planning/spikes/`). Parked spikes 006–008 (integration / persistence / tauri-seam) fold into this phase as build work, not throwaway experiments.
 **Note (2026-07-07)**: pulls "Real backend behind host.ai()" forward from the v2 deferral (see STATE.md Deferred Items) into this milestone.
 **Requirements**: TBD (tracked via CONTEXT.md decisions D-01..D-10; no ASST-HARNESS-* IDs minted)
-**Plans:** 5/6 plans executed
+**Plans:** 6/6 plans complete
 
 Plans:
 **Wave 1** *(parallel — disjoint file trees)*
@@ -180,7 +180,7 @@ Plans:
 - [x] 07-02-PLAN.md — Databasise Research tools from /openapi.json (D-03/D-06/D-07) + file-backed sessions (D-09)
 
 **Wave 3** *(depends on 07-02/03/04)*
-- [ ] 07-05-PLAN.md — Live end-to-end human-verify: streamed chat, Research grounding, degrade, history reload
+- [x] 07-05-PLAN.md — Live end-to-end human-verify: streamed chat, Research grounding, degrade, history reload
 
 **Wave 4** *(gap closure — GAP-07-D09 from 07-HUMAN-UAT.md)*
 - [x] 07-06-PLAN.md — D-09 history reload: loadSession request + history event (protocol/sidecar), load_session Tauri command, persisted sessionId + on-mount reload/render in the panel
