@@ -51,7 +51,13 @@ export interface DoneEvent {
   id: string;
 }
 
-/** Discriminated union on `type`, covering all seven sidecar event shapes. */
+export interface HistoryEvent {
+  type: "history";
+  id: string;
+  turns: { role: "user" | "assistant"; text: string }[];
+}
+
+/** Discriminated union on `type`, covering all eight sidecar event shapes. */
 export type AssistantEvent =
   | ReadyEvent
   | ThinkingDeltaEvent
@@ -59,7 +65,8 @@ export type AssistantEvent =
   | ToolStartEvent
   | ToolEndEvent
   | ErrorEvent
-  | DoneEvent;
+  | DoneEvent
+  | HistoryEvent;
 
 export interface HostAiRequest {
   message: string;
@@ -109,4 +116,30 @@ export function setModes(modes: string[]): Promise<void> {
   return invoke("set_modes", { modes });
 }
 
-export const host = { ai, setModes };
+/**
+ * Invokes the `load_session` Tauri command with a fresh Channel — the D-09
+ * restart-reload seam. Mirrors `ai()`'s Channel/degrade pattern exactly:
+ * forwards every relayed event (a single `history` event, then `done`) to
+ * `onEvent`, resolves on `done`, and on invoke-reject delivers an error+done
+ * pair rather than throwing, so callers never need a try/catch.
+ */
+export function loadSession(sessionId: string, onEvent: AssistantEventListener): Promise<void> {
+  return new Promise((resolve) => {
+    const channel = new Channel<AssistantEvent>();
+    channel.onmessage = (event) => {
+      onEvent(event);
+      if (event.type === "done") {
+        resolve();
+      }
+    };
+
+    invoke("load_session", { sessionId, onEvent: channel }).catch((err: unknown) => {
+      const message = err instanceof Error ? err.message : String(err);
+      onEvent({ type: "error", id: "invoke", message });
+      onEvent({ type: "done", id: "invoke" });
+      resolve();
+    });
+  });
+}
+
+export const host = { ai, setModes, loadSession };

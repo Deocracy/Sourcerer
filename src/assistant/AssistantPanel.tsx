@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { customAlphabet, nanoid } from "nanoid";
 import { host, type AssistantEvent } from "../host/ai";
 import styles from "./AssistantPanel.module.css";
@@ -24,6 +24,23 @@ const RESEARCH_MODE = "research";
 // generated ID satisfies the sidecar contract by construction.
 const newSessionId = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 21);
 
+// D-09 restart survival: persist the sessionId across app restarts so the same
+// conversation (and its on-disk JSONL file) is reopened instead of a fresh one
+// minted every mount. Namespaced per the applet `sourcerer:<key>:<k>` storage
+// convention (CLAUDE.md / reference/applets/README.md). localStorage is the
+// minimal store here since no tauri-plugin-store / host.storage seam exists
+// in-repo yet (SHELL-04 note: a future migration point, not a re-litigation of
+// that decision now).
+const SESSION_STORAGE_KEY = "sourcerer:assistant:sessionId";
+
+function loadOrMintSessionId(): string {
+  const stored = localStorage.getItem(SESSION_STORAGE_KEY);
+  if (stored) return stored;
+  const minted = newSessionId();
+  localStorage.setItem(SESSION_STORAGE_KEY, minted);
+  return minted;
+}
+
 /**
  * AssistantPanel — minimal rail chat panel proving D-01 end-to-end: type a
  * message, watch a real streamed reply. Keeps chat state local (no Zustand
@@ -37,11 +54,34 @@ export function AssistantPanel() {
   const [composerText, setComposerText] = useState("");
   const [sending, setSending] = useState(false);
   const [researchMode, setResearchMode] = useState(false);
-  const sessionId = useRef(newSessionId());
+  const sessionId = useRef(loadOrMintSessionId());
 
   function updateMessage(id: string, patch: Partial<ChatMessage>) {
     setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m)));
   }
+
+  // D-09: on mount, reload the persisted session's prior turns (if any) and render
+  // them before any new message is sent. An empty `turns` array (fresh session, or
+  // the backend degrading honestly per D-06) leaves the panel empty and usable.
+  useEffect(() => {
+    const onEvent = (event: AssistantEvent) => {
+      if (event.type === "history") {
+        const replayed: ChatMessage[] = event.turns.map((turn) => ({
+          id: nanoid(),
+          role: turn.role,
+          text: turn.text,
+          status: "done",
+        }));
+        setMessages(replayed);
+      }
+      // ready/thinking_delta/error/done/etc. carry nothing to render for a
+      // load_session turn beyond the history event itself; degrade is honest by
+      // construction (empty turns), so no error-branch handling is needed here.
+    };
+
+    void host.loadSession(sessionId.current, onEvent);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleSend() {
     const text = composerText.trim();
