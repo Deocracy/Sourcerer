@@ -1,8 +1,9 @@
 /*
  * App-shell CSS grid — the card interior every later phase fills (D-01).
  * Row 1: the full-width 40px title bar (window controls at the card's top-right).
- * Row 2: the body — a flex row of [main workspace column | right-rail AssistantPanel].
- * The main column is where the rail (plan 02-04) and dockview (plan 02-05) mount.
+ * Row 2: the body — a flex row of [left rail | main workspace column | right-rail
+ * AssistantPanel]. The rail (plan 02-04) sizes itself via inline width from the
+ * shell store; `.main` is where dockview (plan 02-05) mounts.
  */
 
 .shell {
@@ -19,7 +20,8 @@
 }
 
 .main {
-  /* Main workspace column — rail (02-04) + dockview (02-05) fill this. */
+  /* Main workspace column — dockview (02-05) mounts here. The rail (02-04)
+   * is a sibling to the left, not nested inside this column. */
   flex: 1 1 auto;
   min-width: 0;
   background: var(--color-bg);
