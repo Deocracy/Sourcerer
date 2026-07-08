@@ -1,28 +1,11 @@
 /*
- * App — floating rounded window wrapper (Chrome Rework D-03). With Tauri
- * transparent:true, the .backdrop is a transparent 20px margin so the desktop
- * shows through and the card's drop shadow floats over it. The radial-gradient
- * fills the inner .card (the only place radius != 0), which carries the 10px
- * radius, 1px border, and drop shadow — a true floating rounded window.
- *
- * Maximized: the float treatment collapses (backdropMax/cardMax) — zero inset,
- * zero radius, no border/shadow — so a maximized window is true edge-to-edge
- * with no halo strip around the app.
+ * App — the rounded window card (D-03 revised: card fills the window).
+ * Windowed (.card): 10px radius + 1px border at the true window edge; the
+ * transparent OS window shows the desktop only through the corner notches.
+ * No inset margin, no box-shadow — the window edge IS the card edge, so
+ * resize grips sit exactly where the user sees the border.
+ * Maximized (.cardMax): radius/border collapse for true edge-to-edge.
  */
-
-.backdrop {
-  height: 100%;
-  width: 100%;
-  padding: var(--window-inset);
-  background: transparent;
-}
-
-.backdropMax {
-  height: 100%;
-  width: 100%;
-  padding: 0;
-  background: transparent;
-}
 
 .card,
 .cardMax {
@@ -35,11 +18,9 @@
 .card {
   border-radius: var(--window-radius);
   border: var(--window-border);
-  box-shadow: var(--window-shadow);
 }
 
 .cardMax {
   border-radius: 0;
   border: none;
-  box-shadow: none;
 }
