@@ -168,7 +168,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 **Architecture**: de-risked by spikes 001–005 (all VALIDATED, see `.planning/spikes/`). Parked spikes 006–008 (integration / persistence / tauri-seam) fold into this phase as build work, not throwaway experiments.
 **Note (2026-07-07)**: pulls "Real backend behind host.ai()" forward from the v2 deferral (see STATE.md Deferred Items) into this milestone.
 **Requirements**: TBD (tracked via CONTEXT.md decisions D-01..D-10; no ASST-HARNESS-* IDs minted)
-**Plans:** 4/5 plans executed
+**Plans:** 4/6 plans executed (07-06 = D-09 gap closure)
 
 Plans:
 **Wave 1** *(parallel — disjoint file trees)*
@@ -181,3 +181,6 @@ Plans:
 
 **Wave 3** *(depends on 07-02/03/04)*
 - [ ] 07-05-PLAN.md — Live end-to-end human-verify: streamed chat, Research grounding, degrade, history reload
+
+**Wave 4** *(gap closure — GAP-07-D09 from 07-HUMAN-UAT.md)*
+- [ ] 07-06-PLAN.md — D-09 history reload: loadSession request + history event (protocol/sidecar), load_session Tauri command, persisted sessionId + on-mount reload/render in the panel
