@@ -16,8 +16,13 @@ import { Type, type TSchema } from "typebox";
 
 export const DATABASISE_BASE_URL = process.env.DATABASISE_BASE_URL || "http://127.0.0.1:9621";
 
+// D-06 honest-degrade contract. Phrased as an explicit instruction, not a soft
+// hint: the earlier wording ("...answering from general knowledge") let the model
+// silently answer from training data without telling the user the wiki was down.
+// This version forces the disclosure so honest-degrade does not depend on model
+// discretion — the user must always be told the corpus was unreachable.
 export const WIKI_UNAVAILABLE_MESSAGE =
-  "wiki unavailable — Databasise not reachable at 127.0.0.1:9621; answering from general knowledge";
+  "WIKI UNAVAILABLE: the Databasise knowledge base could not be reached (127.0.0.1:9621), so NOTHING was retrieved from the user's wiki/corpus. You MUST begin your reply by telling the user the wiki is currently unavailable, and make clear that anything you say next is from general knowledge only — not from their documents. Do not present general knowledge as if it came from their corpus.";
 
 const RESULT_TRUNCATE_CHARS = 4000;
 const FETCH_TIMEOUT_MS = 240_000;
