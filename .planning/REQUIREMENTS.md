@@ -26,7 +26,7 @@ Scope decided at init: pixel-perfect Tauri shell + applet framework + **Notes as
 - [ ] **DOCK-03**: User can resize splits via 5px resizers; closing the last tab of a pane prunes the tree correctly. *(Home model per new handoff: default panels open Wiki→Library, and Home is a DIVI overlay toggled from the title bar — not a bare "empty tree renders Home".)*
 - [ ] **DOCK-04**: User can open multiple instances of one applet, each with a stable instance id
 - [ ] **DOCK-05**: Keyboard input routes to the focused pane deterministically (explicit focus model: click/drag/close set focus predictably)
-- [ ] **DOCK-06**: All pane/rail/assistant resizes clamp to explicit min/max bounds (values extracted from the prototype)
+- [x] **DOCK-06**: All pane/rail/assistant resizes clamp to explicit min/max bounds (values extracted from the prototype)
 
 ### Persistence & Layouts (PERS)
 
@@ -90,7 +90,7 @@ Scope decided at init: pixel-perfect Tauri shell + applet framework + **Notes as
 | DOCK-03 | Phase 2 | Pending |
 | DOCK-04 | Phase 2 | Pending |
 | DOCK-05 | Phase 2 | Pending |
-| DOCK-06 | Phase 2 | Pending |
+| DOCK-06 | Phase 2 | Complete |
 | PERS-01 | Phase 3 | Pending |
 | PERS-02 | Phase 3 | Pending |
 | PERS-03 | Phase 3 | Pending |

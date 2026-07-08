@@ -75,7 +75,7 @@ Plans:
 **Wave 3** *(blocked on Wave 2)*
 - [x] 02-03-PLAN.md — Human-verify: floating window + DPI 100/125/150% + drag (D-03 re-verify)
 **Wave 4** *(blocked on Wave 3)*
-- [ ] 02-04-PLAN.md — Left rail: 3-mode render, pointer resize/snap, keyboard/double-click cycle, reorder + pin
+- [x] 02-04-PLAN.md — Left rail: 3-mode render, pointer resize/snap, keyboard/double-click cycle, reorder + pin
 **Wave 5** *(blocked on Wave 4)*
 - [ ] 02-05-PLAN.md — Center dock: dockview integration, theme, panel dispatch, canary restore/default, focus, multi-instance
 **Wave 6** *(blocked on Wave 5)*
@@ -153,7 +153,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Shell Foundation | 3/3 | Complete   | 2026-07-07 |
-| 2. Workspace Core | 3/6 | In Progress|  |
+| 2. Workspace Core | 4/6 | In Progress|  |
 | 3. Persistence & Layouts | 0/TBD | Not started | - |
 | 4. Applet Framework | 0/TBD | Not started | - |
 | 5. Notes Applet | 0/TBD | Not started | - |

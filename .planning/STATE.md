@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-08T01:24:50.677Z"
+last_updated: "2026-07-08T01:29:45.253Z"
 last_activity: 2026-07-08
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 14
   completed_plans: 11
-  percent: 79
+  percent: 14
 ---
 
 # Project State
@@ -62,6 +62,7 @@ Progress: [████████░░] 79%
 | Phase 07 P03 | 35min | 3 tasks | 6 files |
 | Phase 07 P04 | ~35min | 3 tasks | 6 files |
 | Phase 07 P02 | 55min | 2 tasks | 8 files |
+| Phase 02 P04 | 25min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -88,6 +89,9 @@ Recent decisions affecting current work:
 - [Phase 07-04]: AssistantPanel mounts as a plain flex sibling of AppShell in App.tsx, not a rail/dock primitive - full rail integration deferred to Phase 2/6
 - [Phase 07]: 07-02: index.ts createAgentSession now awaits allModeTools() and builds one AgentSession per sessionId lazily on first prompt via FileSessionManager (D-09), replacing the eager single-session-at-boot pattern from 07-01
 - [Phase 07]: 07-02: Pi's own SessionManager withholds writing a JSONL file to disk until a real assistant-role message entry exists (_persist landmine) - tests exercising D-09 round-trip persistence must append a genuine assistant message, not just custom/user entries
+- [Phase 02]: Rail self-sizes from the shell store rather than AppShell computing/passing width, since the 02-03 checkpoint fixed the body row to a flat flex layout
+- [Phase 02]: Rail badge renders as a 12px pill in both expanded and compact modes, following UI-SPEC literally over the prototype's plain-text expanded badge
+- [Phase 02]: Pin-to-bottom-group implemented as a hover-visible per-row toggle button (togglePin) rather than a drag-into-footer gesture
 
 ### Roadmap Evolution
 
@@ -116,6 +120,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-08T01:24:15.122Z
-Stopped at: Completed 07-02-PLAN.md
+Last session: 2026-07-08T01:29:45.241Z
+Stopped at: Completed 02-04-PLAN.md
 Resume file: None
