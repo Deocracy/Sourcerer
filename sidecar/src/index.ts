@@ -36,7 +36,7 @@ if (fs.existsSync(envPath)) {
 }
 
 const PI_PROVIDER = process.env.PI_PROVIDER || "cerebras";
-const PI_MODEL = process.env.PI_MODEL || "gpt-oss-120b";
+const PI_MODEL = process.env.PI_MODEL || "zai-glm-4.7";
 
 // D-09: one FileSessionManager for the whole sidecar process, lazily created on
 // first use so tests (and the very first buildSession() call) resolve the same
