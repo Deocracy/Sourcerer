@@ -1,88 +1,17 @@
 import { shellStore, useShellStore } from "../store/shellStore";
 import { useRailDrag, getVisualRailOrder } from "./useRailDrag";
+import { appletDefs, type AppletDef } from "./appletDefs";
 import styles from "./Rail.module.css";
 
-export interface AppletDef {
-  glyph: string;
-  title: string;
-  line: string;
-}
+export type { AppletDef };
 
 /**
- * Rail applet defs — ported verbatim from the design handoff's `defs` map
- * (Sourcerer Bespoke Rails.dc.html lines 347-364), restricted to the rail's
- * own fixed applet order (Catalog/Settings/Home are footer/title-bar
- * concerns rendered separately below, not rail rows). Plan 02-05 extracts a
- * shared `appletDefs.ts` for the dock's PanelBody dispatcher to import from
- * the same source of truth.
+ * Rail applet defs — re-exported from the shared `appletDefs.ts` source of
+ * truth (plan 02-05 extracted this out of Rail.tsx so the dock's PanelBody
+ * dispatcher consumes the same glyph/title/line map). Kept as `railDefs`
+ * here for call-site continuity within this file.
  */
-export const railDefs: Record<string, AppletDef> = {
-  Sources: {
-    glyph: "◆",
-    title: "Sources",
-    line: "LightRAG ingestion — corpora, pipelines, and source-level trust.",
-  },
-  Library: {
-    glyph: "▥",
-    title: "Library",
-    line: "Corpus & document tree, ingest, document detail, trust flags, OKF export.",
-  },
-  Wiki: {
-    glyph: "¶",
-    title: "Wiki",
-    line: "Canonical articles with provenance, Unresolved blocks, and the review queue.",
-  },
-  Graph: {
-    glyph: "⊹",
-    title: "Graph",
-    line: "Interactive knowledge graph — entities and relations, node inspector.",
-  },
-  Chat: {
-    glyph: "≋",
-    title: "Chat",
-    line: "Corpus-grounded chat with citations and a model settings drawer.",
-  },
-  Writing: {
-    glyph: "✎",
-    title: "Writing",
-    line: "Compose long-form work with live citations from Wiki and Library.",
-  },
-  Browser: {
-    glyph: "◎",
-    title: "Power Browser",
-    line: "Research browser — clip pages and archives straight into the corpus.",
-  },
-  Kanban: {
-    glyph: "▥",
-    title: "Kanban",
-    line: "Project board — cards pull status from Wiki, Writing, and Library.",
-  },
-  News: {
-    glyph: "◈",
-    title: "News Buddy",
-    line: "Watched feeds — archives, catalogs, and journals touching your entities.",
-  },
-  KeyPass: {
-    glyph: "⚷",
-    title: "KeyPass DB",
-    line: "Local encrypted vault for archive logins and API keys.",
-  },
-  Builder: {
-    glyph: "⊞",
-    title: "Applet Builder",
-    line: "Assemble new applets from corpus-aware components.",
-  },
-  Dadabase: {
-    glyph: "▦",
-    title: "Databasise",
-    line: "Typed tables, saved queries, and relations synced with the corpus.",
-  },
-  Notes: {
-    glyph: "✳",
-    title: "Notes",
-    line: "Quick capture — scratch notes that can graduate into the corpus.",
-  },
-};
+export const railDefs = appletDefs;
 
 function openCatalog() {
   // eslint-disable-next-line no-console

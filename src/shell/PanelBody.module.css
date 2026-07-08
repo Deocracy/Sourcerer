@@ -1,0 +1,71 @@
+/*
+ * PanelBody — generic placeholder panel body (Phase 2 scope). Real applet
+ * bodies (Wiki/Library/Notes/etc.) replace this per-key in Phase 4/5; this is
+ * the dispatcher's fallback branch styled to the UI-SPEC's placeholder spec.
+ */
+
+.host {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+}
+
+.wrap {
+  max-width: 640px;
+  padding: 36px 40px;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--color-faint);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.glyphTile {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  background: var(--color-panel);
+  border: var(--border-w) solid var(--color-line-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 20px;
+  color: var(--color-accent);
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-size: var(--fs-heading);
+  line-height: var(--lh-heading);
+}
+
+.desc {
+  margin-top: 12px;
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  color: var(--color-muted);
+}
+
+.noteBox {
+  margin-top: 22px;
+  padding: 12px 14px;
+  background: var(--color-panel-2);
+  border: 1px dashed var(--color-line-2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--color-faint);
+}
