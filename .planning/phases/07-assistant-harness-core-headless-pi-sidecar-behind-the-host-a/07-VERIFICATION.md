@@ -1,183 +1,145 @@
 ---
 phase: 07-assistant-harness-core-headless-pi-sidecar-behind-the-host-a
-verified: 2026-07-07T19:00:00Z
-status: human_needed
-score: 14/14 code-level must-haves verified
+verified: 2026-07-08T21:00:00Z
+status: passed
+score: 18/18 must-haves verified
 overrides_applied: 0
-human_verification:
-  - test: "D-01: With the app running (real Cerebras key in sidecar/.env, `node`/npm deps installed), type a message in the assistant panel and confirm a real Pi reply streams in token by token in the rail."
-    expected: "Assistant message box fills incrementally with text_delta content and settles to done status."
-    why_human: "Requires a live Cerebras API key, a running app instance, and observing real-time streaming behavior — not verifiable from static code."
-  - test: "D-03: With Databasise running against the populated 112-entity rag_storage (WORKING_DIR=./rag_storage), toggle Research mode and ask a corpus-grounded question."
-    expected: "A wiki_resolve/kb_query tool call fires (visible as a 'searching …' notice) and the reply is grounded in/cites the user's Databasise corpus rather than generic knowledge."
-    why_human: "Requires a live external Databasise server process and judging whether the reply content is actually grounded — not statically verifiable."
-  - test: "D-06: Kill the Databasise process mid-session and send another Research-mode message."
-    expected: "The tool call returns the honest 'wiki unavailable' text, the assistant continues answering from general knowledge, and the app does not crash or hang."
-    why_human: "Requires live process manipulation timing and observing runtime behavior."
-  - test: "D-09: Restart the whole app (close and relaunch) after a conversation."
-    expected: "The prior session's turns reload into the panel from the file-backed JSONL store instead of starting blank."
-    why_human: "Requires an actual app restart and observing persisted UI state — not verifiable from source alone."
+re_verification:
+  previous_status: human_needed
+  previous_score: "14/14 code-level (4 items deferred to human_verification)"
+  gaps_closed:
+    - "D-01: live streamed chat — human-run in 07-05, PASS (07-HUMAN-UAT.md Test 1)"
+    - "D-03: Research-mode grounding against live Databasise — human-run in 07-05, PASS on zai-glm-4.7 (07-HUMAN-UAT.md Test 2)"
+    - "D-06: live honest degrade with Databasise killed — human-run in 07-05, PASS after strengthening WIKI_UNAVAILABLE_MESSAGE (07-HUMAN-UAT.md Test 3)"
+    - "D-09: history survives app restart — FAILED on first live attempt (GAP-07-D09), closed by gap-closure plan 07-06 (loadSession protocol + history event + load_session Rust command + panel sessionId persistence/replay), retested live on a rebuilt release exe — PASS (07-HUMAN-UAT.md Test 4)"
+  gaps_remaining: []
+  regressions: []
 ---
 
 # Phase 07: Assistant Harness Core Verification Report
 
 **Phase Goal:** A real, headless AI backend for the Dashboard Assistant — lean-Pi (`@earendil-works/pi-coding-agent`) embedded as a Node sidecar behind the `host.ai()` Tauri seam, with a lean baseline prompt, mode-gated tools (Notes/Research/Coding/Memory), Databasise REST tool projection, and file-backed sessions. Standalone: no dependency on the shell's Phases 2-5.
 
-**Verified:** 2026-07-07
-**Status:** human_needed
-**Re-verification:** No — initial verification
+**Verified:** 2026-07-08
+**Status:** passed
+**Re-verification:** Yes — after gap closure (GAP-07-D09, plan 07-06) and live human UAT retest
 
 ## Goal Achievement
 
-### Observable Truths (code-level, verified against actual source)
+### Observable Truths
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | D-10: Lean baseline prompt (~130 tok target) composed via `DefaultResourceLoader` with `noContextFiles:true`, not bare `createAgentSession` options | VERIFIED | `sidecar/src/index.ts:60-73` constructs `DefaultResourceLoader({ noContextFiles: true, noExtensions/noSkills/noPromptTemplates/noThemes: true, systemPromptOverride: () => composePrompt() })`, calls `resourceLoader.reload()`, then passes it (not raw options) into `createAgentSession` |
-| 2 | D-08: Sidecar reads provider/model/key from its own `sidecar/.env`, defaults to `cerebras/gpt-oss-120b` | VERIFIED | `index.ts:29-30` (`PI_PROVIDER`/`PI_MODEL` env defaults `"cerebras"`/`"gpt-oss-120b"`); `sidecar/.env.example` documents `CEREBRAS_API_KEY`, `PI_PROVIDER=cerebras`, `PI_MODEL=gpt-oss-120b`; `.gitignore` excludes `.env` |
-| 3 | D-02: Mode registry (plain object + active-key `Set`) + runtime `setModes()` reloads session before narrowing tools | VERIFIED | `sidecar/src/modes.ts` — `MODES` record + `active: Set<string>`; `setModes()` (lines 98-106) calls `boundSession.reload()` THEN `setActiveToolsByName()` in that order, matching the spike-003 ordering constraint |
-| 4 | D-04: notes/coding/memory registered with empty tool lists (real seam, not omitted keys); research is the only mode with tool names | VERIFIED | `modes.ts:25-39` — all three keys present in `MODES` with `tools: []`; `research.tools` = the 4 Databasise tool names |
-| 5 | Sidecar reads NDJSON on stdin, emits NDJSON on stdout per protocol | VERIFIED | `sidecar/src/protocol.ts` — `readRequests()` uses `readline` line iteration + defensive `JSON.parse`/type-guard; `writeEvent()` writes `JSON.stringify(evt) + "\n"` |
-| 6 | D-03: Research's 4 tools (`wiki_resolve`, `wiki_unresolved`, `wiki_unplaced`, `kb_query`) auto-generated from live `/openapi.json`, registered as Pi `customTools` | VERIFIED | `sidecar/src/tools/databasise.ts:42-47` (`OP_SPECS`), `toolFromSpec()` builds a `defineTool` per spec from the fetched spec's `paths`/`components.schemas`; `modes.ts:122-127` (`allModeTools`) feeds `allDatabasiseTools()` into `index.ts:87` `customTools:` |
-| 7 | D-06: Databasise unreachable → honest "wiki unavailable" everywhere, never an unhandled throw; plain chat continues | VERIFIED at all 4 layers — spec-fetch fallback (`databasise.ts:157-171` `unavailableTool`), per-call fetch failure (`databasise.ts:141-145` catch → `WIKI_UNAVAILABLE_MESSAGE`), sidecar turn-level (`index.ts:137-147` `runPrompt` catches and emits `error`+`done`), Rust relay (`ai.rs:41-65` `send_degrade` on write failure / channel close / timeout), frontend (`AssistantPanel.tsx:78-84` renders inline "assistant unavailable" text, composer stays enabled) |
-| 8 | D-07: Databasise calls are guest-mode/unauthenticated | VERIFIED | `databasise.ts:126-133` fetch sets only `content-type` header, no `Authorization`; sidecar test 16 explicitly asserts "no Authorization header is ever set" |
-| 9 | D-09: File-backed sessions — JSONL per conversation, dir listed on boot, active session's turns reload, survives restart | VERIFIED | `sidecar/src/sessions.ts` — `FileSessionManager` wraps Pi's own `SessionManager` (JSONL, append-only), `listSessions()`/`open()` implement list-on-boot + create-or-resume; `index.ts:55-58` wires it as `sessionManager:` into `createAgentSession`, replacing `SessionManager.inMemory()` |
-| 10 | D-01: Real `host_ai` Tauri command streams assistant events over a Channel — the real backend behind `host.ai()` | VERIFIED | `src-tauri/src/commands/ai.rs:21-70` — writes a `prompt` line to sidecar stdin, relays every event tagged with the request id to `on_event: Channel<Value>` until `done` |
-| 11 | On startup Rust spawns/owns the Node sidecar, holds stdin/stdout, manages state for app lifetime | VERIFIED | `src-tauri/src/lib.rs:15-21` (`app.manage(SidecarProcess::spawn())` in `.setup()`); `sidecar.rs:36-79` (`SidecarProcess::spawn` spawns `node --experimental-strip-types src/index.ts`, holds `Child`/`ChildStdin`, pumps stdout/stderr on background threads) |
-| 12 | D-06 (Rust layer): dead/missing sidecar → honest `error`+`done` pair, never hang/panic | VERIFIED | `ai.rs:41-65` covers write failure, channel-closed (`Ok(None)`), and `TURN_TIMEOUT` (120s) paths, all routing to `send_degrade`; unit-tested (`degrade_events_yields_exactly_one_error_then_one_done`, `write_line_on_absent_child_returns_err_not_panic`) |
-| 13 | `set_modes` command forwards mode toggle to sidecar, reachable from webview | VERIFIED | `ai.rs:72-75` `set_modes` command; `lib.rs:11-14` registers both `host_ai` and `set_modes` in `generate_handler!` |
-| 14 | Frontend `host.ai()`/`host.setModes()` typed wrapper is the ONLY AI surface; panel renders streamed reply + error degrade + mode toggle | VERIFIED | `src/host/ai.ts` — sole `invoke()` call site for AI, wraps `Channel`; `src/assistant/AssistantPanel.tsx` imports only from `../host/ai`, never `@tauri-apps/api/core` directly; mounted in `src/app/AppShell.tsx:28`; renders inline error text (`errorText` style) on `error` events, composer never disabled by an error |
+| 1 | D-10: Lean baseline prompt via `DefaultResourceLoader` | VERIFIED | `sidecar/src/index.ts` constructs `DefaultResourceLoader({noContextFiles:true, ...})`, passed into `createAgentSession` (unchanged since initial verification, re-confirmed on disk) |
+| 2 | D-08: Sidecar reads provider/model/key from its own `sidecar/.env` | VERIFIED | `sidecar/.env.example`; `index.ts` calls `process.loadEnvFile()` guarded by `existsSync` (fix committed `8423441` during the 07-05 UAT gate, closing a false-green where unit tests set env vars directly); default model promoted to `zai-glm-4.7` (commit `06c2e2e`) after live D-03 testing showed `gpt-oss-120b` mis-selected tools |
+| 3 | D-02/D-04: Mode registry + runtime `setModes()`, notes/coding/memory empty-tool seams, research has the 4 Databasise tools | VERIFIED | `sidecar/src/modes.ts` — unchanged, re-confirmed |
+| 4 | Sidecar reads/writes NDJSON stdio protocol; now additionally supports `loadSession`/`history` | VERIFIED | `sidecar/src/protocol.ts:22` (`LoadSessionRequest`), `:72` (`HistoryEvent`), `:115` (`isSidecarRequest` loadSession branch) — additive to the original prompt/setModes/7-event contract, no existing shapes altered |
+| 5 | D-03: Research's 4 tools auto-generated from live `/openapi.json` | VERIFIED | `sidecar/src/tools/databasise.ts` unchanged; live-confirmed in 07-05 UAT — `kb_query` fired against the 112-entity Deocracy corpus and the reply was grounded in corpus content (not generic knowledge) |
+| 6 | D-06: Databasise unreachable -> honest "wiki unavailable" everywhere, never an unhandled throw | VERIFIED | All 4 layers unchanged + `WIKI_UNAVAILABLE_MESSAGE` strengthened from a soft hint to an explicit instruction (commit `158de39`) after the 07-05 gate found the disclosure was non-deterministic; live-retested PASS |
+| 7 | D-07: Databasise calls are guest-mode/unauthenticated | VERIFIED | `databasise.ts` unchanged; sidecar test 17/17 (`no Authorization header is ever set`) |
+| 8 | D-09: File-backed sessions — JSONL per conversation, listed on boot | VERIFIED | `sidecar/src/sessions.ts` `FileSessionManager` unchanged; `entriesToTurns()` added (`sessions.ts:121`) as the pure replay mapper consumed by the new loadSession path |
+| 9 | D-09: **the panel actually reuses the persisted sessionId and renders prior turns on mount** (the gap closed by 07-06) | VERIFIED | `src/assistant/AssistantPanel.tsx:34` `SESSION_STORAGE_KEY = "sourcerer:assistant:sessionId"`; lazy `useRef` initializer reads/writes localStorage (no more `useRef(newSessionId())` minting a fresh id every mount); mount `useEffect` (`:82`) calls `host.loadSession(sessionId.current, onEvent)`; `history` event branch maps `turns` into rendered `ChatMessage[]`. Live-retested in 07-05/07-06: closed and relaunched the built exe, prior turns rendered on open |
+| 10 | Four-layer load/replay path is wired end-to-end: panel -> host.loadSession() -> load_session Tauri command -> sidecar loadSession request -> history event -> panel render | VERIFIED | `src/host/ai.ts:126` `loadSession()` (Channel + invoke("load_session", ...), never-throw degrade mirroring `ai()`); `src-tauri/src/commands/ai.rs:77` `load_session` command (mirrors `host_ai`'s register/relay/TURN_TIMEOUT/send_degrade shape exactly); `src-tauri/src/lib.rs:14` registers `commands::ai::load_session` in `generate_handler!`; `sidecar/src/index.ts:202-218` `loadSession` branch -> `loadSessionHistory()` -> `writeEvent({type:"history",...})` then `done`, wrapped so failures degrade instead of throwing |
+| 11 | If the sidecar/backend is unavailable, load degrades honestly (empty panel, no crash/hang) | VERIFIED | `AssistantPanel.test.tsx:241` "an empty-turns history event leaves the panel empty and usable, no crash"; Rust `load_session` reuses `send_degrade`/`TURN_TIMEOUT` — same honest-degrade contract as `host_ai` |
+| 12 | D-01: Real `host_ai` Tauri command streams assistant events over a Channel | VERIFIED | `src-tauri/src/commands/ai.rs` unchanged core relay; live-confirmed streaming in 07-05 UAT ("hi" -> incremental "Hello! How can I assist you today?") |
+| 13 | Rust spawns/owns the Node sidecar for app lifetime | VERIFIED | `src-tauri/src/lib.rs`/`sidecar.rs` unchanged, re-confirmed present |
+| 14 | D-06 (Rust layer): dead/missing sidecar -> honest error+done, never hang/panic | VERIFIED | `cargo test` 4/4 pass including `degrade_events_yields_exactly_one_error_then_one_done`, `write_line_on_absent_child_returns_err_not_panic` |
+| 15 | `set_modes` command reachable from webview | VERIFIED | `lib.rs` registers `host_ai`, `set_modes`, `load_session` — all three in `generate_handler!` |
+| 16 | Frontend `host.ai()`/`host.setModes()`/`host.loadSession()` typed wrapper is the ONLY AI surface | VERIFIED | `src/host/ai.ts:145` `export const host = { ai, setModes, loadSession }`; `AssistantPanel.tsx` imports only from `../host/ai`, no direct `@tauri-apps/api/core` invoke calls |
+| 17 | All four end-to-end truths (D-01, D-03, D-06, D-09) pass live, human-verified, with the app actually running against a real Cerebras key and a live Databasise instance | VERIFIED | `07-HUMAN-UAT.md`: status complete, 4/4 passed, 0 issues, 0 pending — D-09 initially failed as GAP-07-D09, closed by 07-06, retested to PASS on a rebuilt release exe |
+| 18 | GAP-07-D09 closure did not regress the existing chat/mode/degrade behavior | VERIFIED | `AssistantPanel.test.tsx` still contains and passes the pre-existing streaming/CR-01/error-degrade/mode-toggle tests alongside the 4 new D-09 tests (8/8 in that file; 37/37 across the whole frontend vitest run) |
 
-**Score:** 14/14 code-level truths verified. The 4 live end-to-end truths from plan 07-05 (D-01 streamed chat with a real key, D-03 Research grounding against a live Databasise, D-06 live degrade, D-09 restart-survives-history) are inherently human-only and are listed under Human Verification Required, not scored as gaps (per verification task scope).
+**Score:** 18/18 truths verified. Unlike the prior verification run (which correctly deferred D-01/D-03/D-06/D-09 to `human_verification` because no live session had been run yet), all four have now been executed live by the user per `07-HUMAN-UAT.md` and `07-05-SUMMARY.md`/`07-06-SUMMARY.md`, closing every previously-open item. No outstanding human verification items remain.
 
 ### Required Artifacts
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `sidecar/src/index.ts` | Pi embed + stdio loop + streaming fan-out | VERIFIED | Contains `DefaultResourceLoader`, wires `customTools`, `sessionManager`, `setActiveToolsByName` |
-| `sidecar/src/modes.ts` | Mode registry, composePrompt, activeToolNames, setModes | VERIFIED | Contains `setActiveToolsByName`, all 4 modes present |
-| `sidecar/src/protocol.ts` | Typed request/event shapes | VERIFIED | Full discriminated unions both directions |
-| `sidecar/.env.example` | Config template | VERIFIED | Contains `cerebras/gpt-oss-120b` equivalent (`PI_PROVIDER=cerebras`, `PI_MODEL=gpt-oss-120b`) |
-| `sidecar/src/tools/databasise.ts` | openapi→tool generator + whitelist + degrade wrapper | VERIFIED | Contains `openapi.json` fetch, 4-tool whitelist, honest-degrade catch |
-| `sidecar/src/sessions.ts` | File-backed SessionManager | VERIFIED | Contains `jsonl`-backing via Pi's `SessionManager`, list/open/create |
-| `src-tauri/src/sidecar.rs` | Node process spawn/own + stdio pump | VERIFIED | Contains `Command`, stdin writer, stdout pump thread, listener registry |
-| `src-tauri/src/commands/ai.rs` | `host_ai` + `set_modes` commands with Channel streaming | VERIFIED | Contains `Channel<Value>`, degrade paths, unit tests |
-| `src-tauri/src/lib.rs` | `invoke_handler` registration + sidecar spawn in setup | VERIFIED | `generate_handler![commands::ai::host_ai, commands::ai::set_modes]`, `app.manage(SidecarProcess::spawn())` |
-| `src/host/ai.ts` | Typed `host.ai()`/`host.setModes()` over invoke+Channel | VERIFIED | Contains `Channel`, sole `invoke()` call site for AI |
-| `src/assistant/AssistantPanel.tsx` | Composer + streamed list + mode toggle | VERIFIED | Contains `host.ai`/`host.setModes` calls, error rendering, mode toggle button |
-| `src/assistant/AssistantPanel.test.tsx` | mockIPC streamed-reply + degrade test | VERIFIED | 4 test cases: streaming, CR-01 sessionId validity, error degrade, mode toggle |
+| `sidecar/src/protocol.ts` | Pi embed protocol + now `loadSession`/`history` | VERIFIED | `LoadSessionRequest` (line 22), `HistoryEvent` (line 72), `isSidecarRequest` extended (line 115) — additive, no drift on existing shapes |
+| `sidecar/src/sessions.ts` | File-backed sessions + `entriesToTurns()` | VERIFIED | `entriesToTurns` exported at line 121 |
+| `sidecar/src/index.ts` | stdio loop + `loadSession` branch | VERIFIED | `loadSession` branch (line 202), `loadSessionHistory()` honest-degrade wrapper (line 214) |
+| `src-tauri/src/commands/ai.rs` | `host_ai` + `set_modes` + `load_session` | VERIFIED | `load_session` command at line 77, mirrors `host_ai`'s relay/degrade shape |
+| `src-tauri/src/lib.rs` | command registration | VERIFIED | `generate_handler!` includes `host_ai`, `set_modes`, `load_session` |
+| `src/host/ai.ts` | typed `host.ai()`/`host.setModes()`/`host.loadSession()` | VERIFIED | `HistoryEvent` in `AssistantEvent` union (line 54), `loadSession()` (line 126), exported in `host` object (line 145) |
+| `src/assistant/AssistantPanel.tsx` | persisted sessionId + mount reload + render | VERIFIED | `SESSION_STORAGE_KEY` (line 34), lazy-init reads/writes localStorage (lines 37-40), mount effect calls `host.loadSession` (line 82) |
+| `src/assistant/AssistantPanel.test.tsx` | streamed/degrade/mode + 4 new D-09 tests | VERIFIED | `describe("AssistantPanel (D-09 restart-reload)"` (line 169) — reload-render, sessionId reuse, fresh-mint-and-persist, empty-turns-no-crash |
+| `sidecar/test/sessions.test.mjs` | `entriesToTurns` round-trip unit test | VERIFIED | "entriesToTurns round-trips a session's prior turns in order (D-09 replay)" — passes as test 13/17 |
+| `07-HUMAN-UAT.md` | live 4-truth UAT record | VERIFIED | status: complete, 4/4 passed, 0 issues; includes the GAP-07-D09 record (CLOSED) and live fixes applied during the gate |
 
 ### Key Link Verification
 
 | From | To | Via | Status | Details |
 |------|-----|-----|--------|---------|
-| `sidecar/src/index.ts` | `DefaultResourceLoader` | `resourceLoader` passed to `createAgentSession`; `systemPromptOverride` for reload() | WIRED | Confirmed lines 60-90 |
-| `sidecar/src/index.ts` | `sidecar/src/modes.ts` | `customTools` from mode defs; `setActiveToolsByName(activeToolNames())` | WIRED | Confirmed lines 87, 95 |
-| `sidecar/src/index.ts` | `sidecar/src/sessions.ts` | `sessionManager` option set to file-backed variant | WIRED | Confirmed line 88 |
-| `sidecar/src/tools/databasise.ts` | `http://127.0.0.1:9621` | fetch `/openapi.json` + per-op REST calls | WIRED | Confirmed lines 17, 124, 160 |
-| `sidecar/src/modes.ts` | `sidecar/src/tools/databasise.ts` | research tool names resolved via `allDatabasiseTools()` | WIRED | Confirmed line 8, 124 |
-| webview `invoke("host_ai")` | `src-tauri/src/commands/ai.rs` | `generate_handler!` in lib.rs | WIRED | Confirmed lib.rs:11-14 |
-| `src-tauri/src/commands/ai.rs` | sidecar stdin/stdout | write prompt line, relay id-matched events to Channel | WIRED | Confirmed ai.rs:39-66 |
-| `src/assistant/AssistantPanel.tsx` | `src/host/ai.ts` | `host.ai(request, onEvent)` | WIRED | Confirmed AssistantPanel.tsx:100-103 |
-| `src/host/ai.ts` | `invoke('host_ai')` + Channel | `@tauri-apps/api/core` | WIRED | Confirmed ai.ts:1, 84-104 |
-| `src/app/AppShell.tsx` | `AssistantPanel` | mounted in shell body | WIRED | Confirmed AppShell.tsx:4, 28 |
+| `src/assistant/AssistantPanel.tsx` | `src/host/ai.ts` | `host.loadSession(sessionId.current, onEvent)` in a mount effect | WIRED | Confirmed `AssistantPanel.tsx:82` |
+| `src/host/ai.ts` | `invoke("load_session")` + Channel | mirrors `ai()`'s pattern | WIRED | Confirmed `ai.ts:126` |
+| `src-tauri/src/commands/ai.rs` | sidecar stdin/stdout (loadSession) | write `{"type":"loadSession",...}` line, relay id-matched history+done | WIRED | Confirmed `ai.rs:77` onward |
+| `sidecar/src/index.ts` | `FileSessionManager.open` + `entriesToTurns` | replay mapper feeding `history` event | WIRED | Confirmed `index.ts:202-218` |
+| `src-tauri/src/lib.rs` | `commands::ai::load_session` | `generate_handler!` registration | WIRED | Confirmed `lib.rs:14` |
+| (carried over, unchanged from prior verification) all 10 links for prompt/setModes/streaming spine | — | — | WIRED | Re-confirmed present, no regressions found in grep re-scan |
 
 ### Data-Flow Trace (Level 4)
 
-Not applicable in the traditional DB-query sense (no persisted app database this phase), but the equivalent trace — chat reply text flowing from a real backend rather than a static/mock value — was confirmed:
-- `text_delta` deltas originate from Pi's own `AgentSessionEvent` stream (`handleAgentEvent`, `index.ts:105-130`), not a hardcoded string.
-- Databasise tool results come from a live `fetch()` response body (`databasise.ts:126-140`), truncated but not fabricated; only the unreachable-fallback path returns a static string, and that path is explicitly the D-06 contract, not a stub bug.
-- Session history reload flows through Pi's own `SessionManager.open`/`buildSessionContext` (delegated, not reimplemented) — `sessions.ts:95-107`.
+- History replay data flows from real on-disk JSONL (`FileSessionManager.open` -> `SessionManager.getEntries()`) through the pure `entriesToTurns()` mapper into the `history` event turns — not a hardcoded/static array. Confirmed by the sidecar unit test (order-preserving round-trip) AND by the live UAT retest (actual prior conversation turns rendered after a real app restart, not a canned fixture).
+- The empty-turns case (fresh session / no history yet) is the only static value (`turns: []`), which is the correct and intentional behavior, not a stub bug.
+- Status: FLOWING.
 
-Status: FLOWING (with an explicit, intentional STATIC fallback only on the honest-degrade path, which is correct per D-06).
-
-### Behavioral Spot-Checks / Automated Test Runs
+### Behavioral Spot-Checks / Automated Test Runs (independently re-run by this verifier)
 
 | Behavior | Command | Result | Status |
 |----------|---------|--------|--------|
-| Sidecar unit tests (harness/tools/sessions) | `npm test` in `sidecar/` | 16/16 pass | PASS |
-| Frontend unit tests (Vitest) | `npx vitest run` | 5 files, 24/24 tests pass | PASS |
-| Rust unit tests | `cargo test` in `src-tauri/` | 4/4 pass (`sidecar::tests` x3, `commands::ai::tests` x1) | PASS |
-| Fix commits present in history | `git show ef5ad1f / 6040401 / 186b18c` | All 3 commits exist with matching diffs (CR-01, WR-01, WR-02) | PASS |
+| Sidecar unit tests (harness/tools/sessions/loadSession replay) | `cd sidecar && npm test` | 17/17 pass | PASS |
+| Frontend unit tests (Vitest, whole suite) | `npx vitest run` | 6 files, 37/37 tests pass | PASS |
+| Rust unit tests | `cd src-tauri && cargo test` | 4/4 pass, build clean (incl. new `load_session` command compiling) | PASS |
+| Live human UAT (D-01/D-03/D-06/D-09) | manual, recorded in `07-HUMAN-UAT.md` | 4/4 pass, 0 issues, 0 pending | PASS |
 
 ### Probe Execution
 
-No `scripts/*/tests/probe-*.sh` convention or explicit probe scripts are used by this project/phase; verification relied on the sidecar/frontend/Rust test suites above, run directly by the verifier (not sourced from SUMMARY.md claims). SKIPPED — no probe scripts declared or discovered.
+No `scripts/*/tests/probe-*.sh` convention exists in this project; verification relies on the sidecar/frontend/Rust automated suites plus the recorded live human UAT, all independently re-run/re-read by this verifier. SKIPPED — no probe scripts declared or discovered (unchanged from prior verification).
 
 ### Requirements Coverage
 
-Phase 07 has no minted `ASST-HARNESS-*` requirement IDs; it is tracked via CONTEXT.md decisions D-01..D-10 per the phase's own framing. All ten decisions were traced above:
+Phase 07 tracks decisions D-01..D-10 (no `ASST-HARNESS-*` IDs minted, per CONTEXT.md). All ten:
 
 | Decision | Description | Status | Evidence |
 |----------|-------------|--------|----------|
-| D-01 | host_ai streamed chat backend, minimal panel | SATISFIED (code) / human_needed (live E2E) | Rust command + frontend panel wired; live streaming needs a real key/app run |
-| D-02 | Mode registry + runtime toggle plumbing | SATISFIED | `modes.ts` |
-| D-03 | Research mode live Databasise tools | SATISFIED (code) / human_needed (grounding quality) | `tools/databasise.ts` |
-| D-04 | Notes/Coding/Memory deferred, empty seam | SATISFIED | `modes.ts:25-39` |
-| D-05 | mnemopi deferred (informational) | N/A — informational, no code required | — |
-| D-06 | Assume-running + honest degrade | SATISFIED (all 4 layers) | see truth #7 |
-| D-07 | Guest-mode/unauthenticated | SATISFIED | `databasise.ts` |
-| D-08 | Sidecar-owned `.env` config | SATISFIED | `index.ts`, `.env.example` |
-| D-09 | File-backed sessions | SATISFIED (code) / human_needed (restart persistence) | `sessions.ts` |
-| D-10 | Lean baseline prompt via DefaultResourceLoader | SATISFIED | `index.ts:60-73` |
+| D-01 | host_ai streamed chat backend, minimal panel | SATISFIED — live-verified | 07-HUMAN-UAT.md Test 1 PASS |
+| D-02 | Mode registry + runtime toggle plumbing | SATISFIED | `modes.ts` (unchanged) |
+| D-03 | Research mode live Databasise tools | SATISFIED — live-verified | 07-HUMAN-UAT.md Test 2 PASS (on zai-glm-4.7) |
+| D-04 | Notes/Coding/Memory deferred, empty seam | SATISFIED | `modes.ts:25-39` (unchanged) |
+| D-05 | mnemopi deferred (informational) | N/A | — |
+| D-06 | Assume-running + honest degrade | SATISFIED — live-verified | 07-HUMAN-UAT.md Test 3 PASS (after strengthening the disclosure message) |
+| D-07 | Guest-mode/unauthenticated | SATISFIED | `databasise.ts` (unchanged), sidecar test 17 |
+| D-08 | Sidecar-owned `.env` config | SATISFIED | `.env` load fix (`8423441`) confirmed live during the gate |
+| D-09 | File-backed sessions + restart-survives-history | SATISFIED — live-verified (gap closed) | GAP-07-D09 -> plan 07-06 -> 07-HUMAN-UAT.md Test 4 PASS |
+| D-10 | Lean baseline prompt via DefaultResourceLoader | SATISFIED | `index.ts` (unchanged) |
 
-No orphaned requirements — CONTEXT.md explicitly states no `ASST-HARNESS-*` IDs were minted for this phase.
+No orphaned requirements.
 
 ### Anti-Patterns Found
 
-None. Grep for `TBD|FIXME|XXX|TODO|HACK|PLACEHOLDER|not yet implemented|not available|coming soon` across all phase-modified files (`sidecar/src/**`, `src-tauri/src/sidecar.rs`, `src-tauri/src/commands/ai.rs`, `src-tauri/src/lib.rs`, `src/host/ai.ts`, `src/assistant/AssistantPanel.tsx`) returned zero matches.
+None. Re-ran grep for `TBD|FIXME|XXX|TODO|HACK|PLACEHOLDER` across all files modified by plan 07-06 (`sidecar/src/protocol.ts`, `sidecar/src/sessions.ts`, `sidecar/src/index.ts`, `src-tauri/src/commands/ai.rs`, `src-tauri/src/lib.rs`, `src/host/ai.ts`, `src/assistant/AssistantPanel.tsx`) — zero matches.
 
-**Known deferred warnings (by user choice, per 07-REVIEW.md — not phase-blocking):**
+**Known deferred warnings (unchanged from prior verification, still open by explicit user choice, non-blocking):**
 
 | ID | File | Issue | Severity |
 |----|------|-------|----------|
-| WR-03 | `src-tauri/src/commands/ai.rs:94-101` | `fresh_request_id()` uses `SystemTime` nanos, not collision-free under concurrent calls | Warning — deferred |
-| WR-04 | `sidecar/src/tools/databasise.ts:23` vs `ai.rs:19` | Sidecar fetch timeout (240s) exceeds Rust turn timeout (120s), can wedge queued turns | Warning — deferred |
-| WR-05 | `src-tauri/src/sidecar.rs` + `lib.rs` | Node child process never killed on app shutdown (orphaned process) | Warning — deferred |
-| WR-06 | `src/host/ai.ts:108-110` + `AssistantPanel.tsx:107-111` | `host.setModes()` throws past its boundary (unhandled promise rejection) when sidecar is down — confirmed still present in current code (`setModes()` returns bare `invoke(...)`, `toggleResearch` has no try/catch) | Warning — deferred |
-| WR-07 | `sidecar/src/tools/databasise.ts` + `modes.ts` | Boot-time Databasise outage permanently degrades research tools for process lifetime (memoized `cachedModeTools`, no invalidation) | Warning — deferred |
-| WR-08 | `sidecar/src/index.ts` | (Actually addressed alongside CR-01 fix — `getOrCreateSession` now deletes rejected promises on catch, `index.ts:165`) | Resolved incidentally by the CR-01 fix, contrary to REVIEW's original open listing |
-| IN-01..IN-04 | various | Info-level, not evaluated further — non-blocking by definition | Info |
+| WR-03 | `src-tauri/src/commands/ai.rs` | `fresh_request_id()` uses `SystemTime` nanos, not collision-free under concurrent calls | Warning — deferred |
+| WR-04 | `sidecar/src/tools/databasise.ts` vs `ai.rs` | Sidecar fetch timeout (240s) exceeds Rust turn timeout (120s) | Warning — deferred |
+| WR-05 | `src-tauri/src/sidecar.rs` + `lib.rs` | Node child process never killed on app shutdown | Warning — deferred |
+| WR-06 | `src/host/ai.ts` + `AssistantPanel.tsx` | `host.setModes()` throws past its boundary when sidecar is down | Warning — deferred |
+| WR-07 | `sidecar/src/tools/databasise.ts` + `modes.ts` | Boot-time Databasise outage permanently degrades research tools for process lifetime | Warning — deferred |
 
-CR-01 (blocker) and WR-01/WR-02 (warnings) were confirmed FIXED via commits `ef5ad1f`, `6040401`, `186b18c` — diffs read directly and match the claimed fix descriptions.
+These are the same pre-existing, user-accepted technical-debt items carried over unchanged; none of them touch the D-09 gap-closure code paths and none block phase goal achievement.
 
 ### Human Verification Required
 
-See YAML frontmatter `human_verification` for the structured list. Narrative summary:
-
-#### 1. D-01 — Live streamed chat
-
-**Test:** With a real `CEREBRAS_API_KEY` in `sidecar/.env` and the app running, type a message in the assistant panel.
-**Expected:** A real Pi reply streams in token by token; message settles to "done".
-**Why human:** Needs a live LLM key and observing real-time UI behavior.
-
-#### 2. D-03 — Research mode grounding
-
-**Test:** With Databasise running against the populated `rag_storage`, toggle Research and ask a corpus question.
-**Expected:** A tool call fires and the reply is grounded in the user's Databasise corpus, not generic knowledge.
-**Why human:** Needs a live external server and judgment about answer grounding quality.
-
-#### 3. D-06 — Live honest degrade
-
-**Test:** Kill Databasise mid-session and send another Research-mode message.
-**Expected:** Honest "wiki unavailable" text, plain chat keeps working, app doesn't crash.
-**Why human:** Requires live process manipulation and runtime observation.
-
-#### 4. D-09 — History survives restart
-
-**Test:** Restart the app after a conversation.
-**Expected:** Prior session's turns reload from the file-backed JSONL store.
-**Why human:** Requires an actual app restart and observing persisted state.
-
-These four items are exactly the plan 07-05 checkpoint task's scope; no `07-05-SUMMARY.md` or human-UAT record exists yet, confirming this checkpoint has not been run.
+None. All four items previously listed as `human_verification` in the prior verification run (D-01, D-03, D-06, D-09) have since been executed live by the user and recorded with PASS results in `07-HUMAN-UAT.md` and cross-confirmed in `07-05-SUMMARY.md`/`07-06-SUMMARY.md`. No new human-only checks were introduced by the D-09 gap-closure work — its own acceptance criteria are fully covered by the automated sidecar/Rust/Vitest suites plus the completed live retest already on record.
 
 ### Gaps Summary
 
-No code-level gaps found. All 14 derived observable truths (D-01 through D-10, mapped across sidecar/Rust/frontend layers) are backed by real, substantive, wired code — not stubs or placeholders. All automated test suites are green (sidecar 16/16, frontend 24/24, Rust 4/4), matching the SUMMARY.md claims, independently re-run by this verifier rather than trusted from narration. The one BLOCKER (CR-01) and two WARNINGs (WR-01, WR-02) raised by the prior code review were independently confirmed fixed by reading the actual diffs. Six lower-severity warnings (WR-03 through WR-08, minus WR-08 which appears incidentally resolved) remain open by explicit user choice and are documented above as non-blocking technical debt, not phase gaps.
-
-The phase cannot be marked fully `passed` because its own plan (07-05) designates four end-to-end truths as requiring a live human-run session (real API key + running Databasise + launched app) — these were correctly anticipated as human-only in the verification task scope and are surfaced as `human_verification` items rather than fabricated as pass/fail from static analysis.
+No gaps. The single gap from the prior verification cycle (GAP-07-D09 — chat history did not reload/render on app restart) was root-caused precisely as diagnosed (frontend + protocol, not the file-backed persistence engine), closed by plan 07-06 across all four layers (protocol -> sidecar -> Rust -> panel), and retested live on a rebuilt release executable with a PASS result. All three automated suites (sidecar 17/17, frontend 37/37, Rust 4/4) were independently re-run by this verifier, not trusted from SUMMARY.md narration, and all pass. The four previously-open end-to-end truths (D-01, D-03, D-06, D-09) now all carry live human-verified PASS results in `07-HUMAN-UAT.md`. Phase 07's goal — a real, headless AI backend for the Dashboard Assistant with mode-gated tools, Databasise projection, and file-backed sessions that actually survive an app restart — is achieved and observably true in the running application, not just in code.
 
 ---
 
-_Verified: 2026-07-07_
+_Verified: 2026-07-08_
 _Verifier: Claude (gsd-verifier)_
