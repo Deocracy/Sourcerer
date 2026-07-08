@@ -37,13 +37,23 @@ function deliver(onEvent: HostAiArgs["onEvent"], events: QueuedEvent[]) {
   })();
 }
 
+const SESSION_STORAGE_KEY = "sourcerer:assistant:sessionId";
+const SESSION_ID_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/;
+
+interface LoadSessionArgs {
+  sessionId: string;
+  onEvent: { onmessage: (event: QueuedEvent) => void };
+}
+
 beforeEach(() => {
   clearMocks();
+  localStorage.clear();
 });
 
 afterEach(() => {
   cleanup();
   clearMocks();
+  localStorage.clear();
 });
 
 describe("AssistantPanel (D-01 streamed chat + D-06 honest-degrade)", () => {
@@ -153,5 +163,98 @@ describe("AssistantPanel (D-01 streamed chat + D-06 honest-degrade)", () => {
     await waitFor(() => {
       expect(capturedSetModes).toEqual({ modes: ["research"] });
     });
+  });
+});
+
+describe("AssistantPanel (D-09 restart-reload)", () => {
+  it("renders prior turns delivered via a mount-time load_session history event", async () => {
+    localStorage.setItem(SESSION_STORAGE_KEY, "prior-session-1");
+
+    mockIPC((cmd, args) => {
+      if (cmd === "load_session") {
+        const { onEvent } = args as unknown as LoadSessionArgs;
+        deliver(onEvent, [
+          {
+            type: "history",
+            id: "load-1",
+            turns: [
+              { role: "user", text: "prior q" },
+              { role: "assistant", text: "prior a" },
+            ],
+          },
+          { type: "done", id: "load-1" },
+        ]);
+        return undefined;
+      }
+      return undefined;
+    });
+
+    render(<AssistantPanel />);
+
+    await waitFor(() => {
+      expect(screen.getByText("prior q")).toBeTruthy();
+      expect(screen.getByText("prior a")).toBeTruthy();
+    });
+  });
+
+  it("reuses the persisted sessionId across mounts (restart survival)", async () => {
+    localStorage.setItem(SESSION_STORAGE_KEY, "existing-session-42");
+    let capturedSessionId: string | undefined;
+
+    mockIPC((cmd, args) => {
+      if (cmd === "load_session") {
+        const a = args as unknown as LoadSessionArgs;
+        capturedSessionId = a.sessionId;
+        deliver(a.onEvent, [{ type: "done", id: "load-2" }]);
+      }
+      return undefined;
+    });
+
+    render(<AssistantPanel />);
+
+    await waitFor(() => {
+      expect(capturedSessionId).toBe("existing-session-42");
+    });
+  });
+
+  it("mints and persists a fresh sessionId when none is stored yet", async () => {
+    let capturedSessionId: string | undefined;
+
+    mockIPC((cmd, args) => {
+      if (cmd === "load_session") {
+        const a = args as unknown as LoadSessionArgs;
+        capturedSessionId = a.sessionId;
+        deliver(a.onEvent, [{ type: "done", id: "load-3" }]);
+      }
+      return undefined;
+    });
+
+    render(<AssistantPanel />);
+
+    await waitFor(() => {
+      expect(capturedSessionId).toBeDefined();
+    });
+    expect(capturedSessionId).toMatch(SESSION_ID_PATTERN);
+    expect(localStorage.getItem(SESSION_STORAGE_KEY)).toBe(capturedSessionId);
+  });
+
+  it("an empty-turns history event leaves the panel empty and usable, no crash", async () => {
+    localStorage.setItem(SESSION_STORAGE_KEY, "empty-session-1");
+
+    mockIPC((cmd, args) => {
+      if (cmd === "load_session") {
+        const { onEvent } = args as unknown as LoadSessionArgs;
+        deliver(onEvent, [{ type: "history", id: "load-4", turns: [] }, { type: "done", id: "load-4" }]);
+        return undefined;
+      }
+      return undefined;
+    });
+
+    render(<AssistantPanel />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Message")).toBeTruthy();
+    });
+    expect((screen.getByText("Send") as HTMLButtonElement).disabled).toBe(true);
   });
 });
