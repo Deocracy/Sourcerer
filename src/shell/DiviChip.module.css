@@ -1,0 +1,30 @@
+/*
+ * DiviChip — rectangular (zero radius) title-bar chip, Plex Mono 11px/500.
+ * Inactive: --color-line-2 border + --color-muted text. Active: accent border
+ * + 14% accent-tinted bg + accent text (Chrome Rework).
+ */
+
+.chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  padding: 0 var(--space-sm);
+  margin: 0;
+  border: var(--border-w) solid var(--color-line-2);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-label);
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.active {
+  border-color: var(--color-accent);
+  background: rgba(134, 163, 140, 0.14);
+  color: var(--color-accent);
+}

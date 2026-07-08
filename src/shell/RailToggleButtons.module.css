@@ -1,0 +1,30 @@
+/*
+ * RailToggleButtons — two 16x12 SVG rail-mode toggles in the title bar.
+ * Flat chrome buttons, radius 0, no hover transitions beyond a bg shift.
+ */
+
+.toggles {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: 100%;
+  -webkit-app-region: no-drag;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--icon-btn-w);
+  height: var(--icon-btn-h);
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  cursor: pointer;
+}
+
+.toggle:hover {
+  background: var(--color-panel);
+}
