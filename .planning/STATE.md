@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-08T00:22:16.560Z"
+last_updated: "2026-07-08T00:26:28.752Z"
 last_activity: 2026-07-08
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 14
-  completed_plans: 5
-  percent: 36
+  completed_plans: 6
+  percent: 14
 ---
 
 # Project State
@@ -56,6 +56,7 @@ Progress: [████░░░░░░] 36%
 | Phase 01 P02 | 14 | 3 tasks | 11 files |
 | Phase 02 P01 | 12 | 3 tasks | 5 files |
 | Phase 02 P02 | 18 | 3 tasks | 10 files |
+| Phase 07 P01 | 70min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -73,6 +74,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 02-01: shell store persists only D-02 subset; dockview-core pinned exact 2.0.0
 - [Phase ?]: 02-01: locked deps installed behind approved legitimacy gate (zustand 5.0.14, nanoid ^5, dockview-core 2.0.0)
 - [Phase 02-02]: Chrome Rework title bar (DIVI chip + corpus label + rail toggles) + floating rounded window (transparent:true + backdrop + 10px card) shipped; LogoCluster.tsx left unmodified (out of plan scope)
+- [Phase 07]: 07-01: getModel moved to @earendil-works/pi-ai/compat in 0.80.3 (API drift from spike's 0.74.2); DefaultResourceLoader must be explicitly reload()-ed by the caller before createAgentSession, or systemPromptOverride never applies
+- [Phase 07]: 07-01: sidecar runs .ts sources directly via node --experimental-strip-types (Node 22.13 has no unflagged type stripping); tsconfig is type-check-only
 
 ### Roadmap Evolution
 
@@ -101,6 +104,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-08T00:21:19.172Z
-Stopped at: Completed 02-02-PLAN.md (TitleBar Chrome Rework + floating window)
+Last session: 2026-07-08T00:26:28.742Z
+Stopped at: Completed 07-01-PLAN.md
 Resume file: None

@@ -158,7 +158,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 4. Applet Framework | 0/TBD | Not started | - |
 | 5. Notes Applet | 0/TBD | Not started | - |
 | 6. Dashboard Assistant & Home | 0/TBD | Not started | - |
-| 7. Assistant Harness Core | 0/5 | Not started | - |
+| 7. Assistant Harness Core | 1/5 | In Progress|  |
 
 ### Phase 7: Assistant Harness Core
 
@@ -168,11 +168,11 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 **Architecture**: de-risked by spikes 001–005 (all VALIDATED, see `.planning/spikes/`). Parked spikes 006–008 (integration / persistence / tauri-seam) fold into this phase as build work, not throwaway experiments.
 **Note (2026-07-07)**: pulls "Real backend behind host.ai()" forward from the v2 deferral (see STATE.md Deferred Items) into this milestone.
 **Requirements**: TBD (tracked via CONTEXT.md decisions D-01..D-10; no ASST-HARNESS-* IDs minted)
-**Plans:** 5 plans
+**Plans:** 1/5 plans executed
 
 Plans:
 **Wave 1** *(parallel — disjoint file trees)*
-- [ ] 07-01-PLAN.md — Sidecar harness core: Pi headless embed, lean prompt (D-10), mode registry + toggle (D-02/D-04), .env config (D-08), stdio streaming; package legitimacy gate
+- [x] 07-01-PLAN.md — Sidecar harness core: Pi headless embed, lean prompt (D-10), mode registry + toggle (D-02/D-04), .env config (D-08), stdio streaming; package legitimacy gate
 - [ ] 07-03-PLAN.md — Rust host.ai() bridge: host_ai/set_modes Channel-streaming commands + Node sidecar spawn/own + honest-degrade (D-01/D-06)
 - [ ] 07-04-PLAN.md — Frontend host.ai() seam + minimal rail chat panel with streamed replies + mode toggle (D-01)
 
