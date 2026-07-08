@@ -112,7 +112,10 @@ body,
 }
 
 body {
-  background: var(--color-bg);
+  /* Transparent base so the OS-transparent window (Tauri transparent:true) shows
+   * the desktop through App's 20px floating-window margin. The dark app fill is
+   * provided by .card (radial-gradient) in App.module.css, not the body. */
+  background: transparent;
   color: var(--color-fg);
   font-family: var(--font-sans);
   font-size: var(--fs-body);
