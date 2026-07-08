@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-08T00:33:08.565Z"
+last_updated: "2026-07-08T00:49:19.835Z"
 last_activity: 2026-07-08
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 14
-  completed_plans: 7
+  completed_plans: 8
   percent: 14
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-07-06)
 ## Current Position
 
 Phase: 02 (workspace-core) — EXECUTING
-Plan: 3 of 6 (02-01, 02-02 complete; next is 02-03 human-verify checkpoint)
+Plan: 4 of 6 (02-01, 02-02 complete; next is 02-03 human-verify checkpoint)
 Status: Ready to execute
 Last activity: 2026-07-08
 
@@ -33,7 +33,7 @@ Phase 07 (assistant-harness-core, running in parallel): 3 of 5 plans complete (0
 
 Note: `state.advance-plan` tracks a single project-wide plan counter and mis-attributes advances to whichever phase this "Current Position" block names when two phases execute in parallel (landmine, repeats each time — see prior note this replaced). After 07-03's completion this was manually corrected here: Phase 02's plan number was NOT advanced by 07-03's completion (Phase 02 stays at 3 of 6); the aggregate `completed_plans` count in frontmatter (7) is correct — it now reflects Phase 01 (3) + Phase 02 (2) + Phase 07 (07-01, 07-03 = 2).
 
-Progress: [█████░░░░░] 50%
+Progress: [██████░░░░] 57%
 
 ## Performance Metrics
 
@@ -60,6 +60,7 @@ Progress: [█████░░░░░] 50%
 | Phase 02 P02 | 18 | 3 tasks | 10 files |
 | Phase 07 P01 | 70min | 3 tasks | 9 files |
 | Phase 07 P03 | 35min | 3 tasks | 6 files |
+| Phase 07 P04 | ~35min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,9 @@ Recent decisions affecting current work:
 - [Phase 07]: 07-01: sidecar runs .ts sources directly via node --experimental-strip-types (Node 22.13 has no unflagged type stripping); tsconfig is type-check-only
 - [Phase 07]: 07-03: SidecarProcess dev-spawns node directly (std::process::Command, cwd resolved from CARGO_MANIFEST_DIR) — no tauri-plugin-shell, no capabilities change needed since custom invoke_handler commands don't require a capability entry
 - [Phase 07]: 07-03: D-06 honest-degrade covers write_line failure, closed listener channel, and a 120s per-turn timeout — all three collapse to exactly one error+done Channel event pair, never Err/hang
+- [Phase 07-04]: src/host/ai.ts hand-mirrors sidecar/src/protocol.ts's AssistantEvent shapes (not imported) since the sidecar is a separate Node package outside the Vite build graph
+- [Phase 07-04]: thinking_delta events are received but suppressed in the minimal AssistantPanel (07-CONTEXT.md discretion default)
+- [Phase 07-04]: AssistantPanel mounts as a plain flex sibling of AppShell in App.tsx, not a rail/dock primitive - full rail integration deferred to Phase 2/6
 
 ### Roadmap Evolution
 
@@ -109,6 +113,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-08T00:33:08.565Z
+Last session: 2026-07-08T00:44:42.951Z
 Stopped at: Completed 07-03-PLAN.md
 Resume file: None
