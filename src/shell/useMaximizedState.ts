@@ -9,12 +9,19 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
  * events are not reliably reported standalone (Pitfall 4 / RESEARCH Pattern 2).
  * So instead of trusting a click toggle or a single event, we re-query
  * isMaximized() on every onResized event. No Zustand, no global store.
+ *
+ * Responses are sequenced: the Rust maximize-kick (lib.rs) emits a rapid burst
+ * of Resized events (maximize → unmaximize → maximize), and the async
+ * isMaximized() answers can resolve out of order — a stale transient `false`
+ * landing after the final `true` would leave the CSS in windowed mode on a
+ * maximized window. Only the newest query's answer is allowed to win.
  */
 export function useMaximizedState(): boolean {
   const [isMax, setIsMax] = useState(false);
 
   useEffect(() => {
     let active = true;
+    let seq = 0;
 
     // Guard the whole subscription: outside a live/mocked Tauri IPC context
     // getCurrentWindow()/isMaximized() throw — degrade silently rather than
@@ -22,21 +29,19 @@ export function useMaximizedState(): boolean {
     try {
       const appWindow = getCurrentWindow();
 
-      appWindow
-        .isMaximized()
-        .then((v) => {
-          if (active) setIsMax(v);
-        })
-        .catch(console.error);
-
-      const unlisten = appWindow.onResized(() => {
+      const refresh = () => {
+        const mySeq = ++seq;
         appWindow
           .isMaximized()
           .then((v) => {
-            if (active) setIsMax(v);
+            // Drop stale answers: only the latest issued query may set state.
+            if (active && mySeq === seq) setIsMax(v);
           })
           .catch(console.error);
-      });
+      };
+
+      refresh();
+      const unlisten = appWindow.onResized(refresh);
 
       return () => {
         active = false;
