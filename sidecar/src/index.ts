@@ -171,6 +171,12 @@ async function getOrCreateSession(sessionId: string): Promise<AgentSession> {
 async function handleRequest(req: SidecarRequest): Promise<void> {
   if (req.type === "prompt") {
     const session = await getOrCreateSession(req.sessionId);
+    // WR-01: the panel stamps `modes` on every PromptRequest (research on/off).
+    // Apply it before the turn so per-prompt mode selection actually drives the
+    // tool set + prompt fragment — previously `req.modes` was dead protocol surface
+    // and modes only ever changed via the separate setModes path. Applied after the
+    // session is built so setModes() has a bound session to reload().
+    await setModes(req.modes);
     await runPrompt(session, req);
   } else if (req.type === "setModes") {
     await setModes(req.modes);
