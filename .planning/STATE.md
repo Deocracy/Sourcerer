@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-08T00:11:21.327Z"
+last_updated: "2026-07-08T00:21:19.181Z"
 last_activity: 2026-07-08
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 14
-  completed_plans: 4
+  completed_plans: 6
   percent: 14
 ---
 
@@ -20,16 +20,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-06)
 
 **Core value:** A pixel-perfect, fully interactive desktop shell where the applet framework demonstrably works end-to-end — Notes proves the loop, every other applet is a believable stub.
-**Current focus:** Phase 07 — assistant-harness-core-headless-pi-sidecar-behind-the-host-a
+**Current focus:** Phase 02 — workspace-core (Phase 07 also in progress in parallel — see below)
 
 ## Current Position
 
-Phase: 07 (assistant-harness-core-headless-pi-sidecar-behind-the-host-a) — EXECUTING
-Plan: 2 of 5
+Phase: 02 (workspace-core) — EXECUTING
+Plan: 3 of 6 (02-02 just completed)
 Status: Ready to execute
 Last activity: 2026-07-08
 
-Progress: [███░░░░░░░] 29%
+Note: Phase 07 (assistant-harness-core) is being executed in parallel and remains at Plan 2 of 5 — the previous `state.advance-plan` run in this session incorrectly incremented Phase 07's counter (this session only executed Phase 02 Plan 02); corrected manually.
+
+Progress: [████░░░░░░] 36%
 
 ## Performance Metrics
 
@@ -53,6 +55,7 @@ Progress: [███░░░░░░░] 29%
 *Updated after each plan completion*
 | Phase 01 P02 | 14 | 3 tasks | 11 files |
 | Phase 02 P01 | 12 | 3 tasks | 5 files |
+| Phase 02 P02 | 18 | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -69,6 +72,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 01-02: verify:fonts node gate proves SHELL-04 (no Google Fonts, local IBM Plex bundled)
 - [Phase ?]: 02-01: shell store persists only D-02 subset; dockview-core pinned exact 2.0.0
 - [Phase ?]: 02-01: locked deps installed behind approved legitimacy gate (zustand 5.0.14, nanoid ^5, dockview-core 2.0.0)
+- [Phase 02-02]: Chrome Rework title bar (DIVI chip + corpus label + rail toggles) + floating rounded window (transparent:true + backdrop + 10px card) shipped; LogoCluster.tsx left unmodified (out of plan scope)
 
 ### Roadmap Evolution
 
@@ -97,6 +101,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-08T00:09:19.275Z
-Stopped at: Phase 7 context gathered
+Last session: 2026-07-08T00:21:19.172Z
+Stopped at: Completed 02-02-PLAN.md (TitleBar Chrome Rework + floating window)
 Resume file: None

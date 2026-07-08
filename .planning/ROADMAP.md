@@ -71,7 +71,7 @@ Plans:
 **Wave 1**
 - [x] 02-01-PLAN.md — Deps (zustand/nanoid/dockview-core) + Chrome-delta tokens + typed Zustand shell store
 **Wave 2** *(blocked on Wave 1)*
-- [ ] 02-02-PLAN.md — TitleBar chrome (DIVI chip, corpus label, rail toggles) + floating rounded window
+- [x] 02-02-PLAN.md — TitleBar chrome (DIVI chip, corpus label, rail toggles) + floating rounded window
 **Wave 3** *(blocked on Wave 2)*
 - [ ] 02-03-PLAN.md — Human-verify: floating window + DPI 100/125/150% + drag (D-03 re-verify)
 **Wave 4** *(blocked on Wave 3)*
@@ -153,7 +153,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Shell Foundation | 3/3 | Complete   | 2026-07-07 |
-| 2. Workspace Core | 1/6 | In Progress|  |
+| 2. Workspace Core | 2/6 | In Progress|  |
 | 3. Persistence & Layouts | 0/TBD | Not started | - |
 | 4. Applet Framework | 0/TBD | Not started | - |
 | 5. Notes Applet | 0/TBD | Not started | - |
