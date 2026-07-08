@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-08T00:49:19.835Z"
+last_updated: "2026-07-08T01:24:50.677Z"
 last_activity: 2026-07-08
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 14
-  completed_plans: 8
-  percent: 14
+  completed_plans: 11
+  percent: 79
 ---
 
 # Project State
@@ -25,15 +25,15 @@ See: .planning/PROJECT.md (updated 2026-07-06)
 ## Current Position
 
 Phase: 02 (workspace-core) — EXECUTING
-Plan: 4 of 6 (02-01, 02-02 complete; next is 02-03 human-verify checkpoint)
+Plan: 5 of 6 (02-01, 02-02 complete; next is 02-03 human-verify checkpoint)
 Status: Ready to execute
 Last activity: 2026-07-08
 
-Phase 07 (assistant-harness-core, running in parallel): 3 of 5 plans complete (07-01, 07-03 done; 07-02/07-04 remain wave 1-2; 07-05 wave 3 human-verify).
+Phase 07 (assistant-harness-core, running in parallel): 4 of 5 plans complete (07-01, 07-02, 07-03, 07-04 done; only 07-05 wave 3 human-verify checkpoint remains).
 
-Note: `state.advance-plan` tracks a single project-wide plan counter and mis-attributes advances to whichever phase this "Current Position" block names when two phases execute in parallel (landmine, repeats each time — see prior note this replaced). After 07-03's completion this was manually corrected here: Phase 02's plan number was NOT advanced by 07-03's completion (Phase 02 stays at 3 of 6); the aggregate `completed_plans` count in frontmatter (7) is correct — it now reflects Phase 01 (3) + Phase 02 (2) + Phase 07 (07-01, 07-03 = 2).
+Note: `state.advance-plan` tracks a single project-wide plan counter and mis-attributes advances to whichever phase this "Current Position" block names when two phases execute in parallel (landmine, repeats each time — see prior note this replaced). After 07-02's completion this was manually corrected here (via `state.update-progress`, not `state.advance-plan`): Phase 02's plan number was NOT advanced by 07-02's completion. The aggregate `completed_plans` count in frontmatter is derived from `state.update-progress`'s disk-scan (recompute it if it drifts — Phase 01 + Phase 02 + Phase 07's actual SUMMARY.md counts on disk are the source of truth, not this note's numbers, since both phases execute in parallel and this note goes stale quickly). At last recompute during 07-02's completion: Phase 01 (3) + Phase 02 (4, including 02-04) + Phase 07 (07-01, 07-02, 07-03, 07-04 = 4) = 11.
 
-Progress: [██████░░░░] 57%
+Progress: [████████░░] 79%
 
 ## Performance Metrics
 
@@ -61,6 +61,7 @@ Progress: [██████░░░░] 57%
 | Phase 07 P01 | 70min | 3 tasks | 9 files |
 | Phase 07 P03 | 35min | 3 tasks | 6 files |
 | Phase 07 P04 | ~35min | 3 tasks | 6 files |
+| Phase 07 P02 | 55min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -85,6 +86,8 @@ Recent decisions affecting current work:
 - [Phase 07-04]: src/host/ai.ts hand-mirrors sidecar/src/protocol.ts's AssistantEvent shapes (not imported) since the sidecar is a separate Node package outside the Vite build graph
 - [Phase 07-04]: thinking_delta events are received but suppressed in the minimal AssistantPanel (07-CONTEXT.md discretion default)
 - [Phase 07-04]: AssistantPanel mounts as a plain flex sibling of AppShell in App.tsx, not a rail/dock primitive - full rail integration deferred to Phase 2/6
+- [Phase 07]: 07-02: index.ts createAgentSession now awaits allModeTools() and builds one AgentSession per sessionId lazily on first prompt via FileSessionManager (D-09), replacing the eager single-session-at-boot pattern from 07-01
+- [Phase 07]: 07-02: Pi's own SessionManager withholds writing a JSONL file to disk until a real assistant-role message entry exists (_persist landmine) - tests exercising D-09 round-trip persistence must append a genuine assistant message, not just custom/user entries
 
 ### Roadmap Evolution
 
@@ -113,6 +116,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-08T00:44:42.951Z
-Stopped at: Completed 07-03-PLAN.md
+Last session: 2026-07-08T01:24:15.122Z
+Stopped at: Completed 07-02-PLAN.md
 Resume file: None
