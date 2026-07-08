@@ -10,7 +10,8 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             commands::ai::host_ai,
-            commands::ai::set_modes
+            commands::ai::set_modes,
+            commands::ai::load_session
         ])
         .setup(|app| {
             // Spawn + own the Node Pi sidecar for the app lifetime. A spawn failure is

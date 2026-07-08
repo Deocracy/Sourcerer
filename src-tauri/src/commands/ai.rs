@@ -69,6 +69,55 @@ pub async fn host_ai(
     Ok(())
 }
 
+/// `load_session` relays a `loadSession` request to the sidecar and forwards its
+/// `history` + `done` events to the webview (D-09 restart-reload path). Mirrors
+/// `host_ai`'s relay/degrade shape exactly: bounded wait, exactly one error+done pair
+/// on any failure, `Ok(())` always — never an `Err`, never a hang (D-06 / T-07-15).
+#[tauri::command]
+pub async fn load_session(
+    session_id: String,
+    on_event: Channel<Value>,
+    sidecar: State<'_, SidecarProcess>,
+) -> Result<(), String> {
+    let id = fresh_request_id();
+
+    let request = json!({
+        "type": "loadSession",
+        "id": id,
+        "sessionId": session_id,
+    });
+
+    let mut rx = sidecar.register(&id);
+
+    if let Err(err) = sidecar.write_line(&request.to_string()) {
+        sidecar.unregister(&id);
+        return send_degrade(&on_event, &id, &format!("assistant backend unavailable: {err}"));
+    }
+
+    loop {
+        match tokio::time::timeout(TURN_TIMEOUT, rx.recv()).await {
+            Ok(Some(event)) => {
+                let is_done = event.get("type").and_then(|t| t.as_str()) == Some("done");
+                let _ = on_event.send(event);
+                if is_done {
+                    break;
+                }
+            }
+            Ok(None) => {
+                sidecar.unregister(&id);
+                return send_degrade(&on_event, &id, "assistant backend unavailable");
+            }
+            Err(_) => {
+                sidecar.unregister(&id);
+                return send_degrade(&on_event, &id, "assistant backend timed out");
+            }
+        }
+    }
+
+    sidecar.unregister(&id);
+    Ok(())
+}
+
 #[tauri::command]
 pub fn set_modes(modes: Vec<String>, sidecar: State<'_, SidecarProcess>) -> Result<(), String> {
     sidecar.set_modes_line(&modes)
