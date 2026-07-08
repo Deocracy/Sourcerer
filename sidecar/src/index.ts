@@ -159,6 +159,10 @@ async function getOrCreateSession(sessionId: string): Promise<AgentSession> {
   let sessionPromise = sessionsById.get(sessionId);
   if (!sessionPromise) {
     sessionPromise = buildSession(sessionId).then(({ session }) => session);
+    // CR-01/WR-08: never cache a rejected build. If buildSession() fails (an invalid
+    // sessionId, a transient FS error, a bad PI_PROVIDER/PI_MODEL), drop the cached
+    // promise so the next turn rebuilds instead of replaying the same rejection forever.
+    sessionPromise.catch(() => sessionsById.delete(sessionId));
     sessionsById.set(sessionId, sessionPromise);
   }
   return sessionPromise;

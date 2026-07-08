@@ -105,6 +105,27 @@ test("path-traversal sessionIds are rejected (T-07-08)", async () => {
   await assert.rejects(() => mgr.open("../evil"), /Invalid sessionId/);
 });
 
+test("panel-shaped session IDs (alphanumeric nanoid alphabet) always pass the validator — CR-01", () => {
+  // The panel generates sessionIds with customAlphabet("0-9a-z", 21) (AssistantPanel.tsx)
+  // precisely so every ID satisfies SESSION_ID_PATTERN (first+last char alphanumeric).
+  // Default nanoid()'s URL-safe alphabet includes `_`/`-` and fails ~6% of the time;
+  // this asserts the constrained alphabet the panel now uses never does.
+  const ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz";
+  for (let i = 0; i < 20000; i++) {
+    let id = "";
+    for (let c = 0; c < 21; c++) {
+      id += ALPHABET[Math.floor(Math.random() * ALPHABET.length)];
+    }
+    assert.ok(
+      isValidSessionId(id),
+      `panel-shaped sessionId must satisfy the sidecar contract, rejected: ${id}`,
+    );
+  }
+  // Guard the failure mode CR-01 identified: leading/trailing `_`/`-` (default nanoid).
+  assert.equal(isValidSessionId("_abc123"), false);
+  assert.equal(isValidSessionId("abc123-"), false);
+});
+
 test("listSessions/listSessionIds return an empty list for a fresh directory", async () => {
   const dir = tmpDir();
   const mgr = new FileSessionManager(process.cwd(), dir);

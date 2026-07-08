@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { nanoid } from "nanoid";
+import { customAlphabet, nanoid } from "nanoid";
 import { host, type AssistantEvent } from "../host/ai";
 import styles from "./AssistantPanel.module.css";
 
@@ -16,6 +16,14 @@ interface ChatMessage {
 
 const RESEARCH_MODE = "research";
 
+// The sidecar validates sessionId against SESSION_ID_PATTERN (sessions.ts), which
+// requires the first AND last character to be alphanumeric. Default nanoid() draws
+// from the URL-safe alphabet `A-Za-z0-9_-`, so ~6% of IDs start/end with `_`/`-`
+// and are rejected — and the rejected build is cached, permanently wedging the
+// session (CR-01). Draw session IDs from an alphanumeric-only alphabet so every
+// generated ID satisfies the sidecar contract by construction.
+const newSessionId = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 21);
+
 /**
  * AssistantPanel — minimal rail chat panel proving D-01 end-to-end: type a
  * message, watch a real streamed reply. Keeps chat state local (no Zustand
@@ -29,7 +37,7 @@ export function AssistantPanel() {
   const [composerText, setComposerText] = useState("");
   const [sending, setSending] = useState(false);
   const [researchMode, setResearchMode] = useState(false);
-  const sessionId = useRef(nanoid());
+  const sessionId = useRef(newSessionId());
 
   function updateMessage(id: string, patch: Partial<ChatMessage>) {
     setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m)));

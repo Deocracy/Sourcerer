@@ -80,6 +80,32 @@ describe("AssistantPanel (D-01 streamed chat + D-06 honest-degrade)", () => {
     expect(capturedSetModes).toBeUndefined();
   });
 
+  it("generates a sessionId that satisfies the sidecar SESSION_ID_PATTERN (CR-01)", async () => {
+    // Mirror of sidecar SESSION_ID_PATTERN (sessions.ts): first AND last char must be
+    // alphanumeric. Default nanoid() would fail this ~6% of the time; the panel now
+    // draws IDs from an alphanumeric-only alphabet so every launch is valid.
+    const SESSION_ID_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/;
+    let capturedSessionId: string | undefined;
+    mockIPC((cmd, args) => {
+      if (cmd === "host_ai") {
+        const a = args as unknown as HostAiArgs;
+        capturedSessionId = a.sessionId;
+        deliver(a.onEvent, [{ type: "done", id: "turn-1" }]);
+      }
+      return undefined;
+    });
+
+    render(<AssistantPanel />);
+    fireEvent.change(screen.getByLabelText("Message"), { target: { value: "hi" } });
+    fireEvent.click(screen.getByText("Send"));
+
+    await waitFor(() => {
+      expect(capturedSessionId).toBeDefined();
+    });
+    expect(capturedSessionId).toMatch(SESSION_ID_PATTERN);
+    expect(capturedSessionId!.includes("..")).toBe(false);
+  });
+
   it("renders an inline unavailable notice on an error event and keeps the composer usable", async () => {
     mockIPC((cmd, args) => {
       if (cmd === "host_ai") {
