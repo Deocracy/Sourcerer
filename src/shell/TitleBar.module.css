@@ -1,7 +1,8 @@
 /*
- * TitleBar — 34px custom title bar. Flat --color-bg background, 1px bottom
- * border in --color-line, radius 0. 12px left inset; the flex spacer between
- * the left cluster and window controls is the drag region.
+ * TitleBar — 40px custom title bar (Chrome Rework D-03). Flat --color-bg
+ * background, 1px bottom border in --color-line, radius 0. 12px left inset;
+ * the flex spacer between the corpus label and rail-toggle buttons is the
+ * drag region.
  */
 
 .titleBar {
@@ -9,10 +10,19 @@
   align-items: center;
   height: var(--titlebar-h);
   padding-left: var(--titlebar-inset);
+  gap: var(--space-sm);
   background: var(--color-bg);
   border-bottom: var(--border-w) solid var(--color-line);
   border-radius: var(--radius);
   overflow: hidden;
+}
+
+.corpus {
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+  color: var(--color-faint);
+  white-space: nowrap;
 }
 
 .spacer {
