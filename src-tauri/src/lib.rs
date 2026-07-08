@@ -36,21 +36,22 @@ pub fn run() {
                 let maximized = window.is_maximized().unwrap_or(false);
                 let resizable = window.is_resizable().unwrap_or(true);
                 if maximized && resizable {
-                    // Undecorated+transparent windows on Windows compute their
-                    // maximize rect WITH the invisible WS_THICKFRAME resize
-                    // border, leaving a desktop gap on all sides and grabbable
-                    // resize edges even when maximized. Drop the frame and
-                    // re-maximize so the rect is recomputed without it; the
-                    // frame is restored when the window unmaximizes below.
+                    // Undecorated+transparent windows keep an invisible
+                    // WS_THICKFRAME band at the window edge even when
+                    // maximized: an ~8px strip the webview does not paint
+                    // (transparent -> desktop shows through) that hit-tests
+                    // as a resize handle. Dropping the frame IN PLACE expands
+                    // the client area over the strip and kills the grip.
+                    // Do NOT unmaximize/re-maximize here: tao's maximize()
+                    // no-ops on non-resizable windows, which breaks the
+                    // native maximized state entirely.
                     ADJUSTING_MAXIMIZE.store(true, Ordering::SeqCst);
                     let _ = window.set_resizable(false);
-                    let _ = window.unmaximize();
-                    let _ = window.maximize();
                     ADJUSTING_MAXIMIZE.store(false, Ordering::SeqCst);
-                    log_window_rect(window, "maximize-kick");
+                    log_window_rect(window, "maximized: frame dropped");
                 } else if !maximized && !resizable {
                     let _ = window.set_resizable(true);
-                    log_window_rect(window, "restored");
+                    log_window_rect(window, "restored: frame back");
                 }
             }
         })
