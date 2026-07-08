@@ -1,0 +1,22 @@
+/*
+ * App — floating rounded window wrapper (Chrome Rework D-03). The outer
+ * .backdrop fills the transparent OS window with a radial-gradient and a
+ * 20px inset; the inner .card is the actual 10px-radius app chrome (the only
+ * place radius != 0 in the whole app).
+ */
+
+.backdrop {
+  height: 100%;
+  width: 100%;
+  padding: var(--window-inset);
+  background: var(--window-backdrop);
+}
+
+.card {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--window-radius);
+  border: var(--window-border);
+  box-shadow: var(--window-shadow);
+}
