@@ -4,6 +4,10 @@
  * shows through and the card's drop shadow floats over it. The radial-gradient
  * fills the inner .card (the only place radius != 0), which carries the 10px
  * radius, 1px border, and drop shadow — a true floating rounded window.
+ *
+ * Maximized: the float treatment collapses (backdropMax/cardMax) — zero inset,
+ * zero radius, no border/shadow — so a maximized window is true edge-to-edge
+ * with no halo strip around the app.
  */
 
 .backdrop {
@@ -13,12 +17,29 @@
   background: transparent;
 }
 
-.card {
+.backdropMax {
+  height: 100%;
+  width: 100%;
+  padding: 0;
+  background: transparent;
+}
+
+.card,
+.cardMax {
   height: 100%;
   width: 100%;
   overflow: hidden;
+  background: var(--window-backdrop);
+}
+
+.card {
   border-radius: var(--window-radius);
   border: var(--window-border);
   box-shadow: var(--window-shadow);
-  background: var(--window-backdrop);
+}
+
+.cardMax {
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
 }
