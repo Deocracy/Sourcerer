@@ -14,7 +14,7 @@ Sourcerer is built shell-outward: a pixel-perfect frameless window comes first, 
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Shell Foundation** - Frameless window, custom title bar, window controls, DPI-correct metrics, local fonts (completed 2026-07-07)
-- [ ] **Phase 2: Workspace Core** - Left rail (3 modes) + dock tree (tabs, 5-zone docking, splits, focus, clamps)
+- [x] **Phase 2: Workspace Core** - Left rail (3 modes) + dock tree (tabs, 5-zone docking, splits, focus, clamps) (completed 2026-07-08)
 - [ ] **Phase 3: Persistence & Layouts** - Crash-safe workspace persistence, schema versioning, named layouts
 - [ ] **Phase 4: Applet Framework** - Static registry, host API, high-fidelity demo stubs for every applet
 - [ ] **Phase 5: Notes Applet** - First real applet proving registry → host → storage → ai seam
@@ -79,7 +79,7 @@ Plans:
 **Wave 5** *(blocked on Wave 4)*
 - [x] 02-05-PLAN.md — Center dock: dockview integration, theme, panel dispatch, canary restore/default, focus, multi-instance
 **Wave 6** *(blocked on Wave 5)*
-- [ ] 02-06-PLAN.md — Rail drag-out-to-dock (D-01 28%-zone preview) + full-workspace human-verify
+- [x] 02-06-PLAN.md — Rail drag-out-to-dock (D-01 28%-zone preview) + full-workspace human-verify
 
 **UI hint**: yes
 
@@ -153,7 +153,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Shell Foundation | 3/3 | Complete   | 2026-07-07 |
-| 2. Workspace Core | 5/6 | In Progress|  |
+| 2. Workspace Core | 6/6 | Complete   | 2026-07-08 |
 | 3. Persistence & Layouts | 0/TBD | Not started | - |
 | 4. Applet Framework | 0/TBD | Not started | - |
 | 5. Notes Applet | 0/TBD | Not started | - |
