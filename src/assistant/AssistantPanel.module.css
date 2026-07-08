@@ -1,0 +1,153 @@
+/*
+ * AssistantPanel — minimal rail chat panel (D-01). Flat --color-panel
+ * background, 1px borders in --color-line, radius 0 everywhere (inner chrome
+ * rule). Green accent reserved for the active Research toggle. Mirrors
+ * TitleBar.module.css's token-only convention — no hardcoded hex/px.
+ */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 320px;
+  flex: 0 0 auto;
+  background: var(--color-panel);
+  border-left: var(--border-w) solid var(--color-line);
+  border-radius: var(--radius);
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  color: var(--color-fg);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--titlebar-h);
+  padding: 0 var(--space-md);
+  border-bottom: var(--border-w) solid var(--color-line);
+  flex: 0 0 auto;
+}
+
+.title {
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  letter-spacing: var(--ls-label-wide);
+  text-transform: uppercase;
+  color: var(--color-faint);
+}
+
+.mode,
+.modeActive {
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  padding: var(--space-xs) var(--space-sm);
+  border: var(--border-w) solid var(--color-line-2);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-dim);
+  cursor: pointer;
+}
+
+.modeActive {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.mode:hover {
+  color: var(--color-fg-mid);
+  border-color: var(--color-dim-hover);
+}
+
+.modeActive:hover {
+  color: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+
+.thread {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.userMessage,
+.assistantMessage {
+  border: var(--border-w) solid var(--color-line);
+  border-radius: var(--radius);
+  padding: var(--space-sm);
+  background: var(--color-panel-2);
+}
+
+.userMessage {
+  align-self: flex-end;
+  border-color: var(--color-line-2);
+}
+
+.assistantMessage {
+  align-self: flex-start;
+}
+
+.messageText {
+  white-space: pre-wrap;
+  color: var(--color-fg);
+}
+
+.errorText {
+  white-space: pre-wrap;
+  color: var(--color-danger);
+}
+
+.toolNotice {
+  margin-top: var(--space-xs);
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  color: var(--color-faint);
+}
+
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-top: var(--border-w) solid var(--color-line);
+  flex: 0 0 auto;
+}
+
+.textarea {
+  resize: none;
+  min-height: 48px;
+  background: var(--color-panel-2);
+  color: var(--color-fg);
+  border: var(--border-w) solid var(--color-line-2);
+  border-radius: var(--radius);
+  padding: var(--space-sm);
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+}
+
+.send {
+  align-self: flex-end;
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  padding: var(--space-xs) var(--space-md);
+  border: var(--border-w) solid var(--color-accent);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-accent);
+  cursor: pointer;
+}
+
+.send:hover:not(:disabled) {
+  color: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+
+.send:disabled {
+  color: var(--color-dim);
+  border-color: var(--color-line-2);
+  cursor: default;
+}
