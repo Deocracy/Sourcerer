@@ -26,6 +26,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // ---- config (D-08: sidecar owns its own .env, decoupled from Databasise install) ------
 
+// Node does not auto-load .env. Load the sidecar's own .env (next to package.json,
+// one level up from src/) BEFORE anything reads process.env, so CEREBRAS_API_KEY,
+// PI_PROVIDER and PI_MODEL reach getModel(). Guarded by existsSync: a missing .env
+// is not fatal — the turn degrades honestly ("no API key found") per D-06.
+const envPath = path.join(__dirname, "..", ".env");
+if (fs.existsSync(envPath)) {
+  process.loadEnvFile(envPath);
+}
+
 const PI_PROVIDER = process.env.PI_PROVIDER || "cerebras";
 const PI_MODEL = process.env.PI_MODEL || "gpt-oss-120b";
 
