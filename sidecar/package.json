@@ -6,7 +6,7 @@
   "description": "Headless Pi coding-agent sidecar for Sourcerer's host.ai() seam. Reads newline-delimited JSON prompt/setModes requests on stdin, streams newline-delimited JSON events on stdout.",
   "scripts": {
     "start": "node --experimental-strip-types src/index.ts",
-    "test": "node --experimental-strip-types --test test/harness.test.mjs"
+    "test": "node --experimental-strip-types --test test/harness.test.mjs test/tools.test.mjs test/sessions.test.mjs"
   },
   "dependencies": {
     "@earendil-works/pi-coding-agent": "^0.80.3",

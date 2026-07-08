@@ -9,8 +9,14 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import os from "node:os";
+import path from "node:path";
 
 process.env.CEREBRAS_API_KEY ||= "dummy";
+// D-09: buildSession() now opens a file-backed session (sessions.ts); point it at a
+// throwaway temp dir instead of the real per-OS app-data directory so running this
+// test suite never writes into the actual user's Sourcerer profile.
+process.env.SOURCERER_SESSION_DIR ||= path.join(os.tmpdir(), "sourcerer-sidecar-harness-test-sessions");
 
 const { buildSession } = await import("../src/index.ts");
 const modes = await import("../src/modes.ts");
