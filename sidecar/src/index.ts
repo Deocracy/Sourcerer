@@ -20,7 +20,7 @@ import { getModel, type KnownProvider } from "@earendil-works/pi-ai/compat";
 
 import { composePrompt, activeToolNames, bindSession, setModes, allModeTools } from "./modes.ts";
 import { readRequests, writeEvent, type SidecarRequest } from "./protocol.ts";
-import { FileSessionManager } from "./sessions.ts";
+import { FileSessionManager, entriesToTurns } from "./sessions.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -44,6 +44,19 @@ const PI_MODEL = process.env.PI_MODEL || "zai-glm-4.7";
 let fileSessionManager: FileSessionManager | null = null;
 
 /**
+ * Lazily construct the module-level FileSessionManager with the same `cwd`
+ * buildSession() uses (the sidecar dir, __dirname) — shared by the prompt
+ * path (buildSession) and the loadSession replay path so both resolve the
+ * same on-disk session directory.
+ */
+function ensureFileSessionManager(): FileSessionManager {
+  if (!fileSessionManager) {
+    fileSessionManager = new FileSessionManager(__dirname);
+  }
+  return fileSessionManager;
+}
+
+/**
  * Build the headless Pi session (D-10: lean baseline routed through
  * DefaultResourceLoader, never bare createAgentSession options).
  *
@@ -61,10 +74,7 @@ export async function buildSession(sessionId: string = "default"): Promise<{ ses
   const agentDir = path.join(__dirname, ".pi-agent"); // sidecar-local; never touch ~/.pi
   fs.mkdirSync(agentDir, { recursive: true });
 
-  if (!fileSessionManager) {
-    fileSessionManager = new FileSessionManager(cwd);
-  }
-  const sessionManager = await fileSessionManager.open(sessionId);
+  const sessionManager = await ensureFileSessionManager().open(sessionId);
 
   const resourceLoader = new DefaultResourceLoader({
     cwd,
@@ -189,6 +199,27 @@ async function handleRequest(req: SidecarRequest): Promise<void> {
     await runPrompt(session, req);
   } else if (req.type === "setModes") {
     await setModes(req.modes);
+  } else if (req.type === "loadSession") {
+    await loadSessionHistory(req.id, req.sessionId);
+  }
+}
+
+/**
+ * D-09 replay: open the persisted session (creating it if it doesn't exist
+ * yet — mirrors buildSession's semantics) and emit its prior turns as a
+ * single `history` event followed by `done`. Never throws past this boundary
+ * — any failure (invalid sessionId, FS error) degrades to an `error` + `done`
+ * pair, mirroring runPrompt's degrade contract (D-06, T-07-02).
+ */
+async function loadSessionHistory(id: string, sessionId: string): Promise<void> {
+  try {
+    const sessionManager = await ensureFileSessionManager().open(sessionId);
+    const turns = entriesToTurns(sessionManager.getEntries());
+    writeEvent({ type: "history", id, turns });
+  } catch (err) {
+    writeEvent({ type: "error", id, message: err instanceof Error ? err.message : String(err) });
+  } finally {
+    writeEvent({ type: "done", id });
   }
 }
 
@@ -205,7 +236,7 @@ async function main(): Promise<void> {
     try {
       await handleRequest(req);
     } catch (err) {
-      const id = req.type === "prompt" ? req.id : "setModes";
+      const id = req.type === "prompt" || req.type === "loadSession" ? req.id : "setModes";
       writeEvent({ type: "error", id, message: err instanceof Error ? err.message : String(err) });
     }
   }

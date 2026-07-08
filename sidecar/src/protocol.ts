@@ -18,7 +18,13 @@ export interface SetModesRequest {
   modes: string[];
 }
 
-export type SidecarRequest = PromptRequest | SetModesRequest;
+export interface LoadSessionRequest {
+  type: "loadSession";
+  id: string;
+  sessionId: string;
+}
+
+export type SidecarRequest = PromptRequest | SetModesRequest | LoadSessionRequest;
 
 // ---- Events (sidecar STDOUT, one JSON object per line) ---------------------------------
 
@@ -62,6 +68,12 @@ export interface DoneEvent {
   id: string;
 }
 
+export interface HistoryEvent {
+  type: "history";
+  id: string;
+  turns: { role: "user" | "assistant"; text: string }[];
+}
+
 export type SidecarEvent =
   | ReadyEvent
   | ThinkingDeltaEvent
@@ -69,7 +81,8 @@ export type SidecarEvent =
   | ToolStartEvent
   | ToolEndEvent
   | ErrorEvent
-  | DoneEvent;
+  | DoneEvent
+  | HistoryEvent;
 
 /**
  * Serialize one event as a single newline-delimited JSON line and write it to the
@@ -98,6 +111,9 @@ function isSidecarRequest(value: unknown): value is SidecarRequest {
   }
   if (v.type === "setModes") {
     return Array.isArray(v.modes);
+  }
+  if (v.type === "loadSession") {
+    return typeof v.id === "string" && typeof v.sessionId === "string";
   }
   return false;
 }

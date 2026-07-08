@@ -8,7 +8,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const { FileSessionManager, isValidSessionId } = await import("../src/sessions.ts");
+const { FileSessionManager, isValidSessionId, entriesToTurns } = await import("../src/sessions.ts");
 
 function tmpDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "sourcerer-sessions-test-"));
@@ -130,4 +130,25 @@ test("listSessions/listSessionIds return an empty list for a fresh directory", a
   const dir = tmpDir();
   const mgr = new FileSessionManager(process.cwd(), dir);
   assert.deepEqual(await mgr.listSessionIds(), []);
+});
+
+test("entriesToTurns round-trips a session's prior turns in order (D-09 replay)", async () => {
+  const dir = tmpDir();
+  const cwd = process.cwd();
+
+  const mgr1 = new FileSessionManager(cwd, dir);
+  const sm1 = await mgr1.open("session-d");
+  appendTurn(sm1, "turn one");
+  appendTurn(sm1, "turn two");
+
+  // Simulate a sidecar restart: brand new manager instance over the same directory.
+  const mgr2 = new FileSessionManager(cwd, dir);
+  const sm2 = await mgr2.open("session-d");
+
+  assert.deepEqual(entriesToTurns(sm2.getEntries()), [
+    { role: "user", text: "turn one" },
+    { role: "assistant", text: "ack: turn one" },
+    { role: "user", text: "turn two" },
+    { role: "assistant", text: "ack: turn two" },
+  ]);
 });

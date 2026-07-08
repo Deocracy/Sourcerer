@@ -19,7 +19,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { SessionManager, type SessionInfo } from "@earendil-works/pi-coding-agent";
+import { SessionManager, type SessionInfo, type SessionEntry } from "@earendil-works/pi-coding-agent";
 
 /**
  * T-07-08 (path traversal): sessionId is used to select/create a JSONL file.
@@ -105,4 +105,49 @@ export class FileSessionManager {
     }
     return SessionManager.create(this.cwd, this.sessionDir, { id: sessionId });
   }
+}
+
+/**
+ * D-09 replay mapper: pure function turning a session's raw `SessionEntry[]`
+ * (Pi's on-disk entry log — messages, thinking-level changes, compactions,
+ * labels, etc.) into the flat `{role,text}[]` shape the sidecar's `history`
+ * event and the AssistantPanel actually need to render. Only "message"
+ * entries with a user/assistant role become a turn; user content is a plain
+ * string, assistant content is an array of parts (only `type==="text"` parts
+ * are joined — tool-call/tool-result parts carry no renderable turn text).
+ * Turns whose resulting text is empty are dropped (e.g. an assistant message
+ * that was pure tool-calls with no trailing text). Entry order is preserved.
+ */
+export function entriesToTurns(
+  entries: SessionEntry[],
+): { role: "user" | "assistant"; text: string }[] {
+  const turns: { role: "user" | "assistant"; text: string }[] = [];
+  for (const entry of entries) {
+    if (entry.type !== "message") continue;
+    const { role, content } = entry.message as { role: string; content: unknown };
+    if (role !== "user" && role !== "assistant") continue;
+
+    let text: string;
+    if (typeof content === "string") {
+      text = content;
+    } else if (Array.isArray(content)) {
+      text = content
+        .filter((part): part is { type: "text"; text: string } => {
+          return (
+            typeof part === "object" &&
+            part !== null &&
+            (part as { type?: unknown }).type === "text" &&
+            typeof (part as { text?: unknown }).text === "string"
+          );
+        })
+        .map((part) => part.text)
+        .join("");
+    } else {
+      text = "";
+    }
+
+    if (!text) continue;
+    turns.push({ role, text });
+  }
+  return turns;
 }
