@@ -354,6 +354,24 @@ describe("workspaceStore (PERS-04 flushPendingSave force-flush)", () => {
     expect(saveSpy).toHaveBeenCalledTimes(1);
   });
 
+  it("(WR-07) a flush while getDockTree yields null (dock unmounted) persists the last-known-good tree, never dockTree:null over a real layout", async () => {
+    // A real layout is on disk and mirrored in memory…
+    const rec = makeRecord();
+    await saveWorkspaceRecord(rec);
+    await loadWorkspaceRecord();
+
+    // …then the live dock api is gone (unmount/dispose raced a late flush).
+    registerStateSources({
+      getDockTree: () => null,
+      getRail: () => rec.rail,
+    });
+
+    await flushPendingSave();
+
+    const flushed = backing.get("workspace") as WorkspaceRecordV1;
+    expect(flushed.dockTree).toEqual(rec.dockTree); // not null — no wipe
+  });
+
   it("overlapping flushes serialize — the second write never starts until the first completes, and the last enqueued record wins (WR-03)", async () => {
     let releaseFirstSave!: () => void;
     saveSpy.mockImplementationOnce(

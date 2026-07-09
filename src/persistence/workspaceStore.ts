@@ -289,15 +289,9 @@ export function restoreDockTree(json: unknown): boolean {
  *  taken moments after a layout change is never stale), and falls back to
  *  the in-memory mirror otherwise (e.g. before Dock.tsx mounts). */
 export function getCurrentRecord(): WorkspaceRecordV1 {
-  if (!sources) return inMemory;
-  return {
-    schemaVersion: LATEST_SCHEMA_VERSION,
-    dockTree: sources.getDockTree(),
-    rail: sources.getRail(),
-    savedLayouts: inMemory.savedLayouts,
-    instanceState: inMemory.instanceState,
-    ...(inMemory.restoreCanary !== undefined ? { restoreCanary: inMemory.restoreCanary } : {}),
-  };
+  // WR-07: delegates to the shared builder so the dockTree null-fallback
+  // (and the getter try/catch) apply here too — one assembly path, no drift.
+  return buildRecordFromSources() ?? inMemory;
 }
 
 // 03-04: minimal pub/sub so LayoutsMenu.tsx re-renders when saveLayout /
@@ -347,9 +341,15 @@ let saveTimer: ReturnType<typeof setTimeout> | undefined;
 function buildRecordFromSources(): WorkspaceRecordV1 | null {
   if (!sources) return null;
   try {
+    // WR-07: getDockTree yields null whenever the live dockview api is gone
+    // (Dock unmounted/disposed — e.g. React 18 StrictMode's dev double-mount
+    // racing a pending debounced timer or close-flush). Persisting that null
+    // would be read back as "no layout saved" (D-05 default) and silently
+    // wipe a real layout — fall back to the last-known-good in-memory tree.
+    const liveDockTree = sources.getDockTree();
     return {
       schemaVersion: LATEST_SCHEMA_VERSION,
-      dockTree: sources.getDockTree(),
+      dockTree: liveDockTree ?? inMemory.dockTree,
       rail: sources.getRail(),
       savedLayouts: inMemory.savedLayouts,
       instanceState: inMemory.instanceState,
