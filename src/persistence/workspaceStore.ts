@@ -192,6 +192,10 @@ export async function loadWorkspaceRecord(): Promise<WorkspaceRecordV1> {
     return backupAndFallback(raw);
   }
   inMemory = migrated;
+  // 03-04: notify LayoutsMenu.tsx once the boot-time disk load resolves, so
+  // layouts saved in a prior session appear without waiting for the next
+  // save/delete to fire a listener.
+  savedLayoutsListeners.forEach((listener) => listener(migrated.savedLayouts));
   return migrated;
 }
 
@@ -246,12 +250,34 @@ export function getCurrentRecord(): WorkspaceRecordV1 {
   };
 }
 
-/** 03-04 seam: mutates the in-memory savedLayouts slice only — the single
- *  source of truth `scheduleWorkspaceSave()` already reads at flush time.
- *  Callers (layouts.ts) must call `scheduleWorkspaceSave()` after this to
- *  persist (mutate-then-persist idiom, 03-PATTERNS.md). */
+// 03-04: minimal pub/sub so LayoutsMenu.tsx re-renders when saveLayout /
+// deleteLayout mutate the savedLayouts slice — the record itself has no
+// Zustand/React binding, so a bare listener Set + useSyncExternalStore in the
+// component is the smallest reactive seam that doesn't invent a second store.
+type SavedLayoutsListener = (layouts: WorkspaceRecordV1["savedLayouts"]) => void;
+const savedLayoutsListeners = new Set<SavedLayoutsListener>();
+
+/** 03-04 seam: mutates the in-memory savedLayouts slice and notifies any
+ *  subscribed listeners (LayoutsMenu.tsx) — the single source of truth
+ *  `scheduleWorkspaceSave()` already reads at flush time. Callers
+ *  (layouts.ts) must call `scheduleWorkspaceSave()` after this to persist
+ *  (mutate-then-persist idiom, 03-PATTERNS.md). */
 export function setSavedLayouts(next: WorkspaceRecordV1["savedLayouts"]): void {
   inMemory = { ...inMemory, savedLayouts: next };
+  savedLayoutsListeners.forEach((listener) => listener(next));
+}
+
+/** 03-04 seam: current savedLayouts slice — the `getSnapshot` half of
+ *  `useSyncExternalStore` in LayoutsMenu.tsx. */
+export function getSavedLayouts(): WorkspaceRecordV1["savedLayouts"] {
+  return inMemory.savedLayouts;
+}
+
+/** 03-04 seam: subscribes to savedLayouts changes; returns an unsubscribe
+ *  function — the `subscribe` half of `useSyncExternalStore`. */
+export function subscribeSavedLayouts(listener: SavedLayoutsListener): () => void {
+  savedLayoutsListeners.add(listener);
+  return () => savedLayoutsListeners.delete(listener);
 }
 
 // ---------------------------------------------------------------------------

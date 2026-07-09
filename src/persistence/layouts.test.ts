@@ -7,24 +7,25 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // SAME "../persistence/workspaceStore" module path, so this one vi.mock also
 // backs shellStore's own DEFAULT_WORKSPACE/scheduleWorkspaceSave/loadWorkspaceRecord
 // usage (03-02's shellStore.test.ts precedent).
-const { scheduleWorkspaceSaveMock, restoreDockTreeMock, loadWorkspaceRecordMock } = vi.hoisted(() => ({
-  scheduleWorkspaceSaveMock: vi.fn(),
-  restoreDockTreeMock: vi.fn(() => true),
-  loadWorkspaceRecordMock: vi.fn(),
-}));
-
-const DEFAULT_WORKSPACE = {
-  schemaVersion: 1,
-  dockTree: null,
-  rail: {
-    railMode: "expanded" as const,
-    railWidth: 220,
-    railOrder: ["Sources", "Library", "Wiki", "Graph"],
-    leftRailPinned: [] as string[],
-  },
-  savedLayouts: {},
-  instanceState: {},
-};
+const { scheduleWorkspaceSaveMock, restoreDockTreeMock, loadWorkspaceRecordMock, DEFAULT_WORKSPACE } = vi.hoisted(
+  () => ({
+    scheduleWorkspaceSaveMock: vi.fn(),
+    restoreDockTreeMock: vi.fn(() => true),
+    loadWorkspaceRecordMock: vi.fn(),
+    DEFAULT_WORKSPACE: {
+      schemaVersion: 1,
+      dockTree: null,
+      rail: {
+        railMode: "expanded" as const,
+        railWidth: 220,
+        railOrder: ["Sources", "Library", "Wiki", "Graph"],
+        leftRailPinned: [] as string[],
+      },
+      savedLayouts: {},
+      instanceState: {},
+    },
+  }),
+);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let record: any;

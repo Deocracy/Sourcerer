@@ -1,0 +1,156 @@
+/*
+ * LayoutsMenu — LAYOUTS ▾ title-bar dropdown (D-01, 03-UI-SPEC.md). Trigger
+ * matches DiviChip's chip treatment (mono label, 1px border, accent on
+ * hover/open); panel is a flat, modal-free, 0-border-radius list matching
+ * the project-wide radius-0 rule.
+ */
+
+.root {
+  position: relative;
+  -webkit-app-region: no-drag;
+}
+
+.trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  padding: 0 var(--space-sm);
+  margin: 0;
+  border: var(--border-w) solid var(--color-line-2);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-regular);
+  line-height: var(--lh-label);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.trigger:hover,
+.trigger.open {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% + var(--space-xs));
+  right: 0;
+  z-index: 20;
+  min-width: 160px;
+  max-width: 280px;
+  background: var(--color-bg);
+  border: var(--border-w) solid var(--color-line);
+  border-radius: 0;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.empty {
+  padding: 0 var(--space-sm);
+  height: var(--rail-row-h);
+  display: flex;
+  align-items: center;
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  color: var(--color-muted);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--rail-row-h);
+  padding: 0 var(--space-sm);
+  border-left: 2px solid transparent;
+  cursor: pointer;
+}
+
+.row:hover,
+.row.focused {
+  background: var(--color-panel);
+}
+
+.row.active {
+  border-left-color: var(--color-accent);
+}
+
+.row.active .label {
+  color: var(--color-accent);
+  font-weight: var(--fw-semibold);
+}
+
+.label {
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  color: var(--color-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.delete {
+  flex-shrink: 0;
+  margin-left: var(--space-sm);
+  border: none;
+  background: transparent;
+  color: var(--color-faint);
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  visibility: hidden;
+}
+
+.row:hover .delete,
+.row.focused .delete {
+  visibility: visible;
+}
+
+.delete:hover {
+  color: var(--color-danger);
+}
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  border-top: var(--border-w) solid var(--color-line);
+}
+
+.footerRow {
+  display: flex;
+  align-items: center;
+  height: var(--rail-row-h);
+  padding: 0 var(--space-sm);
+  border: none;
+  background: transparent;
+  color: var(--color-faint);
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  cursor: pointer;
+  text-align: left;
+}
+
+.footerRow:hover {
+  color: var(--color-fg);
+}
+
+.nameInput {
+  height: var(--rail-row-h);
+  padding: 0 var(--space-sm);
+  border: none;
+  background: var(--color-panel-2);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  outline: none;
+}
