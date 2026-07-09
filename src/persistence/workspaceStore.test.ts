@@ -44,6 +44,7 @@ import {
   loadWorkspaceRecord,
   saveWorkspaceRecord,
   scheduleWorkspaceSave,
+  flushPendingSave,
   registerStateSources,
   resetOccurred,
   acknowledgeReset,
@@ -195,5 +196,56 @@ describe("workspaceStore (PERS-04 debounced writer)", () => {
     expect(flushed.dockTree).toEqual({ version: "mutated" });
     expect(flushed.rail.railWidth).toBe(333);
     expect(flushed.schemaVersion).toBe(LATEST_SCHEMA_VERSION);
+  });
+});
+
+describe("workspaceStore (PERS-04 flushPendingSave force-flush)", () => {
+  it("flushPendingSave writes once immediately, reading the latest getter values, and clears the pending timer (no double-write after advancing timers)", async () => {
+    vi.useFakeTimers();
+
+    let dockTree: unknown = { version: "initial" };
+    let rail: WorkspaceRecordV1["rail"] = {
+      railMode: "expanded",
+      railWidth: 220,
+      railOrder: ["home"],
+      leftRailPinned: [],
+    };
+    registerStateSources({
+      getDockTree: () => dockTree,
+      getRail: () => rail,
+    });
+
+    scheduleWorkspaceSave(); // schedules the 300ms timer, not yet fired
+
+    // Mutate AFTER scheduling, BEFORE calling flushPendingSave.
+    dockTree = { version: "flushed" };
+    rail = { ...rail, railWidth: 500 };
+
+    await flushPendingSave();
+
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+    const flushed = backing.get("workspace") as WorkspaceRecordV1;
+    expect(flushed.dockTree).toEqual({ version: "flushed" });
+    expect(flushed.rail.railWidth).toBe(500);
+
+    // Advancing timers afterward must NOT double-write — the timer was
+    // cleared by flushPendingSave.
+    await vi.advanceTimersByTimeAsync(300);
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("flushPendingSave with no pending timer still resolves safely and performs one save from current getters", async () => {
+    registerStateSources({
+      getDockTree: () => ({ version: "no-pending-timer" }),
+      getRail: () => ({
+        railMode: "expanded",
+        railWidth: 220,
+        railOrder: ["home"],
+        leftRailPinned: [],
+      }),
+    });
+
+    await expect(flushPendingSave()).resolves.toBeUndefined();
+    expect(saveSpy).toHaveBeenCalledTimes(1);
   });
 });
