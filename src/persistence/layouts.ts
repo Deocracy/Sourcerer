@@ -15,6 +15,7 @@ import {
   setSavedLayouts,
 } from "./workspaceStore";
 import { shellStore } from "../store/shellStore";
+import { isPlainObject, isValidRail } from "./validate";
 
 /** saveLayout(name) — snapshots the CURRENT workspace (dockTree + rail +
  *  instanceState, minus savedLayouts to avoid nesting) into savedLayouts
@@ -49,7 +50,22 @@ export function applyLayout(id: string): void {
   const layout = current.savedLayouts[id];
   if (!layout) return;
 
-  restoreDockTree(layout.record.dockTree);
+  // WR-05 / T-03-01: savedLayouts entries come straight from disk — a
+  // malformed entry (missing/garbage record or rail) must warn-and-no-op,
+  // never throw a TypeError inside a click handler.
+  if (!isPlainObject(layout.record) || !isValidRail(layout.record.rail)) {
+    console.warn(`[layouts] ignoring malformed saved layout "${id}"`);
+    return;
+  }
+
+  // WR-05 secondary: if the dock snapshot did not restore (Dock not
+  // registered yet, or a bad snapshot that fell back to the default), do
+  // not half-apply rail state and persist an incoherent record.
+  if (!restoreDockTree(layout.record.dockTree)) {
+    console.warn(`[layouts] dock restore failed for layout "${id}" — not applied`);
+    return;
+  }
+
   shellStore.setState({
     railMode: layout.record.rail.railMode,
     railWidth: layout.record.rail.railWidth,

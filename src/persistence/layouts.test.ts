@@ -135,6 +135,44 @@ describe("applyLayout(id)", () => {
     expect(restoreDockTreeMock).not.toHaveBeenCalled();
     expect(scheduleWorkspaceSaveMock).not.toHaveBeenCalled();
   });
+
+  it("(WR-05) a malformed persisted entry (record: {}) warns and no-ops instead of throwing in the click handler", () => {
+    record.savedLayouts = { bad: { id: "bad", name: "Corrupt", record: {} } };
+
+    expect(() => applyLayout("bad")).not.toThrow();
+
+    expect(restoreDockTreeMock).not.toHaveBeenCalled();
+    expect(scheduleWorkspaceSaveMock).not.toHaveBeenCalled();
+    expect(shellStore.getState().railMode).toBe("expanded"); // untouched
+  });
+
+  it("(WR-05) does not half-apply rail state or persist when the dock restore fails", () => {
+    restoreDockTreeMock.mockReturnValue(false);
+    record.savedLayouts = {
+      abc: {
+        id: "abc",
+        name: "Research",
+        record: {
+          schemaVersion: 1,
+          dockTree: { panels: ["Notes"] },
+          rail: {
+            railMode: "compact",
+            railWidth: 180,
+            railOrder: ["Notes"],
+            leftRailPinned: ["Notes"],
+          },
+          instanceState: {},
+        },
+      },
+    };
+
+    applyLayout("abc");
+
+    // Rail state untouched, nothing persisted — no incoherent half-layout.
+    expect(shellStore.getState().railMode).toBe("expanded");
+    expect(shellStore.getState().railWidth).toBe(220);
+    expect(scheduleWorkspaceSaveMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("deleteLayout(id)", () => {
