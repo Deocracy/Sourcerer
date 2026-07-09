@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-09T22:20:15.879Z"
+last_updated: "2026-07-09T22:25:59.850Z"
 last_activity: 2026-07-09
 progress:
   total_phases: 7
   completed_phases: 3
   total_plans: 20
-  completed_plans: 17
+  completed_plans: 18
   percent: 43
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-07-06)
 ## Current Position
 
 Phase: 03 (persistence-layouts) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-07-09
 
@@ -33,7 +33,7 @@ Phase 07 (assistant-harness-core): COMPLETE — all 6 plans done (07-01..07-04 a
 
 Note: `state.advance-plan` tracks a single project-wide plan counter and mis-attributes advances to whichever phase this "Current Position" block names when two phases execute in parallel (landmine, repeats each time — see prior note this replaced). After 07-02's completion this was manually corrected here (via `state.update-progress`, not `state.advance-plan`): Phase 02's plan number was NOT advanced by 07-02's completion. The aggregate `completed_plans` count in frontmatter is derived from `state.update-progress`'s disk-scan (recompute it if it drifts — Phase 01 + Phase 02 + Phase 07's actual SUMMARY.md counts on disk are the source of truth, not this note's numbers, since both phases execute in parallel and this note goes stale quickly). At last recompute during 07-02's completion: Phase 01 (3) + Phase 02 (4, including 02-04) + Phase 07 (07-01, 07-02, 07-03, 07-04 = 4) = 11.
 
-Progress: [█████████░] 85%
+Progress: [█████████░] 90%
 
 ## Performance Metrics
 
@@ -67,6 +67,7 @@ Progress: [█████████░] 85%
 | Phase 07 P06 | 50min | 3 tasks | 9 files |
 | Phase 03 P01 | 8min | 3 tasks | 8 files |
 | Phase 03 P02 | 25min | 2 tasks | 3 files |
+| Phase 03-persistence-layouts P03 | 20min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -105,6 +106,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 03-01: scheduleWorkspaceSave no-ops silently until registerStateSources is wired (03-02)
 - [Phase ?]: 03-02: single registerStateSources call site lives in Dock.tsx (getRailSubset getter exported from shellStore.ts), avoiding a workspaceStore.ts API change
 - [Phase ?]: 03-02: canary clear-at-4s uses a direct saveWorkspaceRecord({restoreCanary:false}) call with live getters, not scheduleWorkspaceSave() (which only re-persists the stale in-memory canary value)
+- [Phase ?]: 03-03: absent-store first-run is not a reset — only corrupt/unmigratable persisted values trigger the .bak backup + resetOccurred() notice
 
 ### Roadmap Evolution
 
@@ -133,6 +135,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-09T22:20:15.868Z
-Stopped at: Completed 03-02-PLAN.md
+Last session: 2026-07-09T22:25:59.842Z
+Stopped at: Completed 03-03-PLAN.md
 Resume file: None

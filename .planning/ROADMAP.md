@@ -104,7 +104,7 @@ Plans:
 **Wave 2** *(blocked on Wave 1)*
 - [x] 03-02-PLAN.md — Re-home Dock + shellStore into the unified record (whole-workspace persist/restore live — PERS-01)
 **Wave 3** *(blocked on Wave 2, parallel — disjoint files)*
-- [ ] 03-03-PLAN.md — Corrupt/stale fallback: rolling .bak + Wiki+Library default + one-time ResetNotice + missing-key placeholder (PERS-03)
+- [x] 03-03-PLAN.md — Corrupt/stale fallback: rolling .bak + Wiki+Library default + one-time ResetNotice + missing-key placeholder (PERS-03)
 - [ ] 03-04-PLAN.md — LAYOUTS ▾ dropdown: save/apply/delete named layouts + reset (PERS-02)
 **Wave 4** *(blocked on Wave 3)*
 - [ ] 03-05-PLAN.md — flushPendingSave + Rust CloseRequested flush-then-close hook (PERS-04)
@@ -165,7 +165,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 |-------|----------------|--------|-----------|
 | 1. Shell Foundation | 3/3 | Complete   | 2026-07-07 |
 | 2. Workspace Core | 6/6 | Complete   | 2026-07-08 |
-| 3. Persistence & Layouts | 2/5 | In Progress|  |
+| 3. Persistence & Layouts | 3/5 | In Progress|  |
 | 4. Applet Framework | 0/TBD | Not started | - |
 | 5. Notes Applet | 0/TBD | Not started | - |
 | 6. Dashboard Assistant & Home | 0/TBD | Not started | - |
