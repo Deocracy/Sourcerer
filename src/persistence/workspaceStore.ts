@@ -220,10 +220,26 @@ export async function loadWorkspaceRecord(): Promise<WorkspaceRecordV1> {
   return migrated;
 }
 
+// WR-03: all disk writes serialize through ONE promise chain. A flush already
+// in flight cannot be cancelled by clearing the debounce timer, so without
+// this, overlapping flushes interleave their store.set/store.save pairs and
+// the final on-disk state depends on IPC resolution order. Enqueueing makes
+// "last enqueued wins" deterministic — exactly the guarantee the close-flush
+// window needs. The recovery arm (`fn` on rejection too) keeps one failed
+// write from wedging every subsequent write.
+let writeChain: Promise<void> = Promise.resolve();
+function enqueueWrite(fn: () => Promise<void>): Promise<void> {
+  const next = writeChain.then(fn, fn);
+  writeChain = next;
+  return next;
+}
+
 export async function saveWorkspaceRecord(record: WorkspaceRecordV1): Promise<void> {
   inMemory = record;
-  await store.set(WORKSPACE_KEY, record);
-  await store.save();
+  return enqueueWrite(async () => {
+    await store.set(WORKSPACE_KEY, record);
+    await store.save();
+  });
 }
 
 /** Restore-canary lifecycle authority (CR-01/CR-02/CR-03): Dock.tsx arms and

@@ -339,6 +339,47 @@ describe("workspaceStore (PERS-04 flushPendingSave force-flush)", () => {
     expect(saveSpy).toHaveBeenCalledTimes(1);
   });
 
+  it("overlapping flushes serialize — the second write never starts until the first completes, and the last enqueued record wins (WR-03)", async () => {
+    let releaseFirstSave!: () => void;
+    saveSpy.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          releaseFirstSave = resolve;
+        }),
+    );
+
+    let dockTree: unknown = { version: "first" };
+    registerStateSources({
+      getDockTree: () => dockTree,
+      getRail: () => ({
+        railMode: "expanded",
+        railWidth: 220,
+        railOrder: ["home"],
+        leftRailPinned: [],
+      }),
+    });
+
+    const p1 = flushPendingSave(); // write 1 starts, its store.save hangs
+    dockTree = { version: "second" };
+    const p2 = flushPendingSave(); // must QUEUE behind write 1, not interleave
+
+    // Let write 1's store.set land while its save is still pending.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    // Write 2's store.set must NOT have run yet — pre-WR-03 it interleaved
+    // here and the backing already held "second" while save 1 was in flight.
+    expect((backing.get("workspace") as WorkspaceRecordV1).dockTree).toEqual({
+      version: "first",
+    });
+
+    releaseFirstSave();
+    await Promise.all([p1, p2]);
+
+    expect((backing.get("workspace") as WorkspaceRecordV1).dockTree).toEqual({
+      version: "second",
+    });
+    expect(saveSpy).toHaveBeenCalledTimes(2);
+  });
+
   it("flushPendingSave with no pending timer still resolves safely and performs one save from current getters", async () => {
     registerStateSources({
       getDockTree: () => ({ version: "no-pending-timer" }),
