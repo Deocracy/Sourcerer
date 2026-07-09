@@ -28,6 +28,7 @@ fn log_window_rect(window: &tauri::Window, tag: &str) {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_store::Builder::default().build())
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::Resized(_) = event {
                 if ADJUSTING_MAXIMIZE.load(Ordering::SeqCst) {
