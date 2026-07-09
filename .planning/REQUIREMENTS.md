@@ -30,10 +30,10 @@ Scope decided at init: pixel-perfect Tauri shell + applet framework + **Notes as
 
 ### Persistence & Layouts (PERS)
 
-- [ ] **PERS-01**: The whole workspace (dock tree, rail order/pins, panel widths, open tabs, per-instance state) persists on change and restores on launch
+- [x] **PERS-01**: The whole workspace (dock tree, rail order/pins, panel widths, open tabs, per-instance state) persists on change and restores on launch
 - [ ] **PERS-02**: User can save, apply, and delete named layouts and reset to single pane via the LAYOUTS menu
-- [ ] **PERS-03**: Persisted state carries a schemaVersion with a migration path; corrupt or stale state falls back to the default workspace without crashing (missing applet keys render placeholders)
-- [ ] **PERS-04**: Writes are debounced and flushed on window close so abrupt termination cannot corrupt the store
+- [x] **PERS-03**: Persisted state carries a schemaVersion with a migration path; corrupt or stale state falls back to the default workspace without crashing (missing applet keys render placeholders)
+- [x] **PERS-04**: Writes are debounced and flushed on window close so abrupt termination cannot corrupt the store
 
 ### Applet Framework (FWK)
 
@@ -91,10 +91,10 @@ Scope decided at init: pixel-perfect Tauri shell + applet framework + **Notes as
 | DOCK-04 | Phase 2 | Complete |
 | DOCK-05 | Phase 2 | Complete |
 | DOCK-06 | Phase 2 | Complete |
-| PERS-01 | Phase 3 | Pending |
+| PERS-01 | Phase 3 | Complete |
 | PERS-02 | Phase 3 | Pending |
-| PERS-03 | Phase 3 | Pending |
-| PERS-04 | Phase 3 | Pending |
+| PERS-03 | Phase 3 | Complete |
+| PERS-04 | Phase 3 | Complete |
 | FWK-01 | Phase 4 | Pending |
 | FWK-02 | Phase 4 | Pending |
 | FWK-03 | Phase 4 | Pending |

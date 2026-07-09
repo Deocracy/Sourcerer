@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-09T22:01:32.417Z"
-last_activity: 2026-07-09 -- Phase 03 planning complete
+last_updated: "2026-07-09T22:11:45.195Z"
+last_activity: 2026-07-09
 progress:
   total_phases: 7
   completed_phases: 3
   total_plans: 20
-  completed_plans: 15
+  completed_plans: 16
   percent: 43
 ---
 
@@ -20,20 +20,20 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-06)
 
 **Core value:** A pixel-perfect, fully interactive desktop shell where the applet framework demonstrably works end-to-end — Notes proves the loop, every other applet is a believable stub.
-**Current focus:** Phase 07 — assistant-harness-core-headless-pi-sidecar-behind-the-host-a
+**Current focus:** Phase 03 — persistence-layouts
 
 ## Current Position
 
-Phase: 07 (assistant-harness-core-headless-pi-sidecar-behind-the-host-a) — COMPLETE (2026-07-08)
-Plan: 2 of 6 (Phase 02's own counter — Phase 02 still executing in parallel)
+Phase: 03 (persistence-layouts) — EXECUTING
+Plan: 2 of 5
 Status: Ready to execute
-Last activity: 2026-07-09 -- Phase 03 planning complete
+Last activity: 2026-07-09
 
 Phase 07 (assistant-harness-core): COMPLETE — all 6 plans done (07-01..07-04 automated, 07-05 live UAT gate 4/4 truths pass, 07-06 D-09 gap closure). 07-VERIFICATION.md status: passed.
 
 Note: `state.advance-plan` tracks a single project-wide plan counter and mis-attributes advances to whichever phase this "Current Position" block names when two phases execute in parallel (landmine, repeats each time — see prior note this replaced). After 07-02's completion this was manually corrected here (via `state.update-progress`, not `state.advance-plan`): Phase 02's plan number was NOT advanced by 07-02's completion. The aggregate `completed_plans` count in frontmatter is derived from `state.update-progress`'s disk-scan (recompute it if it drifts — Phase 01 + Phase 02 + Phase 07's actual SUMMARY.md counts on disk are the source of truth, not this note's numbers, since both phases execute in parallel and this note goes stale quickly). At last recompute during 07-02's completion: Phase 01 (3) + Phase 02 (4, including 02-04) + Phase 07 (07-01, 07-02, 07-03, 07-04 = 4) = 11.
 
-Progress: [██████████] 100%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
@@ -65,6 +65,7 @@ Progress: [██████████] 100%
 | Phase 02 P04 | 25min | 3 tasks | 7 files |
 | Phase 02-workspace-core P05 | 35min | 3 tasks | 8 files |
 | Phase 07 P06 | 50min | 3 tasks | 9 files |
+| Phase 03 P01 | 8min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -98,6 +99,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Dock '+' tab-bar action cycles appletDefs keys instead of an Applet Catalog picker (Phase 4 scope)
 - [Phase ?]: 07-06: sessionId persists via localStorage under sourcerer:assistant:sessionId (interim, ahead of tauri-plugin-store)
 - [Phase ?]: 07-06: load_session Tauri command hand-mirrors host_ai's relay/degrade shape rather than extracting a shared helper
+- [Phase ?]: 03-01: DEFAULT_RAIL_ORDER duplicated into workspaceStore.ts (no static shellStore import — circular-import ban)
+- [Phase ?]: 03-01: store:default verified as the plugin-store 2.x capability identifier
+- [Phase ?]: 03-01: scheduleWorkspaceSave no-ops silently until registerStateSources is wired (03-02)
 
 ### Roadmap Evolution
 
@@ -126,6 +130,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-09T21:28:58.807Z
+Last session: 2026-07-09T22:11:32.900Z
 Stopped at: Phase 3 UI-SPEC approved
-Resume file: .planning/phases/03-persistence-layouts/03-UI-SPEC.md
+Resume file: None
