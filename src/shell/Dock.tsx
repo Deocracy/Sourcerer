@@ -106,10 +106,36 @@ export function Dock() {
     dockApiRef.current = api;
 
     // Single seam call site merging dock-tree + rail getters (03-PATTERNS.md:
-    // neither getter must clobber the other).
+    // neither getter must clobber the other). restoreDockTree (03-04) applies
+    // a saved-layout/default snapshot to the live dockview instance, reusing
+    // this same try/catch-guarded fromJSON + Wiki/Library-default fallback
+    // shape as the mount-effect restore below (T-03-01).
     registerStateSources({
       getDockTree: () => (dockApiRef.current ? dockApiRef.current.toJSON() : null),
       getRail: getRailSubset,
+      restoreDockTree: (json) => {
+        const liveApi = dockApiRef.current;
+        if (!liveApi) return false;
+        let restored = false;
+        if (json != null) {
+          try {
+            liveApi.fromJSON(json as SerializedDockview);
+            restored = liveApi.panels.length > 0;
+          } catch {
+            restored = false;
+          }
+        }
+        if (!restored) {
+          try {
+            liveApi.clear();
+          } catch {
+            /* best-effort reset only */
+          }
+          addApplet("Wiki");
+          addApplet("Library");
+        }
+        return restored;
+      },
     });
 
     // Fresh-instance-per-click helper (DOCK-01/DOCK-04): always a new panel

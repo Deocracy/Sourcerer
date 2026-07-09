@@ -208,12 +208,50 @@ export async function saveWorkspaceRecord(record: WorkspaceRecordV1): Promise<vo
 interface StateSources {
   getDockTree: () => unknown | null;
   getRail: () => WorkspaceRecordV1["rail"];
+  /** 03-04 seam: applies a saved/default dockTree snapshot to the live
+   *  dockview instance, falling back to the Wiki+Library default on a bad
+   *  snapshot (T-03-01) — returns whether the given snapshot restored
+   *  cleanly. Optional so 03-02's Dock.tsx registration (getDockTree/getRail
+   *  only) keeps type-checking without this field. */
+  restoreDockTree?: (json: unknown) => boolean;
 }
 
 let sources: StateSources | null = null;
 
 export function registerStateSources(next: StateSources): void {
   sources = next;
+}
+
+/** 03-04 seam: delegates to the registered restoreDockTree hook (Dock.tsx).
+ *  No-ops (returns false) if Dock hasn't mounted/registered yet — callers
+ *  (layouts.ts) treat that the same as a failed restore. */
+export function restoreDockTree(json: unknown): boolean {
+  if (!sources?.restoreDockTree) return false;
+  return sources.restoreDockTree(json);
+}
+
+/** 03-04 seam: the freshest full WorkspaceRecordV1 available — reads the
+ *  LIVE dockTree/rail getters when a consumer has registered (so a save
+ *  taken moments after a layout change is never stale), and falls back to
+ *  the in-memory mirror otherwise (e.g. before Dock.tsx mounts). */
+export function getCurrentRecord(): WorkspaceRecordV1 {
+  if (!sources) return inMemory;
+  return {
+    schemaVersion: LATEST_SCHEMA_VERSION,
+    dockTree: sources.getDockTree(),
+    rail: sources.getRail(),
+    savedLayouts: inMemory.savedLayouts,
+    instanceState: inMemory.instanceState,
+    ...(inMemory.restoreCanary !== undefined ? { restoreCanary: inMemory.restoreCanary } : {}),
+  };
+}
+
+/** 03-04 seam: mutates the in-memory savedLayouts slice only — the single
+ *  source of truth `scheduleWorkspaceSave()` already reads at flush time.
+ *  Callers (layouts.ts) must call `scheduleWorkspaceSave()` after this to
+ *  persist (mutate-then-persist idiom, 03-PATTERNS.md). */
+export function setSavedLayouts(next: WorkspaceRecordV1["savedLayouts"]): void {
+  inMemory = { ...inMemory, savedLayouts: next };
 }
 
 // ---------------------------------------------------------------------------
