@@ -83,6 +83,46 @@ export const DEFAULT_WORKSPACE: WorkspaceRecordV1 = {
 const store = new LazyStore("workspace.json");
 const WORKSPACE_KEY = "workspace";
 
+// Rolling backup sink (D-08) — a SECOND file, written only when the primary
+// load path discards a corrupt/unmigratable value. Overwritten each time a
+// reset happens (rolling, not an archive), and wrapped in its own try/catch
+// so a backup failure never blocks the DEFAULT_WORKSPACE fallback.
+const backupStore = new LazyStore("workspace.json.bak");
+
+// One-time dismissible reset signal (D-04) — set true whenever the load path
+// falls back to DEFAULT_WORKSPACE because the persisted value was corrupt or
+// unmigratable. Read by ResetNotice; cleared via acknowledgeReset() on dismiss.
+let resetHappened = false;
+
+/** True once, right after a corrupt/unmigratable-state fallback; false
+ *  otherwise. Consumed by ResetNotice (03-03 Task 2). */
+export function resetOccurred(): boolean {
+  return resetHappened;
+}
+
+/** Clears the one-time reset signal — called by ResetNotice on dismiss. */
+export function acknowledgeReset(): void {
+  resetHappened = false;
+}
+
+/** Copies the offending raw value to the rolling workspace.json.bak sink
+ *  (D-08), flips the resetOccurred() signal, and warns loudly — never
+ *  silent (RESEARCH.md Anti-Pattern: "Silent reset on corrupt state").
+ *  The backup write is best-effort: a failure here must never block the
+ *  DEFAULT_WORKSPACE fallback. */
+async function backupAndFallback(raw: unknown): Promise<WorkspaceRecordV1> {
+  try {
+    await backupStore.set(WORKSPACE_KEY, raw);
+    await backupStore.save();
+  } catch {
+    // Backup is best-effort only — never let it block the fallback.
+  }
+  resetHappened = true;
+  console.warn("[workspace] reset to default after failing to load persisted layout");
+  inMemory = DEFAULT_WORKSPACE;
+  return DEFAULT_WORKSPACE;
+}
+
 // ---------------------------------------------------------------------------
 // Migration runner (PERS-03) — RESEARCH.md Pattern 1, used as-is.
 // ---------------------------------------------------------------------------
@@ -130,27 +170,29 @@ let inMemory: WorkspaceRecordV1 = DEFAULT_WORKSPACE;
 /** Always resolves to a VALID record — migrated, or DEFAULT_WORKSPACE on any
  *  fault (absent, corrupt, unmigratable). Never throws on untrusted input. */
 export async function loadWorkspaceRecord(): Promise<WorkspaceRecordV1> {
+  let raw: unknown;
   try {
-    const raw = await store.get<unknown>(WORKSPACE_KEY);
-    if (raw == null) {
-      inMemory = DEFAULT_WORKSPACE;
-      return DEFAULT_WORKSPACE;
-    }
-    if (!isCandidateRecord(raw)) {
-      inMemory = DEFAULT_WORKSPACE;
-      return DEFAULT_WORKSPACE;
-    }
-    const migrated = migrate(raw);
-    if (migrated === null) {
-      inMemory = DEFAULT_WORKSPACE;
-      return DEFAULT_WORKSPACE;
-    }
-    inMemory = migrated;
-    return migrated;
+    raw = await store.get<unknown>(WORKSPACE_KEY);
   } catch {
+    // Read itself failed (e.g. disk/IPC error) — nothing to back up, just
+    // fall back silently-safe to default (no prior raw value to preserve).
     inMemory = DEFAULT_WORKSPACE;
     return DEFAULT_WORKSPACE;
   }
+  if (raw == null) {
+    // Absent store (first run) — not corrupt, nothing to reset from.
+    inMemory = DEFAULT_WORKSPACE;
+    return DEFAULT_WORKSPACE;
+  }
+  if (!isCandidateRecord(raw)) {
+    return backupAndFallback(raw);
+  }
+  const migrated = migrate(raw);
+  if (migrated === null) {
+    return backupAndFallback(raw);
+  }
+  inMemory = migrated;
+  return migrated;
 }
 
 export async function saveWorkspaceRecord(record: WorkspaceRecordV1): Promise<void> {
