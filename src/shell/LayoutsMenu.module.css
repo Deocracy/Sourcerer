@@ -35,6 +35,13 @@
   color: var(--color-accent);
 }
 
+/* WR-06: the panel is programmatically focused on open (tabIndex={-1}) so
+ * its onKeyDown hears ArrowUp/ArrowDown/Enter/Delete; row focus is conveyed
+ * by the .focused row treatment, not a container outline. */
+.panel:focus {
+  outline: none;
+}
+
 .panel {
   position: absolute;
   top: calc(100% + var(--space-xs));

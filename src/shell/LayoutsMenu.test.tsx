@@ -104,6 +104,46 @@ describe("LayoutsMenu saved rows", () => {
   });
 });
 
+describe("LayoutsMenu keyboard navigation (WR-06)", () => {
+  beforeEach(() => {
+    savedLayouts = {
+      abc: { id: "abc", name: "Research", record: {} },
+      def: { id: "def", name: "Writing", record: {} },
+    };
+  });
+
+  it("focuses the panel on open so key events actually reach the menu", () => {
+    render(<LayoutsMenu />);
+    fireEvent.click(screen.getByLabelText("Layouts menu"));
+    const panel = screen.getByRole("menu");
+    expect(document.activeElement).toBe(panel);
+  });
+
+  it("ArrowDown + Enter applies the focused row (rows are recent-first)", () => {
+    render(<LayoutsMenu />);
+    fireEvent.click(screen.getByLabelText("Layouts menu"));
+    const panel = screen.getByRole("menu");
+
+    fireEvent.keyDown(panel, { key: "ArrowDown" }); // -> "Writing" (recent-first row 0)
+    fireEvent.keyDown(panel, { key: "Enter" });
+
+    expect(applyLayoutMock).toHaveBeenCalledWith("def");
+  });
+
+  it("Delete removes the focused row without applying it", () => {
+    render(<LayoutsMenu />);
+    fireEvent.click(screen.getByLabelText("Layouts menu"));
+    const panel = screen.getByRole("menu");
+
+    fireEvent.keyDown(panel, { key: "ArrowDown" });
+    fireEvent.keyDown(panel, { key: "ArrowDown" }); // -> "Research" (row 1)
+    fireEvent.keyDown(panel, { key: "Delete" });
+
+    expect(deleteLayoutMock).toHaveBeenCalledWith("abc");
+    expect(applyLayoutMock).not.toHaveBeenCalled();
+  });
+});
+
 describe("LayoutsMenu Reset", () => {
   it("calls resetToDefault()", () => {
     render(<LayoutsMenu />);

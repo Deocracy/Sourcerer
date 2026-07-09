@@ -22,6 +22,7 @@ export function LayoutsMenu() {
   const [focusedIndex, setFocusedIndex] = useState(-1);
 
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
   const nameInputRef = useRef<HTMLInputElement | null>(null);
 
   const savedLayouts = useSyncExternalStore(subscribeSavedLayouts, getSavedLayouts);
@@ -51,6 +52,15 @@ export function LayoutsMenu() {
   useEffect(() => {
     if (saving) nameInputRef.current?.focus();
   }, [saving]);
+
+  // WR-06: move focus INTO the panel when it opens (and back after the name
+  // input closes) — without this the panel's onKeyDown never fires (focus
+  // stays on the sibling trigger button) and the whole ArrowUp/ArrowDown/
+  // Enter/Delete keyboard contract is unreachable. role="menu" without focus
+  // management is also an a11y anti-pattern.
+  useEffect(() => {
+    if (open && !saving) panelRef.current?.focus();
+  }, [open, saving]);
 
   function toggleOpen() {
     setOpen((wasOpen) => {
@@ -123,7 +133,13 @@ export function LayoutsMenu() {
         LAYOUTS ▾
       </button>
       {open && (
-        <div className={styles.panel} role="menu" onKeyDown={handlePanelKeyDown}>
+        <div
+          className={styles.panel}
+          role="menu"
+          tabIndex={-1}
+          ref={panelRef}
+          onKeyDown={handlePanelKeyDown}
+        >
           <div className={styles.list}>
             {rows.length === 0 ? (
               <div className={styles.empty}>No saved layouts yet</div>
