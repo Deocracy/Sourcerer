@@ -1,17 +1,39 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// RED spec for the Phase 2 shell store (RAIL-01..03, D-02).
-// Imports shellStore, which does NOT exist yet — this suite MUST fail
-// (module-not-found) until Task 3 builds src/store/shellStore.ts.
-import { shellStore } from "./shellStore";
+// Mock the persistence seam so this test never touches @tauri-apps/plugin-store
+// IPC — shellStore only needs DEFAULT_WORKSPACE (sync seed), loadWorkspaceRecord
+// (hydrateFromDisk), and scheduleWorkspaceSave (the debounced writer spy).
+const { loadWorkspaceRecordMock, scheduleWorkspaceSaveMock } = vi.hoisted(() => {
+  return {
+    loadWorkspaceRecordMock: vi.fn(),
+    scheduleWorkspaceSaveMock: vi.fn(),
+  };
+});
 
-const LS_KEY = "sourcerer-shell-store-v1";
+vi.mock("../persistence/workspaceStore", () => ({
+  DEFAULT_WORKSPACE: {
+    schemaVersion: 1,
+    dockTree: null,
+    rail: {
+      railMode: "expanded",
+      railWidth: 220,
+      railOrder: ["Sources", "Library", "Wiki", "Graph"],
+      leftRailPinned: [],
+    },
+    savedLayouts: {},
+    instanceState: {},
+  },
+  loadWorkspaceRecord: loadWorkspaceRecordMock,
+  scheduleWorkspaceSave: scheduleWorkspaceSaveMock,
+}));
+
+import { shellStore, hydrateFromDisk } from "./shellStore";
 
 // Deterministic starting state before each behavior assertion. The store is a
-// singleton created once at import; reset the mutable slices + persisted key so
-// tests don't leak into one another.
+// singleton created once at import; reset the mutable slices between tests.
 beforeEach(() => {
-  localStorage.clear();
+  loadWorkspaceRecordMock.mockReset();
+  scheduleWorkspaceSaveMock.mockClear();
   shellStore.setState({
     railMode: "expanded",
     railOpen: true,
@@ -66,23 +88,54 @@ describe("shellStore.setBadge(key, n)", () => {
   });
 });
 
-describe("persistence (D-02 subset only)", () => {
-  it("persists railMode/railWidth/railOrder/leftRailPinned but NOT activePaneId/railApplet", () => {
-    shellStore.getState().setRailWidth(300);
-    shellStore.getState().togglePin("Notes");
-    shellStore.getState().setActivePaneId("pane-xyz");
-    shellStore.getState().setRailApplet("Wiki");
+describe("shellStore hydrateFromDisk (PERS-01)", () => {
+  it("restores railMode/railWidth/railOrder/leftRailPinned from a mocked workspace record", async () => {
+    loadWorkspaceRecordMock.mockResolvedValue({
+      schemaVersion: 1,
+      dockTree: null,
+      rail: {
+        railMode: "compact",
+        railWidth: 180,
+        railOrder: ["Sources"],
+        leftRailPinned: ["Sources"],
+      },
+      savedLayouts: {},
+      instanceState: {},
+    });
 
-    const raw = localStorage.getItem(LS_KEY);
-    expect(raw).toBeTruthy();
-    const persisted = JSON.parse(raw as string);
+    await hydrateFromDisk();
 
-    expect(persisted).toHaveProperty("railMode");
-    expect(persisted).toHaveProperty("railWidth", 300);
-    expect(persisted).toHaveProperty("railOrder");
-    expect(persisted.leftRailPinned).toContain("Notes");
+    const state = shellStore.getState();
+    expect(state.railMode).toBe("compact");
+    expect(state.railWidth).toBe(180);
+    expect(state.railOrder).toEqual(["Sources"]);
+    expect(state.leftRailPinned).toEqual(["Sources"]);
+    expect(state.railOpen).toBe(true);
+  });
 
-    expect(persisted).not.toHaveProperty("activePaneId");
-    expect(persisted).not.toHaveProperty("railApplet");
+  it("sets railOpen false when the restored railMode is hidden", async () => {
+    loadWorkspaceRecordMock.mockResolvedValue({
+      schemaVersion: 1,
+      dockTree: null,
+      rail: {
+        railMode: "hidden",
+        railWidth: 220,
+        railOrder: ["Sources"],
+        leftRailPinned: [],
+      },
+      savedLayouts: {},
+      instanceState: {},
+    });
+
+    await hydrateFromDisk();
+
+    expect(shellStore.getState().railOpen).toBe(false);
+  });
+});
+
+describe("shellStore rail actions call scheduleWorkspaceSave (PERS-04 wiring)", () => {
+  it("setRailMode triggers scheduleWorkspaceSave exactly once", () => {
+    shellStore.getState().setRailMode("hidden");
+    expect(scheduleWorkspaceSaveMock).toHaveBeenCalledTimes(1);
   });
 });
