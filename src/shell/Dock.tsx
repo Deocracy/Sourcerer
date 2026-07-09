@@ -8,6 +8,7 @@ import {
   registerStateSources,
   saveWorkspaceRecord,
   scheduleWorkspaceSave,
+  setRestoreCanary,
 } from "../persistence/workspaceStore";
 import { appletDefs } from "./appletDefs";
 import { makeRenderer } from "./PanelBody";
@@ -172,7 +173,11 @@ export function Dock() {
       if (record.restoreCanary) {
         // Previous restore crashed before clearing its own canary — the
         // persisted dockTree is presumed poisoned, drop it (never re-applied).
+        // The canary has now served its purpose: clear it in memory (CR-01)
+        // so the reset flush below persists restoreCanary:false instead of
+        // perpetuating the trip into every subsequent launch.
         restored = false;
+        setRestoreCanary(false);
       } else if (record.dockTree != null) {
         try {
           api.fromJSON(record.dockTree as SerializedDockview);

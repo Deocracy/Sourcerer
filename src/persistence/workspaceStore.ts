@@ -205,6 +205,15 @@ export async function saveWorkspaceRecord(record: WorkspaceRecordV1): Promise<vo
   await store.save();
 }
 
+/** Restore-canary lifecycle authority (CR-01/CR-02/CR-03): Dock.tsx arms and
+ *  clears the crash-on-restore canary through this single in-memory mutation
+ *  instead of hand-assembling records — the next flush (debounced or forced)
+ *  persists the CURRENT canary truth alongside the live getter values, so a
+ *  tripped canary can never be perpetuated by an unrelated flush. */
+export function setRestoreCanary(value: boolean): void {
+  inMemory = { ...inMemory, restoreCanary: value };
+}
+
 // ---------------------------------------------------------------------------
 // Registration seam — breaks the workspaceStore <-> Dock/shellStore cycle.
 // Consumers (Dock.tsx, shellStore.ts in 03-02) register live getters here.

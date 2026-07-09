@@ -48,6 +48,7 @@ import {
   registerStateSources,
   resetOccurred,
   acknowledgeReset,
+  setRestoreCanary,
   DEFAULT_WORKSPACE,
   LATEST_SCHEMA_VERSION,
   type WorkspaceRecordV1,
@@ -160,6 +161,31 @@ describe("workspaceStore (PERS-03 migration fallback)", () => {
 
     renderer.dispose();
     renderer.element.remove();
+  });
+});
+
+describe("workspaceStore restore-canary lifecycle (CR-01)", () => {
+  it("a tripped canary cleared via setRestoreCanary(false) persists false through the debounced flush — one trip never becomes a permanent reset loop", async () => {
+    vi.useFakeTimers();
+
+    // Boot with a tripped canary on disk (previous restore crashed).
+    const tripped: WorkspaceRecordV1 = { ...makeRecord(), restoreCanary: true };
+    backing.set("workspace", tripped);
+    const record = await loadWorkspaceRecord(); // inMemory now carries restoreCanary:true
+    expect(record.restoreCanary).toBe(true);
+
+    // Dock's not-restored exit: discard the poisoned tree, clear the canary
+    // in memory, then let the ordinary debounced reset flush persist.
+    registerStateSources({
+      getDockTree: () => null, // reset to default — poisoned tree dropped
+      getRail: () => tripped.rail,
+    });
+    setRestoreCanary(false);
+    scheduleWorkspaceSave();
+    await vi.advanceTimersByTimeAsync(300);
+
+    const flushed = backing.get("workspace") as WorkspaceRecordV1;
+    expect(flushed.restoreCanary).toBe(false); // next launch restores normally
   });
 });
 
