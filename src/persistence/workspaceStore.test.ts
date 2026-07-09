@@ -49,6 +49,7 @@ import {
   resetOccurred,
   acknowledgeReset,
   setRestoreCanary,
+  setSavedLayouts,
   DEFAULT_WORKSPACE,
   LATEST_SCHEMA_VERSION,
   type WorkspaceRecordV1,
@@ -208,6 +209,38 @@ describe("workspaceStore close-flush inside the canary window (CR-02)", () => {
 
     const flushed = backing.get("workspace") as WorkspaceRecordV1;
     expect(flushed.restoreCanary).toBe(false);
+  });
+});
+
+describe("workspaceStore canary-clear write (CR-03)", () => {
+  it("the canary-clear flush preserves savedLayouts mutated inside the 4s window instead of clobbering them with the boot snapshot", async () => {
+    const rec = makeRecord();
+    await saveWorkspaceRecord(rec);
+    await loadWorkspaceRecord(); // boot snapshot: savedLayouts = {}
+    registerStateSources({
+      getDockTree: () => rec.dockTree,
+      getRail: () => rec.rail,
+    });
+    setRestoreCanary(true); // canary armed after a successful restore
+
+    // User saves a named layout at t≈1s, inside the canary window.
+    setSavedLayouts({
+      abc: {
+        id: "abc",
+        name: "Research",
+        record: { schemaVersion: 1, dockTree: null, rail: rec.rail, instanceState: {} },
+      },
+    });
+
+    // The 4s canary-clear goes through the single flush authority — it must
+    // read the CURRENT inMemory slices, not a boot-time capture.
+    setRestoreCanary(false);
+    await flushPendingSave();
+
+    const flushed = backing.get("workspace") as WorkspaceRecordV1;
+    expect(flushed.restoreCanary).toBe(false);
+    expect(Object.keys(flushed.savedLayouts)).toEqual(["abc"]);
+    expect(flushed.savedLayouts.abc.name).toBe("Research");
   });
 });
 

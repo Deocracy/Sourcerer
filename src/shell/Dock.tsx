@@ -4,9 +4,9 @@ import "dockview-core/dist/styles/dockview.css";
 import { nanoid } from "nanoid";
 import { shellStore, getRailSubset, hydrateFromDisk } from "../store/shellStore";
 import {
+  flushPendingSave,
   loadWorkspaceRecord,
   registerStateSources,
-  saveWorkspaceRecord,
   scheduleWorkspaceSave,
   setRestoreCanary,
 } from "../persistence/workspaceStore";
@@ -193,32 +193,19 @@ export function Dock() {
       }
 
       if (restored) {
-        // Set the canary before the crash window, clear it ~4s later — the
-        // exact re-homed shape from Dock.tsx's Phase-2 scaffold, now living
-        // on the record's restoreCanary field (workspace.json) rather than a
-        // browser-storage key.
-        void saveWorkspaceRecord({
-          schemaVersion: record.schemaVersion,
-          dockTree: record.dockTree,
-          rail: record.rail,
-          savedLayouts: record.savedLayouts,
-          instanceState: record.instanceState,
-          restoreCanary: true,
-        }).catch(() => {
-          /* best-effort canary write only */
-        });
+        // Arm the canary before the crash window, clear it ~4s later — both
+        // writes routed through the single flush authority (CR-03): set the
+        // canary in memory, then let scheduleWorkspaceSave/flushPendingSave
+        // assemble the record from the LIVE getters + CURRENT inMemory
+        // slices. Never a hand-built record here — a boot-time snapshot
+        // would clobber savedLayouts/instanceState mutated inside the
+        // window (e.g. a layout saved in the first 4 seconds).
+        setRestoreCanary(true);
+        scheduleWorkspaceSave();
         canaryTimer = setTimeout(() => {
           if (dockApiRef.current !== api) return; // cleanup raced the timer
-          void saveWorkspaceRecord({
-            schemaVersion: record.schemaVersion,
-            dockTree: dockApiRef.current.toJSON(),
-            rail: getRailSubset(),
-            savedLayouts: record.savedLayouts,
-            instanceState: record.instanceState,
-            restoreCanary: false,
-          }).catch(() => {
-            /* best-effort cleanup only */
-          });
+          setRestoreCanary(false);
+          void flushPendingSave(); // reads live getters + current slices
         }, 4000);
       } else {
         try {
