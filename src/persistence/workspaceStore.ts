@@ -19,6 +19,7 @@
  *   try/catch; untrusted persisted JSON can never crash the shell.
  */
 import { LazyStore } from "@tauri-apps/plugin-store";
+import { isValidRecordV1 } from "./validate";
 
 export interface WorkspaceRecordV1 {
   schemaVersion: number;
@@ -204,7 +205,11 @@ export async function loadWorkspaceRecord(): Promise<WorkspaceRecordV1> {
     return backupAndFallback(raw);
   }
   const migrated = migrate(raw);
-  if (migrated === null) {
+  // CR-05: key-presence (isCandidateRecord) is not enough — a
+  // schemaVersion-1 record with a garbage rail slice skips migration and
+  // would crash Rail's render (railOrder.filter on undefined). Structurally
+  // validate the non-opaque slices POST-migration before trusting the record.
+  if (migrated === null || !isValidRecordV1(migrated)) {
     return backupAndFallback(raw);
   }
   inMemory = migrated;

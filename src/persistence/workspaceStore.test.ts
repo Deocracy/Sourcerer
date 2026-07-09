@@ -120,6 +120,30 @@ describe("workspaceStore (PERS-03 migration fallback)", () => {
     expect(loaded).toEqual(DEFAULT_WORKSPACE);
   });
 
+  it("(CR-05) a schemaVersion-1 record with a garbage rail slice falls back to DEFAULT_WORKSPACE instead of being accepted", async () => {
+    backing.set("workspace", {
+      schemaVersion: 1,
+      dockTree: null,
+      rail: {}, // passes key-presence, would crash Rail's render if accepted
+      savedLayouts: {},
+      instanceState: {},
+    });
+    const loaded = await loadWorkspaceRecord();
+    expect(loaded).toEqual(DEFAULT_WORKSPACE);
+    expect(resetOccurred()).toBe(true);
+  });
+
+  it("(CR-05) non-object savedLayouts/instanceState slices are rejected via backup-and-fallback", async () => {
+    const base = makeRecord();
+    backing.set("workspace", { ...base, savedLayouts: "x" });
+    expect(await loadWorkspaceRecord()).toEqual(DEFAULT_WORKSPACE);
+
+    acknowledgeReset();
+    backing.set("workspace", { ...base, instanceState: 42 });
+    expect(await loadWorkspaceRecord()).toEqual(DEFAULT_WORKSPACE);
+    expect(resetOccurred()).toBe(true);
+  });
+
   it("(e) corrupt input writes the raw value to workspace.json.bak exactly once and flips resetOccurred() true", async () => {
     const corrupt = { schemaVersion: 0, dockTree: { poisoned: true }, rail: {}, savedLayouts: {}, instanceState: {} };
     backing.set("workspace", corrupt);
