@@ -1,18 +1,18 @@
 import { useEffect, useRef } from "react";
-import { createDockview, type DockviewApi } from "dockview-core";
+import { createDockview, type DockviewApi, type SerializedDockview } from "dockview-core";
 import "dockview-core/dist/styles/dockview.css";
 import { nanoid } from "nanoid";
-import { shellStore } from "../store/shellStore";
+import { shellStore, getRailSubset, hydrateFromDisk } from "../store/shellStore";
+import {
+  loadWorkspaceRecord,
+  registerStateSources,
+  saveWorkspaceRecord,
+  scheduleWorkspaceSave,
+} from "../persistence/workspaceStore";
 import { appletDefs } from "./appletDefs";
 import { makeRenderer } from "./PanelBody";
 import type { DockDirection } from "./dockZones";
 import styles from "./Dock.module.css";
-
-// D-02 minimal persistence placeholder — Phase 3 (PERS-01..04) owns the real
-// crash-safe/versioned contract. Canary key detects a crash-on-restore layout
-// and discards it before it can re-crash (T-02-01).
-const LAYOUT_KEY = "sourcerer-dockview-bespoke-v2";
-const CANARY_KEY = `${LAYOUT_KEY}:canary`;
 
 // --- D-01 seam: single live dockview instance exposed to useRailDragOut ---
 // Dock.tsx owns the one dockview-core instance; the rail drag-out hook
@@ -105,6 +105,13 @@ export function Dock() {
 
     dockApiRef.current = api;
 
+    // Single seam call site merging dock-tree + rail getters (03-PATTERNS.md:
+    // neither getter must clobber the other).
+    registerStateSources({
+      getDockTree: () => (dockApiRef.current ? dockApiRef.current.toJSON() : null),
+      getRail: getRailSubset,
+    });
+
     // Fresh-instance-per-click helper (DOCK-01/DOCK-04): always a new panel
     // id, never an existing-panel activate, so repeated opens of the same
     // key demonstrably coexist as separate instances. Delegates to the
@@ -126,63 +133,79 @@ export function Dock() {
       return key;
     }
 
-    // --- Canary-guarded restore + Wiki/Library default (DOCK-03, D-02) ---
-    let restored = false;
-    try {
-      if (localStorage.getItem(CANARY_KEY)) {
+    // --- Canary-guarded restore + Wiki/Library default (DOCK-03, re-homed
+    // onto the workspace.json record's restoreCanary field, T-03-01) ---
+    let cancelled = false;
+    let canaryTimer: ReturnType<typeof setTimeout> | undefined;
+
+    void (async () => {
+      const record = await loadWorkspaceRecord();
+      if (cancelled || dockApiRef.current !== api) return; // effect cleanup raced the async load
+
+      let restored = false;
+      if (record.restoreCanary) {
         // Previous restore crashed before clearing its own canary — the
-        // saved layout is presumed poisoned, drop it.
-        localStorage.removeItem(LAYOUT_KEY);
-      }
-      localStorage.setItem(CANARY_KEY, "1");
-      const raw = localStorage.getItem(LAYOUT_KEY);
-      if (raw) {
-        api.fromJSON(JSON.parse(raw));
-        restored = true;
-      }
-    } catch {
-      restored = false;
-      try {
-        api.clear();
-      } catch {
-        /* best-effort recovery only */
-      }
-      try {
-        localStorage.removeItem(LAYOUT_KEY);
-      } catch {
-        /* best-effort recovery only */
-      }
-    }
-    const canaryTimer = setTimeout(() => {
-      try {
-        localStorage.removeItem(CANARY_KEY);
-      } catch {
-        /* best-effort cleanup only */
-      }
-    }, 4000);
-
-    if (!restored || api.panels.length === 0) {
-      try {
-        api.clear();
-      } catch {
-        /* best-effort reset only */
-      }
-      addApplet("Wiki");
-      addApplet("Library");
-    }
-
-    let saveTimer: ReturnType<typeof setTimeout> | undefined;
-    const layoutDisposable = api.onDidLayoutChange(() => {
-      if (saveTimer) clearTimeout(saveTimer);
-      saveTimer = setTimeout(() => {
+        // persisted dockTree is presumed poisoned, drop it (never re-applied).
+        restored = false;
+      } else if (record.dockTree != null) {
         try {
-          localStorage.setItem(LAYOUT_KEY, JSON.stringify(api.toJSON()));
+          api.fromJSON(record.dockTree as SerializedDockview);
+          restored = api.panels.length > 0;
         } catch {
-          // persistence is best-effort scaffolding in Phase 2 (D-02); ignore
-          // quota/serialization errors (T-02-08 debounce already coalesces
-          // write frequency).
+          restored = false;
+          try {
+            api.clear();
+          } catch {
+            /* best-effort recovery only */
+          }
         }
-      }, 300);
+      }
+
+      if (restored) {
+        // Set the canary before the crash window, clear it ~4s later — the
+        // exact re-homed shape from Dock.tsx's Phase-2 scaffold, now living
+        // on the record's restoreCanary field (workspace.json) rather than a
+        // browser-storage key.
+        void saveWorkspaceRecord({
+          schemaVersion: record.schemaVersion,
+          dockTree: record.dockTree,
+          rail: record.rail,
+          savedLayouts: record.savedLayouts,
+          instanceState: record.instanceState,
+          restoreCanary: true,
+        }).catch(() => {
+          /* best-effort canary write only */
+        });
+        canaryTimer = setTimeout(() => {
+          if (dockApiRef.current !== api) return; // cleanup raced the timer
+          void saveWorkspaceRecord({
+            schemaVersion: record.schemaVersion,
+            dockTree: dockApiRef.current.toJSON(),
+            rail: getRailSubset(),
+            savedLayouts: record.savedLayouts,
+            instanceState: record.instanceState,
+            restoreCanary: false,
+          }).catch(() => {
+            /* best-effort cleanup only */
+          });
+        }, 4000);
+      } else {
+        try {
+          api.clear();
+        } catch {
+          /* best-effort reset only */
+        }
+        addApplet("Wiki");
+        addApplet("Library");
+        scheduleWorkspaceSave();
+      }
+
+      // Rail hydrates from the same load (record already fetched above).
+      void hydrateFromDisk();
+    })();
+
+    const layoutDisposable = api.onDidLayoutChange(() => {
+      scheduleWorkspaceSave();
     });
 
     // Focus (DOCK-05): dockview's own event is the sole source of truth —
@@ -194,7 +217,7 @@ export function Dock() {
     });
 
     return () => {
-      if (saveTimer) clearTimeout(saveTimer);
+      cancelled = true;
       clearTimeout(canaryTimer);
       layoutDisposable.dispose();
       focusDisposable.dispose();
