@@ -358,6 +358,14 @@ export async function flushPendingSave(): Promise<void> {
     clearTimeout(saveTimer);
     saveTimer = undefined;
   }
+  // CR-02: an explicit force-flush is by definition NOT a mid-restore crash —
+  // a graceful close (or the canary-clear timer) proves the session survived,
+  // which is exactly the signal restoreCanary encodes. Force it false here so
+  // quitting inside the 4s canary window can never persist restoreCanary:true
+  // and poison the next launch into a default reset.
+  if (inMemory.restoreCanary) {
+    setRestoreCanary(false);
+  }
   await flushNow();
 }
 

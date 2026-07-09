@@ -189,6 +189,28 @@ describe("workspaceStore restore-canary lifecycle (CR-01)", () => {
   });
 });
 
+describe("workspaceStore close-flush inside the canary window (CR-02)", () => {
+  it("flushPendingSave forces restoreCanary:false — quitting within the 4s canary window never persists an armed canary", async () => {
+    // Dock armed the canary right after a successful restore…
+    const rec = makeRecord();
+    await saveWorkspaceRecord(rec);
+    await loadWorkspaceRecord();
+    registerStateSources({
+      getDockTree: () => rec.dockTree,
+      getRail: () => rec.rail,
+    });
+    setRestoreCanary(true);
+
+    // …and the user closes the window before the 4s clear timer fires
+    // (PERS-04 close-flush). A graceful close proves the session did not
+    // crash, so the flushed record must carry restoreCanary:false.
+    await flushPendingSave();
+
+    const flushed = backing.get("workspace") as WorkspaceRecordV1;
+    expect(flushed.restoreCanary).toBe(false);
+  });
+});
+
 describe("workspaceStore (PERS-04 debounced writer)", () => {
   it("coalesces three scheduleWorkspaceSave calls into one save reading getters at flush time", async () => {
     vi.useFakeTimers();
