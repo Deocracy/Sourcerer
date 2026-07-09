@@ -151,6 +151,10 @@ const migrators: Record<number, Migrator> = {
 function migrate(raw: { schemaVersion: number; [k: string]: unknown }): WorkspaceRecordV1 | null {
   let version = raw.schemaVersion;
   let data: unknown = raw;
+  // WR-04: a FUTURE schemaVersion (user downgraded the app, or a newer build
+  // wrote the file) is unmigratable — this build cannot know the shape.
+  // Treat it like a missing migrator: the caller backs up + falls back.
+  if (version > LATEST_SCHEMA_VERSION) return null;
   while (version < LATEST_SCHEMA_VERSION) {
     const step = migrators[version];
     if (!step) return null; // no path forward -> caller discards to default

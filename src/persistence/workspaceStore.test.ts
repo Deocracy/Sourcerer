@@ -114,6 +114,21 @@ describe("workspaceStore (PERS-03 migration fallback)", () => {
     expect(loaded).toEqual(DEFAULT_WORKSPACE);
   });
 
+  it("(WR-04) a FUTURE schemaVersion (app downgrade) is backed up and falls back to DEFAULT_WORKSPACE, never accepted as-is", async () => {
+    const future = {
+      ...makeRecord(),
+      schemaVersion: LATEST_SCHEMA_VERSION + 1,
+      rail: { renamedField: true }, // a v2 shape this build cannot interpret
+    };
+    backing.set("workspace", future);
+
+    const loaded = await loadWorkspaceRecord();
+
+    expect(loaded).toEqual(DEFAULT_WORKSPACE);
+    expect(resetOccurred()).toBe(true);
+    expect(backupBacking.get("workspace")).toEqual(future);
+  });
+
   it("a corrupt/shape-invalid persisted value resolves to DEFAULT_WORKSPACE", async () => {
     backing.set("workspace", { schemaVersion: "not-a-number", junk: true });
     const loaded = await loadWorkspaceRecord();
