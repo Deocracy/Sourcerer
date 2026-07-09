@@ -94,8 +94,15 @@ const backupStore = new LazyStore("workspace.json.bak");
 // unmigratable. Read by ResetNotice; cleared via acknowledgeReset() on dismiss.
 let resetHappened = false;
 
+// CR-04: the reset flips AFTER ResetNotice's initial render (the corrupt
+// fallback happens inside Dock's async boot load), so the signal needs the
+// same minimal pub/sub treatment savedLayouts has — ResetNotice binds via
+// useSyncExternalStore(subscribeReset, resetOccurred).
+const resetListeners = new Set<() => void>();
+
 /** True once, right after a corrupt/unmigratable-state fallback; false
- *  otherwise. Consumed by ResetNotice (03-03 Task 2). */
+ *  otherwise. Consumed by ResetNotice (03-03 Task 2) — the `getSnapshot`
+ *  half of its useSyncExternalStore binding. */
 export function resetOccurred(): boolean {
   return resetHappened;
 }
@@ -103,6 +110,14 @@ export function resetOccurred(): boolean {
 /** Clears the one-time reset signal — called by ResetNotice on dismiss. */
 export function acknowledgeReset(): void {
   resetHappened = false;
+  resetListeners.forEach((listener) => listener());
+}
+
+/** Subscribes to reset-signal changes; returns an unsubscribe function — the
+ *  `subscribe` half of ResetNotice's useSyncExternalStore binding (CR-04). */
+export function subscribeReset(listener: () => void): () => void {
+  resetListeners.add(listener);
+  return () => resetListeners.delete(listener);
 }
 
 /** Copies the offending raw value to the rolling workspace.json.bak sink
@@ -118,6 +133,7 @@ async function backupAndFallback(raw: unknown): Promise<WorkspaceRecordV1> {
     // Backup is best-effort only — never let it block the fallback.
   }
   resetHappened = true;
+  resetListeners.forEach((listener) => listener()); // CR-04: wake ResetNotice
   console.warn("[workspace] reset to default after failing to load persisted layout");
   inMemory = DEFAULT_WORKSPACE;
   return DEFAULT_WORKSPACE;

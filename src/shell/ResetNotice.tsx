@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { resetOccurred, acknowledgeReset } from "../persistence/workspaceStore";
+import { useState, useSyncExternalStore } from "react";
+import { resetOccurred, acknowledgeReset, subscribeReset } from "../persistence/workspaceStore";
 import styles from "./ResetNotice.module.css";
 
 /**
@@ -7,16 +7,20 @@ import styles from "./ResetNotice.module.css";
  *
  * A minimal, self-contained element (local `useState` for dismiss) — not
  * shared toast infrastructure; the shell has no toast system and D-04
- * deliberately scopes this to one element. Reads `resetOccurred()` from
- * workspaceStore at render time: if the load path fell back to
- * DEFAULT_WORKSPACE because the persisted state was corrupt/unmigratable,
- * this renders a single-line inline banner until dismissed, then calls
- * `acknowledgeReset()` so it never reappears for this session.
+ * deliberately scopes this to one element. Binds `resetOccurred()` via
+ * `useSyncExternalStore(subscribeReset, …)` (CR-04): the corrupt fallback
+ * happens inside Dock's ASYNC boot load, after this component's initial
+ * render, so a plain render-time read would never see the flip. When the
+ * load path falls back to DEFAULT_WORKSPACE because the persisted state was
+ * corrupt/unmigratable, this renders a single-line inline banner until
+ * dismissed, then calls `acknowledgeReset()` so it never reappears for this
+ * session.
  */
 export function ResetNotice() {
   const [dismissed, setDismissed] = useState(false);
+  const reset = useSyncExternalStore(subscribeReset, resetOccurred);
 
-  if (dismissed || !resetOccurred()) {
+  if (dismissed || !reset) {
     return null;
   }
 
