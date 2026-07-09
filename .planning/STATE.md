@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-07-09T22:40:53.567Z"
+status: verifying
+last_updated: "2026-07-09T23:18:40.547Z"
 last_activity: 2026-07-09
 progress:
   total_phases: 7
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 20
-  completed_plans: 19
-  percent: 43
+  completed_plans: 20
+  percent: 57
 ---
 
 # Project State
@@ -26,14 +26,14 @@ See: .planning/PROJECT.md (updated 2026-07-06)
 
 Phase: 03 (persistence-layouts) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-09
 
 Phase 07 (assistant-harness-core): COMPLETE — all 6 plans done (07-01..07-04 automated, 07-05 live UAT gate 4/4 truths pass, 07-06 D-09 gap closure). 07-VERIFICATION.md status: passed.
 
 Note: `state.advance-plan` tracks a single project-wide plan counter and mis-attributes advances to whichever phase this "Current Position" block names when two phases execute in parallel (landmine, repeats each time — see prior note this replaced). After 07-02's completion this was manually corrected here (via `state.update-progress`, not `state.advance-plan`): Phase 02's plan number was NOT advanced by 07-02's completion. The aggregate `completed_plans` count in frontmatter is derived from `state.update-progress`'s disk-scan (recompute it if it drifts — Phase 01 + Phase 02 + Phase 07's actual SUMMARY.md counts on disk are the source of truth, not this note's numbers, since both phases execute in parallel and this note goes stale quickly). At last recompute during 07-02's completion: Phase 01 (3) + Phase 02 (4, including 02-04) + Phase 07 (07-01, 07-02, 07-03, 07-04 = 4) = 11.
 
-Progress: [██████████] 95%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -69,6 +69,7 @@ Progress: [██████████] 95%
 | Phase 03 P02 | 25min | 2 tasks | 3 files |
 | Phase 03-persistence-layouts P03 | 20min | 2 tasks | 5 files |
 | Phase 03-persistence-layouts P04 | 40min | 2 tasks | 8 files |
+| Phase 03 P05 | 55m | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -109,6 +110,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 03-02: canary clear-at-4s uses a direct saveWorkspaceRecord({restoreCanary:false}) call with live getters, not scheduleWorkspaceSave() (which only re-persists the stale in-memory canary value)
 - [Phase ?]: 03-03: absent-store first-run is not a reset — only corrupt/unmigratable persisted values trigger the .bak backup + resetOccurred() notice
 - [Phase ?]: 03-04: restoreDockTree implemented as optional StateSources field
+- [Phase 03]: 03-05: CloseRequested split Rust(prevent_close+emit)/JS(flushPendingSave, sole flush authority) per RESEARCH Architectural Responsibility Map
+- [Phase 03]: 03-05: re-entrant CloseRequested guarded via CLOSE_CONFIRMED AtomicBool + confirm_close command, avoiding block_on-vs-spawn sequencing risk (RESEARCH Open Question 2)
 
 ### Roadmap Evolution
 
@@ -137,6 +140,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-09T22:40:40.382Z
-Stopped at: Completed 03-03-PLAN.md
+Last session: 2026-07-09T23:18:40.487Z
+Stopped at: Completed 03-05-PLAN.md
 Resume file: None

@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Shell Foundation** - Frameless window, custom title bar, window controls, DPI-correct metrics, local fonts (completed 2026-07-07)
 - [x] **Phase 2: Workspace Core** - Left rail (3 modes) + dock tree (tabs, 5-zone docking, splits, focus, clamps) (completed 2026-07-08)
-- [ ] **Phase 3: Persistence & Layouts** - Crash-safe workspace persistence, schema versioning, named layouts
+- [x] **Phase 3: Persistence & Layouts** - Crash-safe workspace persistence, schema versioning, named layouts (completed 2026-07-09)
 - [ ] **Phase 4: Applet Framework** - Static registry, host API, high-fidelity demo stubs for every applet
 - [ ] **Phase 5: Notes Applet** - First real applet proving registry → host → storage → ai seam
 - [ ] **Phase 6: Dashboard Assistant & Home** - Stubbed AI assistant panel + metro Home dashboard
@@ -107,7 +107,7 @@ Plans:
 - [x] 03-03-PLAN.md — Corrupt/stale fallback: rolling .bak + Wiki+Library default + one-time ResetNotice + missing-key placeholder (PERS-03)
 - [x] 03-04-PLAN.md — LAYOUTS ▾ dropdown: save/apply/delete named layouts + reset (PERS-02)
 **Wave 4** *(blocked on Wave 3)*
-- [ ] 03-05-PLAN.md — flushPendingSave + Rust CloseRequested flush-then-close hook (PERS-04)
+- [x] 03-05-PLAN.md — flushPendingSave + Rust CloseRequested flush-then-close hook (PERS-04)
 **UI hint**: yes
 
 ### Phase 4: Applet Framework
@@ -165,7 +165,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 |-------|----------------|--------|-----------|
 | 1. Shell Foundation | 3/3 | Complete   | 2026-07-07 |
 | 2. Workspace Core | 6/6 | Complete   | 2026-07-08 |
-| 3. Persistence & Layouts | 4/5 | In Progress|  |
+| 3. Persistence & Layouts | 5/5 | Complete   | 2026-07-09 |
 | 4. Applet Framework | 0/TBD | Not started | - |
 | 5. Notes Applet | 0/TBD | Not started | - |
 | 6. Dashboard Assistant & Home | 0/TBD | Not started | - |
