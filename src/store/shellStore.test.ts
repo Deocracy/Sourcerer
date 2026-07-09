@@ -89,8 +89,8 @@ describe("shellStore.setBadge(key, n)", () => {
 });
 
 describe("shellStore hydrateFromDisk (PERS-01)", () => {
-  it("restores railMode/railWidth/railOrder/leftRailPinned from a mocked workspace record", async () => {
-    loadWorkspaceRecordMock.mockResolvedValue({
+  it("restores railMode/railWidth/railOrder/leftRailPinned from the record Dock already loaded (WR-01: no second disk read)", () => {
+    hydrateFromDisk({
       schemaVersion: 1,
       dockTree: null,
       rail: {
@@ -103,7 +103,8 @@ describe("shellStore hydrateFromDisk (PERS-01)", () => {
       instanceState: {},
     });
 
-    await hydrateFromDisk();
+    // WR-01: hydrateFromDisk must not trigger its own loadWorkspaceRecord.
+    expect(loadWorkspaceRecordMock).not.toHaveBeenCalled();
 
     const state = shellStore.getState();
     expect(state.railMode).toBe("compact");
@@ -113,8 +114,8 @@ describe("shellStore hydrateFromDisk (PERS-01)", () => {
     expect(state.railOpen).toBe(true);
   });
 
-  it("sets railOpen false when the restored railMode is hidden", async () => {
-    loadWorkspaceRecordMock.mockResolvedValue({
+  it("sets railOpen false when the restored railMode is hidden", () => {
+    hydrateFromDisk({
       schemaVersion: 1,
       dockTree: null,
       rail: {
@@ -126,8 +127,6 @@ describe("shellStore hydrateFromDisk (PERS-01)", () => {
       savedLayouts: {},
       instanceState: {},
     });
-
-    await hydrateFromDisk();
 
     expect(shellStore.getState().railOpen).toBe(false);
   });

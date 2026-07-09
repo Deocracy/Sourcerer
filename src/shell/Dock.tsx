@@ -218,8 +218,9 @@ export function Dock() {
         scheduleWorkspaceSave();
       }
 
-      // Rail hydrates from the same load (record already fetched above).
-      void hydrateFromDisk();
+      // Rail hydrates from the same load — the record fetched above is
+      // passed through directly (WR-01: no second disk read).
+      hydrateFromDisk(record);
     })();
 
     const layoutDisposable = api.onDidLayoutChange(() => {

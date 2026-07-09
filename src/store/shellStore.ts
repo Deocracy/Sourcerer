@@ -13,7 +13,8 @@
  */
 import { createStore } from "zustand/vanilla";
 import { useStore } from "zustand";
-import { DEFAULT_WORKSPACE, loadWorkspaceRecord, scheduleWorkspaceSave } from "../persistence/workspaceStore";
+import { DEFAULT_WORKSPACE, scheduleWorkspaceSave } from "../persistence/workspaceStore";
+import type { WorkspaceRecordV1 } from "../persistence/workspaceStore";
 
 export type RailMode = "expanded" | "compact" | "hidden";
 
@@ -127,11 +128,11 @@ export function getRailSubset(): {
   };
 }
 
-/** Hydrates the persisted rail subset from disk (workspace.json). Called once
- *  at app boot (Dock.tsx's mount effect) alongside the dock-tree restore, so
- *  rail + dock hydrate from the same load. */
-export async function hydrateFromDisk(): Promise<void> {
-  const record = await loadWorkspaceRecord();
+/** Hydrates the persisted rail subset from the record Dock's mount effect
+ *  ALREADY loaded (WR-01): rail + dock genuinely hydrate from the same load —
+ *  no second disk read that races the concurrent canary write, double-runs
+ *  backupAndFallback on a corrupt store, or re-fires savedLayoutsListeners. */
+export function hydrateFromDisk(record: WorkspaceRecordV1): void {
   const rail = record.rail;
   shellStore.setState({
     railMode: rail.railMode,
