@@ -398,6 +398,13 @@ export async function flushPendingSave(): Promise<void> {
 // this module in Vitest/jsdom (no Tauri IPC bridge) never throws or leaves a
 // dangling listener (03-PATTERNS.md "Tauri IPC guarded-at-click-time").
 // ---------------------------------------------------------------------------
+// WR-02: deadline on the close-flush handshake — the `finally` below already
+// guarantees confirm_close on flush REJECTION, but a flush that never settles
+// (hung store.save IPC) would otherwise swallow every close click forever.
+// Racing against this timeout bounds the wait; the Rust CloseRequested arm
+// carries its own longer force-close fallback as defense in depth.
+const CLOSE_FLUSH_TIMEOUT_MS = 2000;
+
 function setupCloseFlushListener(): void {
   if (typeof window === "undefined" || !("__TAURI_INTERNALS__" in window)) {
     return; // no Tauri IPC bridge present (tests, plain browser) — no-op
@@ -405,7 +412,10 @@ function setupCloseFlushListener(): void {
   import("@tauri-apps/api/event")
     .then(({ listen }) =>
       listen("workspace:flush-before-close", () => {
-        void flushPendingSave()
+        void Promise.race([
+          flushPendingSave(),
+          new Promise<void>((resolve) => setTimeout(resolve, CLOSE_FLUSH_TIMEOUT_MS)),
+        ])
           .catch((err) => {
             console.warn("workspaceStore: close-flush failed", err);
           })

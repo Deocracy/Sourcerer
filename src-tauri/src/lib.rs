@@ -17,6 +17,15 @@ static ADJUSTING_MAXIMIZE: AtomicBool = AtomicBool::new(false);
 /// forever (RESEARCH.md Pattern 3 / Open Question 2).
 static CLOSE_CONFIRMED: AtomicBool = AtomicBool::new(false);
 
+/// WR-02 defense in depth: armed the first time CloseRequested prevents a
+/// close. If the frontend never calls `confirm_close` (flush listener failed
+/// to register, webview wedged, store.save hung), a background thread
+/// force-closes the window after this deadline instead of swallowing every
+/// close click forever. The frontend's own 2s flush timeout normally fires
+/// first — this only triggers when the frontend is unreachable.
+static CLOSE_FALLBACK_ARMED: AtomicBool = AtomicBool::new(false);
+const CLOSE_FALLBACK_DEADLINE_SECS: u64 = 5;
+
 /// Frontend calls this (via `workspace:flush-before-close` → flushPendingSave
 /// → invoke("confirm_close")) once the pending debounced write has been
 /// force-flushed to disk. Flips the guard then actually closes the window —
@@ -88,6 +97,24 @@ pub fn run() {
                 }
                 api.prevent_close();
                 let _ = window.emit("workspace:flush-before-close", ());
+                // WR-02: bounded wait — if no confirm_close arrives within
+                // the deadline, force the close so the window can never
+                // become permanently unclosable. Armed once (swap) so
+                // repeated close clicks don't stack fallback threads.
+                if !CLOSE_FALLBACK_ARMED.swap(true, Ordering::SeqCst) {
+                    let window = window.clone();
+                    std::thread::spawn(move || {
+                        std::thread::sleep(std::time::Duration::from_secs(
+                            CLOSE_FALLBACK_DEADLINE_SECS,
+                        ));
+                        if !CLOSE_CONFIRMED.swap(true, Ordering::SeqCst) {
+                            println!(
+                                "[win] close-flush handshake timed out after {CLOSE_FALLBACK_DEADLINE_SECS}s — forcing close"
+                            );
+                            let _ = window.close();
+                        }
+                    });
+                }
             }
         })
         .invoke_handler(tauri::generate_handler![
