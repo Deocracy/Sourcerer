@@ -1,6 +1,7 @@
 import { TitleBar } from "../shell/TitleBar";
 import { Rail } from "../shell/Rail";
 import { Dock } from "../shell/Dock";
+import { ResetNotice } from "../shell/ResetNotice";
 import { AssistantPanel } from "../assistant/AssistantPanel";
 import styles from "./AppShell.module.css";
 
@@ -24,6 +25,7 @@ export function AppShell() {
         <Rail />
         <div className={styles.main}>
           <Dock />
+          <ResetNotice />
         </div>
         <AssistantPanel />
       </div>

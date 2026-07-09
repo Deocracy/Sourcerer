@@ -1,0 +1,43 @@
+/*
+ * ResetNotice — one-time dismissible corrupt-reset banner (D-04). Non-blocking
+ * inline element, positioned above the workspace body; does not shift the
+ * title bar or dock layout (absolute, out of flow).
+ */
+
+.notice {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  max-width: 420px;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-panel);
+  border: var(--border-w) solid var(--color-line);
+  border-radius: 0;
+}
+
+.text {
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  color: var(--color-fg-secondary);
+}
+
+.dismiss {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-faint);
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.dismiss:hover {
+  color: var(--color-fg);
+}
