@@ -3,11 +3,31 @@ mod sidecar;
 
 use sidecar::SidecarProcess;
 use std::sync::atomic::{AtomicBool, Ordering};
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 /// Guard against re-entrant Resized events while we kick a maximized window
 /// (set_resizable → unmaximize → maximize dispatches WM_SIZE synchronously).
 static ADJUSTING_MAXIMIZE: AtomicBool = AtomicBool::new(false);
+
+/// PERS-04 close-flush guard: the CloseRequested arm below intercepts the
+/// FIRST close attempt (prevent_close + ask the frontend to flush). Once the
+/// frontend has flushed and called `confirm_close`, this flips true and the
+/// window's own `.close()` re-fires CloseRequested a second time — this guard
+/// lets that second, already-confirmed attempt through instead of looping
+/// forever (RESEARCH.md Pattern 3 / Open Question 2).
+static CLOSE_CONFIRMED: AtomicBool = AtomicBool::new(false);
+
+/// Frontend calls this (via `workspace:flush-before-close` → flushPendingSave
+/// → invoke("confirm_close")) once the pending debounced write has been
+/// force-flushed to disk. Flips the guard then actually closes the window —
+/// this second `.close()` re-enters `on_window_event`'s CloseRequested arm,
+/// which now sees `CLOSE_CONFIRMED == true` and lets it proceed instead of
+/// preventing it again.
+#[tauri::command]
+fn confirm_close(window: tauri::Window) {
+    CLOSE_CONFIRMED.store(true, Ordering::SeqCst);
+    let _ = window.close();
+}
 
 fn log_window_rect(window: &tauri::Window, tag: &str) {
     if let (Ok(pos), Ok(size)) = (window.outer_position(), window.outer_size()) {
@@ -54,12 +74,27 @@ pub fn run() {
                     let _ = window.set_resizable(true);
                     log_window_rect(window, "restored: frame back");
                 }
+            } else if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                // PERS-04: flush the pending debounced workspace write before
+                // the window actually closes (no unsaved-window race on a
+                // graceful close). The frontend owns the actual save (it is
+                // the sole flush authority — RESEARCH.md Pitfall 1); this arm
+                // only blocks the close and asks it to run.
+                if CLOSE_CONFIRMED.load(Ordering::SeqCst) {
+                    // Frontend already flushed and asked us to close for
+                    // real via confirm_close — let this second, re-entrant
+                    // CloseRequested proceed instead of blocking again.
+                    return;
+                }
+                api.prevent_close();
+                let _ = window.emit("workspace:flush-before-close", ());
             }
         })
         .invoke_handler(tauri::generate_handler![
             commands::ai::host_ai,
             commands::ai::set_modes,
-            commands::ai::load_session
+            commands::ai::load_session,
+            confirm_close
         ])
         .setup(|app| {
             // Spawn + own the Node Pi sidecar for the app lifetime. A spawn failure is
