@@ -288,28 +288,102 @@ export function subscribeSavedLayouts(listener: SavedLayoutsListener): () => voi
 const SAVE_DEBOUNCE_MS = 300;
 let saveTimer: ReturnType<typeof setTimeout> | undefined;
 
+/** Shared record-assembly helper (03-05) — the ONE place that reads the
+ *  registered live getters + in-memory slices into a full WorkspaceRecordV1.
+ *  Used by both scheduleWorkspaceSave's flush and flushPendingSave so the two
+ *  paths cannot drift. Returns null if nothing is registered yet (nothing
+ *  coherent to flush) or if a getter throws (persistence must never crash
+ *  the shell — getters are consumer code). */
+function buildRecordFromSources(): WorkspaceRecordV1 | null {
+  if (!sources) return null;
+  try {
+    return {
+      schemaVersion: LATEST_SCHEMA_VERSION,
+      dockTree: sources.getDockTree(),
+      rail: sources.getRail(),
+      savedLayouts: inMemory.savedLayouts,
+      instanceState: inMemory.instanceState,
+      ...(inMemory.restoreCanary !== undefined
+        ? { restoreCanary: inMemory.restoreCanary }
+        : {}),
+    };
+  } catch (err) {
+    console.warn("workspaceStore: building record from sources failed", err);
+    return null;
+  }
+}
+
+/** Assembles the current record (if any consumer is registered) and awaits
+ *  one saveWorkspaceRecord. No-ops if nothing is registered. Shared by the
+ *  debounced flush and flushPendingSave. */
+async function flushNow(): Promise<void> {
+  const record = buildRecordFromSources();
+  if (!record) return;
+  try {
+    await saveWorkspaceRecord(record);
+  } catch (err) {
+    console.warn("workspaceStore: save failed", err);
+  }
+}
+
 export function scheduleWorkspaceSave(): void {
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     saveTimer = undefined;
-    if (!sources) return; // nothing registered yet — nothing coherent to flush
-    try {
-      const record: WorkspaceRecordV1 = {
-        schemaVersion: LATEST_SCHEMA_VERSION,
-        dockTree: sources.getDockTree(),
-        rail: sources.getRail(),
-        savedLayouts: inMemory.savedLayouts,
-        instanceState: inMemory.instanceState,
-        ...(inMemory.restoreCanary !== undefined
-          ? { restoreCanary: inMemory.restoreCanary }
-          : {}),
-      };
-      void saveWorkspaceRecord(record).catch((err) => {
-        console.warn("workspaceStore: debounced save failed", err);
-      });
-    } catch (err) {
-      // Persistence must never crash the shell — getters are consumer code.
-      console.warn("workspaceStore: debounced save failed", err);
-    }
+    void flushNow();
   }, SAVE_DEBOUNCE_MS);
 }
+
+/** PERS-04: synchronous force-flush of the pending debounced write — the
+ *  single explicit flush authority for graceful window close (RESEARCH.md
+ *  Pitfall 1: do not rely on plugin autoSave alone for close-safety). Clears
+ *  the pending debounce timer (so a later-firing timer can never
+ *  double-write after this resolves) and immediately awaits one
+ *  saveWorkspaceRecord built from the same buildRecordFromSources() helper
+ *  scheduleWorkspaceSave's flush uses, so the two paths cannot drift. Safe
+ *  to call with no pending timer (still performs one immediate save from
+ *  the latest registered getters, or safely no-ops if none are
+ *  registered). */
+export async function flushPendingSave(): Promise<void> {
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = undefined;
+  }
+  await flushNow();
+}
+
+// ---------------------------------------------------------------------------
+// Window-close flush wiring (PERS-04) — src-tauri/src/lib.rs's CloseRequested
+// arm calls api.prevent_close() then emits "workspace:flush-before-close".
+// This is the sole flush authority the Rust side triggers: flush, then ask
+// Rust to actually close via the confirm_close command. Guarded so importing
+// this module in Vitest/jsdom (no Tauri IPC bridge) never throws or leaves a
+// dangling listener (03-PATTERNS.md "Tauri IPC guarded-at-click-time").
+// ---------------------------------------------------------------------------
+function setupCloseFlushListener(): void {
+  if (typeof window === "undefined" || !("__TAURI_INTERNALS__" in window)) {
+    return; // no Tauri IPC bridge present (tests, plain browser) — no-op
+  }
+  import("@tauri-apps/api/event")
+    .then(({ listen }) =>
+      listen("workspace:flush-before-close", () => {
+        void flushPendingSave()
+          .catch((err) => {
+            console.warn("workspaceStore: close-flush failed", err);
+          })
+          .finally(async () => {
+            try {
+              const { invoke } = await import("@tauri-apps/api/core");
+              await invoke("confirm_close");
+            } catch (err) {
+              console.warn("workspaceStore: confirm_close failed", err);
+            }
+          });
+      }),
+    )
+    .catch((err) => {
+      console.warn("workspaceStore: failed to register close-flush listener", err);
+    });
+}
+
+setupCloseFlushListener();
