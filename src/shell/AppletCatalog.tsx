@@ -80,8 +80,19 @@ export function AppletCatalog() {
     }
   }
 
+  // WR-06: clamp the anchored panel into the viewport. The Dock '+' trigger
+  // sits at the RIGHT end of every tab bar, so a raw {top,left} pushes most
+  // of the 220-320px panel past the window's right edge for right-half
+  // groups (and below the bottom edge for bottom groups), leaving rows
+  // unreachable. 328 = max panel width / max list height (320) + breathing
+  // room for the 1px borders; 8px minimum keeps it off the window edge.
+  const CLAMP_EXTENT = 328;
   const panelStyle = anchor
-    ? { position: "fixed" as const, top: anchor.y, left: anchor.x }
+    ? {
+        position: "fixed" as const,
+        top: Math.max(8, Math.min(anchor.y, window.innerHeight - CLAMP_EXTENT)),
+        left: Math.max(8, Math.min(anchor.x, window.innerWidth - CLAMP_EXTENT)),
+      }
     : undefined;
 
   return (
