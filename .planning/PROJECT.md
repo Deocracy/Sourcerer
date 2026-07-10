@@ -29,7 +29,7 @@ A pixel-perfect, fully interactive desktop shell where the applet framework demo
 
 ### Validated
 
-(None yet — ship to validate)
+- [x] Named layouts + full workspace persistence (dock tree, rail order/pins, widths, open tabs) restored on launch — Validated in Phase 3: Persistence & Layouts (workspace.json via tauri-plugin-store, crash-safe close-flush, corrupt-fallback with reset notice, LAYOUTS menu)
 
 ### Active
 
@@ -38,7 +38,6 @@ A pixel-perfect, fully interactive desktop shell where the applet framework demo
 - [ ] Workspace dock tree: tabs, 5-zone docking, splits with resizers, edge-split, multi-instance tabs
 - [ ] Dashboard Assistant panel: sessions, thread, composer, proposals UI, resize/snap (against stubbed AI seam)
 - [ ] Home: metro card dashboard with draggable sections and FLIP animation
-- [ ] Named layouts + full workspace persistence (dock tree, rail order/pins, widths, open tabs) restored on launch
 - [ ] Applet framework: registry loader, `host` API (storage/ai/open/instanceId/theme), demo stubs for all unbuilt applets
 - [ ] Notes as the first real applet (persistent notes + AI summarize via the seam)
 
@@ -90,4 +89,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-06 after initialization*
+*Last updated: 2026-07-10 after Phase 3 (persistence-layouts) completion*
