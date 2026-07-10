@@ -37,10 +37,10 @@ Scope decided at init: pixel-perfect Tauri shell + applet framework + **Notes as
 
 ### Applet Framework (FWK)
 
-- [ ] **FWK-01**: Applets are TSX modules exporting `manifest {key, glyph, code, title, desc}` + `App({host})`; a static registry maps keys to modules
+- [x] **FWK-01**: Applets are TSX modules exporting `manifest {key, glyph, code, title, desc}` + `App({host})`; a static registry maps keys to modules
 - [ ] **FWK-02**: A registered applet key replaces its demo stub; a new key appends to the rail
 - [ ] **FWK-03**: Every unbuilt applet renders its high-fidelity demo stub (glyph tile, code crumb, serif title, demo rows) per spec
-- [ ] **FWK-04**: `host` API is the only shell surface applets touch: `storage` (namespaced get/set/remove backed by tauri-plugin-store), `ai()` (single AI seam, stubbed v1), `open(appletKey)`, `instanceId`, `theme`
+- [x] **FWK-04**: `host` API is the only shell surface applets touch: `storage` (namespaced get/set/remove backed by tauri-plugin-store), `ai()` (single AI seam, stubbed v1), `open(appletKey)`, `instanceId`, `theme`
 
 ### Notes Applet (NOTE)
 
@@ -95,10 +95,10 @@ Scope decided at init: pixel-perfect Tauri shell + applet framework + **Notes as
 | PERS-02 | Phase 3 | Complete |
 | PERS-03 | Phase 3 | Complete |
 | PERS-04 | Phase 3 | Complete |
-| FWK-01 | Phase 4 | Pending |
+| FWK-01 | Phase 4 | Complete |
 | FWK-02 | Phase 4 | Pending |
 | FWK-03 | Phase 4 | Pending |
-| FWK-04 | Phase 4 | Pending |
+| FWK-04 | Phase 4 | Complete |
 | NOTE-01 | Phase 5 | Pending |
 | NOTE-02 | Phase 5 | Pending |
 | ASST-01 | Phase 6 | Pending |

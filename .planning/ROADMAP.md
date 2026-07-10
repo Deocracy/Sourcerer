@@ -126,7 +126,7 @@ Plans:
 
 Plans:
 **Wave 1**
-- [ ] 04-01-PLAN.md — Host API seam: makeHost(instanceId, appletKey) with storage/ai/open/instanceId/theme + type contracts + dockApi extraction (FWK-04/FWK-01)
+- [x] 04-01-PLAN.md — Host API seam: makeHost(instanceId, appletKey) with storage/ai/open/instanceId/theme + type contracts + dockApi extraction (FWK-04/FWK-01)
 **Wave 2** *(blocked on Wave 1)*
 - [ ] 04-02-PLAN.md — Registry + panel dispatch + templated demo stubs for all applets with DEMO chip (FWK-01/FWK-02/FWK-03)
 **Wave 3** *(blocked on Wave 2, parallel — disjoint files)*
@@ -176,7 +176,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 1. Shell Foundation | 3/3 | Complete   | 2026-07-07 |
 | 2. Workspace Core | 6/6 | Complete   | 2026-07-08 |
 | 3. Persistence & Layouts | 5/5 | Complete    | 2026-07-10 |
-| 4. Applet Framework | 0/TBD | Not started | - |
+| 4. Applet Framework | 1/5 | In Progress|  |
 | 5. Notes Applet | 0/TBD | Not started | - |
 | 6. Dashboard Assistant & Home | 0/TBD | Not started | - |
 | 7. Assistant Harness Core | 6/6 | Complete   | 2026-07-08 |

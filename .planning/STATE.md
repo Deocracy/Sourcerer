@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-10T05:18:31.516Z"
-last_activity: 2026-07-10 -- Phase 4 planning complete
+last_updated: "2026-07-10T05:30:22.271Z"
+last_activity: 2026-07-10
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 25
-  completed_plans: 20
+  completed_plans: 21
   percent: 57
 ---
 
@@ -20,20 +20,20 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-06)
 
 **Core value:** A pixel-perfect, fully interactive desktop shell where the applet framework demonstrably works end-to-end — Notes proves the loop, every other applet is a believable stub.
-**Current focus:** Phase 07 — assistant harness core headless pi sidecar behind the host a
+**Current focus:** Phase 04 — applet-framework
 
 ## Current Position
 
-Phase: 07
-Plan: Not started
+Phase: 04 (applet-framework) — EXECUTING
+Plan: 2 of 5
 Status: Ready to execute
-Last activity: 2026-07-10 -- Phase 4 planning complete
+Last activity: 2026-07-10
 
 Phase 07 (assistant-harness-core): COMPLETE — all 6 plans done (07-01..07-04 automated, 07-05 live UAT gate 4/4 truths pass, 07-06 D-09 gap closure). 07-VERIFICATION.md status: passed.
 
 Note: `state.advance-plan` tracks a single project-wide plan counter and mis-attributes advances to whichever phase this "Current Position" block names when two phases execute in parallel (landmine, repeats each time — see prior note this replaced). After 07-02's completion this was manually corrected here (via `state.update-progress`, not `state.advance-plan`): Phase 02's plan number was NOT advanced by 07-02's completion. The aggregate `completed_plans` count in frontmatter is derived from `state.update-progress`'s disk-scan (recompute it if it drifts — Phase 01 + Phase 02 + Phase 07's actual SUMMARY.md counts on disk are the source of truth, not this note's numbers, since both phases execute in parallel and this note goes stale quickly). At last recompute during 07-02's completion: Phase 01 (3) + Phase 02 (4, including 02-04) + Phase 07 (07-01, 07-02, 07-03, 07-04 = 4) = 11.
 
-Progress: [██████████] 100%
+Progress: [████████░░] 84%
 
 ## Performance Metrics
 
@@ -70,6 +70,7 @@ Progress: [██████████] 100%
 | Phase 03-persistence-layouts P03 | 20min | 2 tasks | 5 files |
 | Phase 03-persistence-layouts P04 | 40min | 2 tasks | 8 files |
 | Phase 03 P05 | 55m | 2 tasks | 3 files |
+| Phase 04 P01 | 6min | - tasks | - files |
 
 ## Accumulated Context
 
@@ -112,6 +113,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 03-04: restoreDockTree implemented as optional StateSources field
 - [Phase 03]: 03-05: CloseRequested split Rust(prevent_close+emit)/JS(flushPendingSave, sole flush authority) per RESEARCH Architectural Responsibility Map
 - [Phase 03]: 03-05: re-entrant CloseRequested guarded via CLOSE_CONFIRMED AtomicBool + confirm_close command, avoiding block_on-vs-spawn sequencing risk (RESEARCH Open Question 2)
+- [Phase ?]: 04-01: host.open() uses panel.api.setActive() not DockviewApi.setActivePanel (that method doesn't exist on the public dockview-core 2.0.0 API)
+- [Phase ?]: 04-01: host.theme is a static literal mirroring tokens.css, not getComputedStyle passthrough
 
 ### Roadmap Evolution
 
@@ -140,6 +143,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-10T04:32:54.232Z
+Last session: 2026-07-10T05:30:16.038Z
 Stopped at: Phase 4 UI-SPEC approved
-Resume file: .planning/phases/04-applet-framework/04-UI-SPEC.md
+Resume file: None
