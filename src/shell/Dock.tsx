@@ -9,7 +9,6 @@ import {
   scheduleWorkspaceSave,
   setRestoreCanary,
 } from "../persistence/workspaceStore";
-import { appletDefs } from "./appletDefs";
 import { dockApiRef, addAppletToDock } from "./dockApi";
 import { makeRenderer } from "./PanelBody";
 import styles from "./Dock.module.css";
@@ -60,9 +59,12 @@ export function Dock() {
         const el = document.createElement("button");
         el.type = "button";
         el.className = styles.addButton;
-        el.title = "Open applet";
+        el.title = "+ Open Applet";
         el.textContent = "+";
-        el.onclick = () => addApplet(nextKey());
+        el.onclick = () => {
+          const rect = el.getBoundingClientRect();
+          shellStore.getState().openAppletCatalog({ x: rect.left, y: rect.bottom });
+        };
         return {
           element: el,
           init: () => {
@@ -117,18 +119,6 @@ export function Dock() {
     // exact same panel-creation path, just with a `position` argument.
     function addApplet(key: string) {
       addAppletToDock(key);
-    }
-
-    // The tab-bar "+" button has no Applet Catalog picker yet (that UI is
-    // Phase 4 scope) — it cycles through the shared appletDefs keys so every
-    // click still demonstrably "opens a new applet" (DOCK-01) without
-    // inventing a picker this phase doesn't own.
-    const orderedKeys = Object.keys(appletDefs);
-    let keyCursor = 0;
-    function nextKey(): string {
-      const key = orderedKeys[keyCursor % orderedKeys.length];
-      keyCursor += 1;
-      return key;
     }
 
     // --- Canary-guarded restore + Wiki/Library default (DOCK-03, re-homed

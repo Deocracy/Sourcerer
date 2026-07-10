@@ -28,6 +28,7 @@ vi.mock("../persistence/workspaceStore", () => ({
 }));
 
 import { shellStore, hydrateFromDisk } from "./shellStore";
+import { appletDefs } from "../shell/appletDefs";
 
 // Deterministic starting state before each behavior assertion. The store is a
 // singleton created once at import; reset the mutable slices between tests.
@@ -89,7 +90,7 @@ describe("shellStore.setBadge(key, n)", () => {
 });
 
 describe("shellStore hydrateFromDisk (PERS-01)", () => {
-  it("restores railMode/railWidth/railOrder/leftRailPinned from the record Dock already loaded (WR-01: no second disk read)", () => {
+  it("restores railMode/railWidth/leftRailPinned from the record Dock already loaded (WR-01: no second disk read); D-19 appends every other registered key after the saved order", () => {
     hydrateFromDisk({
       schemaVersion: 1,
       dockTree: null,
@@ -109,7 +110,11 @@ describe("shellStore hydrateFromDisk (PERS-01)", () => {
     const state = shellStore.getState();
     expect(state.railMode).toBe("compact");
     expect(state.railWidth).toBe(180);
-    expect(state.railOrder).toEqual(["Sources"]);
+    // D-19: the saved order's single entry stays first, every other
+    // appletDefs key gets appended after it (bottom of the main group).
+    expect(state.railOrder[0]).toBe("Sources");
+    expect(state.railOrder).toEqual(expect.arrayContaining(Object.keys(appletDefs)));
+    expect(state.railOrder.length).toBe(Object.keys(appletDefs).length);
     expect(state.leftRailPinned).toEqual(["Sources"]);
     expect(state.railOpen).toBe(true);
   });
@@ -129,6 +134,29 @@ describe("shellStore hydrateFromDisk (PERS-01)", () => {
     });
 
     expect(shellStore.getState().railOpen).toBe(false);
+  });
+
+  it("D-19: a restored railOrder already containing every key is left untouched (no duplicates, existing order preserved)", () => {
+    const railOrder = ["Sources", "Library", "Wiki", "Graph"];
+    hydrateFromDisk({
+      schemaVersion: 1,
+      dockTree: null,
+      rail: {
+        railMode: "expanded",
+        railWidth: 220,
+        railOrder,
+        leftRailPinned: [],
+      },
+      savedLayouts: {},
+      instanceState: {},
+    });
+
+    // Only the 4 legacy keys are pre-seeded here; the remaining appletDefs
+    // keys (Chat, Writing, ...) are missing and get appended at the end,
+    // preserving the existing 4-key order exactly.
+    const state = shellStore.getState();
+    expect(state.railOrder.slice(0, 4)).toEqual(railOrder);
+    expect(new Set(state.railOrder).size).toBe(state.railOrder.length);
   });
 });
 

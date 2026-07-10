@@ -16,8 +16,9 @@ export type { AppletDef };
 export const railDefs = appletDefs;
 
 function openCatalog() {
-  // eslint-disable-next-line no-console
-  console.log("openCatalog: no-op stub in Phase 2 (Applet Catalog is Phase 4 scope)");
+  // Footer .catalogRow and compact .catalogIcon both open the shared
+  // Applet Catalog picker (D-18) — same trigger the Dock '+' uses.
+  shellStore.getState().openAppletCatalog();
 }
 
 function openSettings() {

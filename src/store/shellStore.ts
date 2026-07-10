@@ -15,6 +15,10 @@ import { createStore } from "zustand/vanilla";
 import { useStore } from "zustand";
 import { DEFAULT_WORKSPACE, scheduleWorkspaceSave } from "../persistence/workspaceStore";
 import type { WorkspaceRecordV1 } from "../persistence/workspaceStore";
+// appletDefs is a leaf module (no registry import) — safe to import here
+// without creating an import cycle (shellStore -> registry -> applets ->
+// shellStore would be the forbidden path; appletDefs has no such edge).
+import { appletDefs } from "../shell/appletDefs";
 
 export type RailMode = "expanded" | "compact" | "hidden";
 
@@ -146,10 +150,15 @@ export function getRailSubset(): {
  *  backupAndFallback on a corrupt store, or re-fires savedLayoutsListeners. */
 export function hydrateFromDisk(record: WorkspaceRecordV1): void {
   const rail = record.rail;
+  // D-19: a registered appletDefs key absent from the restored railOrder
+  // (e.g. a newly-added applet in this build) appends at the bottom of the
+  // main group — never reordering or dropping any existing saved entry.
+  const missing = Object.keys(appletDefs).filter((key) => !rail.railOrder.includes(key));
+  const railOrder = missing.length > 0 ? [...rail.railOrder, ...missing] : rail.railOrder;
   shellStore.setState({
     railMode: rail.railMode,
     railWidth: rail.railWidth,
-    railOrder: rail.railOrder,
+    railOrder,
     leftRailPinned: rail.leftRailPinned,
     railOpen: rail.railMode !== "hidden",
   });
