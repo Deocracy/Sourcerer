@@ -356,6 +356,14 @@ export function deleteInstanceState(instanceId: string): void {
   inMemory = { ...inMemory, instanceState: next };
 }
 
+/** Lists every instanceId currently holding a slot — consumed by the Dock's
+ *  post-restore reconciliation GC (CR-02): after a layout restore settles,
+ *  slots whose panel id is no longer present in the live layout are deleted,
+ *  keeping the map bounded without GC-ing on renderer dispose. */
+export function listInstanceStateIds(): string[] {
+  return Object.keys(inMemory.instanceState);
+}
+
 // ---------------------------------------------------------------------------
 // The single debounced flush authority (PERS-04) — re-homes Dock.tsx's exact
 // clear-then-reset 300ms shape. Reads the registered getters at FLUSH time,

@@ -10,6 +10,7 @@ import {
   setRestoreCanary,
 } from "../persistence/workspaceStore";
 import { dockApiRef, addAppletToDock } from "./dockApi";
+import { deleteInstanceState, listInstanceStateIds } from "../host/instanceState";
 import { makeRenderer } from "./PanelBody";
 import styles from "./Dock.module.css";
 
@@ -79,6 +80,33 @@ export function Dock() {
 
     dockApiRef.current = api;
 
+    // --- CR-02: instanceState GC is keyed to genuine panel REMOVAL, never to
+    // renderer dispose (fromJSON/clear/api.dispose() dispose renderers for
+    // panels that still exist or are immediately recreated with the same
+    // serialized ids). `restoring` gates the window where a restore tears
+    // panels down only to rebuild them from the snapshot. ---
+    let restoring = false;
+
+    /** Post-restore sweep: delete every instanceState slot whose panel id is
+     * no longer present in the live layout — covers slots orphaned by a
+     * failed/partial restore that the gated onDidRemovePanel skipped, so the
+     * map stays bounded (Pitfall 6) without GC-on-dispose. */
+    function reconcileInstanceState() {
+      const liveIds = new Set(api.panels.map((p) => p.id));
+      for (const id of listInstanceStateIds()) {
+        if (!liveIds.has(id)) deleteInstanceState(id);
+      }
+      // Mutate-then-persist contract (workspaceStore.ts): route the GC
+      // through the flush authority, never a coincidental layout save.
+      scheduleWorkspaceSave();
+    }
+
+    const removePanelDisposable = api.onDidRemovePanel((panel) => {
+      if (restoring) return;
+      deleteInstanceState(panel.id);
+      scheduleWorkspaceSave();
+    });
+
     // Single seam call site merging dock-tree + rail getters (03-PATTERNS.md:
     // neither getter must clobber the other). restoreDockTree (03-04) applies
     // a saved-layout/default snapshot to the live dockview instance, reusing
@@ -91,23 +119,32 @@ export function Dock() {
         const liveApi = dockApiRef.current;
         if (!liveApi) return false;
         let restored = false;
-        if (json != null) {
-          try {
-            liveApi.fromJSON(json as SerializedDockview);
-            restored = liveApi.panels.length > 0;
-          } catch {
-            restored = false;
+        // CR-02: fromJSON/clear dispose+remove every live panel before
+        // recreating from the snapshot — gate the removal GC for the window,
+        // then reconcile against the settled layout.
+        restoring = true;
+        try {
+          if (json != null) {
+            try {
+              liveApi.fromJSON(json as SerializedDockview);
+              restored = liveApi.panels.length > 0;
+            } catch {
+              restored = false;
+            }
           }
-        }
-        if (!restored) {
-          try {
-            liveApi.clear();
-          } catch {
-            /* best-effort reset only */
+          if (!restored) {
+            try {
+              liveApi.clear();
+            } catch {
+              /* best-effort reset only */
+            }
+            addApplet("Wiki");
+            addApplet("Library");
           }
-          addApplet("Wiki");
-          addApplet("Library");
+        } finally {
+          restoring = false;
         }
+        reconcileInstanceState();
         return restored;
       },
     });
@@ -131,27 +168,46 @@ export function Dock() {
       if (cancelled || dockApiRef.current !== api) return; // effect cleanup raced the async load
 
       let restored = false;
-      if (record.restoreCanary) {
-        // Previous restore crashed before clearing its own canary — the
-        // persisted dockTree is presumed poisoned, drop it (never re-applied).
-        // The canary has now served its purpose: clear it in memory (CR-01)
-        // so the reset flush below persists restoreCanary:false instead of
-        // perpetuating the trip into every subsequent launch.
-        restored = false;
-        setRestoreCanary(false);
-      } else if (record.dockTree != null) {
-        try {
-          api.fromJSON(record.dockTree as SerializedDockview);
-          restored = api.panels.length > 0;
-        } catch {
+      // CR-02: gate the panel-removal GC across the whole boot restore —
+      // fromJSON (and the fallback clear) remove panels that are immediately
+      // recreated with the same serialized ids; reconcile once it settles.
+      restoring = true;
+      try {
+        if (record.restoreCanary) {
+          // Previous restore crashed before clearing its own canary — the
+          // persisted dockTree is presumed poisoned, drop it (never re-applied).
+          // The canary has now served its purpose: clear it in memory (CR-01)
+          // so the reset flush below persists restoreCanary:false instead of
+          // perpetuating the trip into every subsequent launch.
           restored = false;
+          setRestoreCanary(false);
+        } else if (record.dockTree != null) {
+          try {
+            api.fromJSON(record.dockTree as SerializedDockview);
+            restored = api.panels.length > 0;
+          } catch {
+            restored = false;
+            try {
+              api.clear();
+            } catch {
+              /* best-effort recovery only */
+            }
+          }
+        }
+
+        if (!restored) {
           try {
             api.clear();
           } catch {
-            /* best-effort recovery only */
+            /* best-effort reset only */
           }
+          addApplet("Wiki");
+          addApplet("Library");
         }
+      } finally {
+        restoring = false;
       }
+      reconcileInstanceState();
 
       if (restored) {
         // Arm the canary before the crash window, clear it ~4s later — both
@@ -169,13 +225,7 @@ export function Dock() {
           void flushPendingSave(); // reads live getters + current slices
         }, 4000);
       } else {
-        try {
-          api.clear();
-        } catch {
-          /* best-effort reset only */
-        }
-        addApplet("Wiki");
-        addApplet("Library");
+        // Defaults were already applied inside the gated block above.
         scheduleWorkspaceSave();
       }
 
@@ -201,6 +251,11 @@ export function Dock() {
       clearTimeout(canaryTimer);
       layoutDisposable.dispose();
       focusDisposable.dispose();
+      // CR-02: detach the removal GC BEFORE api.dispose() — dock teardown
+      // (unmount/HMR/StrictMode remount) removes every panel, but those
+      // instances are restored from disk on the next mount and must keep
+      // their state slots.
+      removePanelDisposable.dispose();
       if (dockApiRef.current === api) dockApiRef.current = null;
       api.dispose();
     };

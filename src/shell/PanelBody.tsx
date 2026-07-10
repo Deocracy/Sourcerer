@@ -3,7 +3,6 @@ import type { GroupPanelPartInitParameters } from "dockview-core";
 import { appletDefs } from "./appletDefs";
 import { registry } from "./registry";
 import { makeHost } from "../host/index";
-import { deleteInstanceState } from "../host/instanceState";
 import styles from "./PanelBody.module.css";
 
 export interface PanelBodyProps {
@@ -97,9 +96,14 @@ export function makeRenderer(fullPanelId: string, appletKey: string): DockConten
       // BEFORE any pending host.ai() promise settles means no further
       // onDelta/resolve callback can reach a live component — abandonment is
       // a natural consequence of the unmount below, not a separate call.
-      // Pitfall 6 GC: remove this instance's per-tab state slot so
-      // workspace.json's instanceState map doesn't grow unboundedly.
-      deleteInstanceState(instanceId);
+      // CR-02: NO instanceState GC here. dockview disposes content renderers
+      // on layout restore (fromJSON tears down every live panel before
+      // recreating them with the SAME serialized ids) and on dock teardown
+      // (api.dispose() / HMR / StrictMode remount) — not just tab close.
+      // GC-on-dispose silently wiped per-tab state for panels that still
+      // exist. GC now lives on the Dock's onDidRemovePanel (a genuine
+      // panel-removal event) plus a post-restore reconciliation sweep
+      // (Dock.tsx reconcileInstanceState).
       root?.unmount();
       root = null;
     },

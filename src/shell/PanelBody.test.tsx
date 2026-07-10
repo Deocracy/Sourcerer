@@ -33,6 +33,11 @@ vi.mock("../host/index", () => ({
 }));
 
 import { makeRenderer } from "./PanelBody";
+import {
+  setInstanceState,
+  getInstanceState,
+  deleteInstanceState,
+} from "../host/instanceState";
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -76,5 +81,30 @@ describe("PanelBody makeRenderer registry dispatch", () => {
     act(() => {
       renderer.dispose();
     });
+  });
+
+  it("(CR-02) dispose does NOT GC the instanceState slot — dockview disposes renderers during fromJSON restore/teardown for panels it immediately recreates with the same ids", () => {
+    // Seed a per-tab state slot for a panel id, exactly as a Phase 5 applet
+    // would via the reserved instanceState seam.
+    setInstanceState("Kanban:restore1", { draft: "survives restore" });
+
+    const renderer = makeRenderer("Kanban:restore1", "Kanban");
+    document.body.appendChild(renderer.element);
+    act(() => {
+      renderer.init(initParams("Kanban:restore1"));
+    });
+
+    // fromJSON tears down every live panel's renderer before recreating the
+    // layout — this dispose is that exact seam, NOT a user tab close.
+    act(() => {
+      renderer.dispose();
+    });
+
+    // The slot must survive: GC belongs to genuine panel-removal events
+    // (Dock.tsx onDidRemovePanel + post-restore reconciliation), never to
+    // renderer dispose.
+    expect(getInstanceState("Kanban:restore1")).toEqual({ draft: "survives restore" });
+
+    deleteInstanceState("Kanban:restore1"); // test cleanup
   });
 });

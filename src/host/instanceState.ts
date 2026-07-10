@@ -13,4 +13,5 @@ export {
   getInstanceState,
   setInstanceState,
   deleteInstanceState,
+  listInstanceStateIds,
 } from "../persistence/workspaceStore";
