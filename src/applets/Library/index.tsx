@@ -731,8 +731,14 @@ function Library({ host }: { host: Host }) {
     setTimeout(() => setToast(null), 2600);
   };
 
-  const corpus = CORPORA.find((c) => c.id === corpusId) || { id: corpusId, name: "Corpus", tier: "Standard", docs: 0, conflicts: 0 };
-  const stats = CORPUS_STATS[corpusId] || CORPUS_STATS.sandbox;
+  // Fallback to the fullest demo corpus (ficino, matching store.js's own
+  // `activeCorpus: saved.activeCorpus || 'ficino'` default) rather than the
+  // empty sandbox stats — shellStore's activeCorpus seeds to the generic
+  // "Default" chrome label (TitleBar's corpus crumb), which doesn't match any
+  // demo corpus id; falling back to sandbox's zeroed contradictions would
+  // silently hide the review CTA this plan's must_haves truth requires.
+  const corpus = CORPORA.find((c) => c.id === corpusId) || CORPORA[0];
+  const stats = CORPUS_STATS[corpusId] || CORPUS_STATS[CORPORA[0].id];
   const baseDoc = sel ? DOCS[sel] : null;
   const doc: LibraryDoc | null = baseDoc ? { ...baseDoc, trust: promoted[sel as string] ? "curated" : baseDoc.trust } : null;
 
