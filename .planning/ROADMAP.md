@@ -122,7 +122,17 @@ Plans:
   2. Every unbuilt applet renders its high-fidelity demo stub (glyph tile, code crumb, serif title, demo rows) per spec.
   3. Applets touch the shell only through the `host` API — namespaced `storage` (get/set/remove via tauri-plugin-store), `ai()` (single stubbed seam), `open(appletKey)`, `instanceId`, and `theme` — with no other surface reachable.
 
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+**Wave 1**
+- [ ] 04-01-PLAN.md — Host API seam: makeHost(instanceId, appletKey) with storage/ai/open/instanceId/theme + type contracts + dockApi extraction (FWK-04/FWK-01)
+**Wave 2** *(blocked on Wave 1)*
+- [ ] 04-02-PLAN.md — Registry + panel dispatch + templated demo stubs for all applets with DEMO chip (FWK-01/FWK-02/FWK-03)
+**Wave 3** *(blocked on Wave 2, parallel — disjoint files)*
+- [ ] 04-03-PLAN.md — Rich Wiki demo port (article/provenance/Unresolved/edit-dry-run-apply-undo/review/history) (FWK-03)
+- [ ] 04-04-PLAN.md — Rich Library demo port (dashboard/ingest/doc-detail/confirm) + host.open('Wiki') proof (FWK-03)
+- [ ] 04-05-PLAN.md — Applet Catalog picker (D-18) shared by dock '+' & rail footer + D-19 rail append (FWK-02)
 **UI hint**: yes
 
 ### Phase 5: Notes Applet
