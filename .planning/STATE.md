@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-10T05:30:22.271Z"
+last_updated: "2026-07-10T05:45:55.670Z"
 last_activity: 2026-07-10
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 25
-  completed_plans: 21
+  completed_plans: 22
   percent: 57
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-07-06)
 ## Current Position
 
 Phase: 04 (applet-framework) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-07-10
 
@@ -33,7 +33,7 @@ Phase 07 (assistant-harness-core): COMPLETE — all 6 plans done (07-01..07-04 a
 
 Note: `state.advance-plan` tracks a single project-wide plan counter and mis-attributes advances to whichever phase this "Current Position" block names when two phases execute in parallel (landmine, repeats each time — see prior note this replaced). After 07-02's completion this was manually corrected here (via `state.update-progress`, not `state.advance-plan`): Phase 02's plan number was NOT advanced by 07-02's completion. The aggregate `completed_plans` count in frontmatter is derived from `state.update-progress`'s disk-scan (recompute it if it drifts — Phase 01 + Phase 02 + Phase 07's actual SUMMARY.md counts on disk are the source of truth, not this note's numbers, since both phases execute in parallel and this note goes stale quickly). At last recompute during 07-02's completion: Phase 01 (3) + Phase 02 (4, including 02-04) + Phase 07 (07-01, 07-02, 07-03, 07-04 = 4) = 11.
 
-Progress: [████████░░] 84%
+Progress: [█████████░] 88%
 
 ## Performance Metrics
 
@@ -71,6 +71,7 @@ Progress: [████████░░] 84%
 | Phase 03-persistence-layouts P04 | 40min | 2 tasks | 8 files |
 | Phase 03 P05 | 55m | 2 tasks | 3 files |
 | Phase 04 P01 | 6min | - tasks | - files |
+| Phase 04 P02 | 10min | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -115,6 +116,9 @@ Recent decisions affecting current work:
 - [Phase 03]: 03-05: re-entrant CloseRequested guarded via CLOSE_CONFIRMED AtomicBool + confirm_close command, avoiding block_on-vs-spawn sequencing risk (RESEARCH Open Question 2)
 - [Phase ?]: 04-01: host.open() uses panel.api.setActive() not DockviewApi.setActivePanel (that method doesn't exist on the public dockview-core 2.0.0 API)
 - [Phase ?]: 04-01: host.theme is a static literal mirroring tokens.css, not getComputedStyle passthrough
+- [Phase ?]: 04-02: templated.ts kept as .ts (not .tsx) - uses React.createElement instead of JSX since this tsconfig only enables JSX parsing in .tsx files
+- [Phase ?]: 04-02: D-07 in-flight host.ai() abandonment implemented as a natural consequence of unmounting the React root before any pending promise settles, not a bespoke cancellation registry
+- [Phase ?]: 04-02: PanelBody.test.tsx wraps render/dispose in react-dom/test-utils act() - createRoot's initial commit does not flush synchronously under jsdom without it
 
 ### Roadmap Evolution
 
@@ -143,6 +147,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-10T05:30:16.038Z
-Stopped at: Phase 4 UI-SPEC approved
+Last session: 2026-07-10T05:45:55.660Z
+Stopped at: Completed 04-02-PLAN.md
 Resume file: None
