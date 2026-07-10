@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import { createDockview, type DockviewApi, type SerializedDockview } from "dockview-core";
 import "dockview-core/dist/styles/dockview.css";
-import { nanoid } from "nanoid";
 import { shellStore, getRailSubset, hydrateFromDisk } from "../store/shellStore";
 import {
   flushPendingSave,
@@ -11,16 +10,9 @@ import {
   setRestoreCanary,
 } from "../persistence/workspaceStore";
 import { appletDefs } from "./appletDefs";
+import { dockApiRef, addAppletToDock } from "./dockApi";
 import { makeRenderer } from "./PanelBody";
-import type { DockDirection } from "./dockZones";
 import styles from "./Dock.module.css";
-
-// --- D-01 seam: single live dockview instance exposed to useRailDragOut ---
-// Dock.tsx owns the one dockview-core instance; the rail drag-out hook
-// bridges bespoke pointer logic into it via this module-scope handle rather
-// than spinning up a second dockview or threading the api through React
-// props/context for a single-instance-per-app shell.
-const dockApiRef: { current: DockviewApi | null } = { current: null };
 
 export interface DockGroupRect {
   groupId: string;
@@ -38,25 +30,6 @@ export function getDockGroupRects(): DockGroupRect[] {
       groupId: group.id,
       rect: { left: r.left, top: r.top, width: r.width, height: r.height },
     };
-  });
-}
-
-/** addAppletToDock — opens a fresh `${key}:${nanoid()}` panel instance,
- * optionally positioned via `{referenceGroup, direction}` (D-01 drag-out
- * split/tab-join). Omitting `position` keeps dockview's own default (active
- * group, new tab) used by the "+" button and restore-default paths. */
-export function addAppletToDock(
-  key: string,
-  position?: { referenceGroup: string; direction?: DockDirection },
-): void {
-  const api = dockApiRef.current;
-  if (!api) return;
-  const def = appletDefs[key];
-  api.addPanel({
-    id: `${key}:${nanoid()}`,
-    component: key,
-    title: def?.title ?? key,
-    ...(position ? { position } : {}),
   });
 }
 

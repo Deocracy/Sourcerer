@@ -2,7 +2,8 @@ import { useCallback, useRef, useState } from "react";
 import { shellStore } from "../store/shellStore";
 import { getVisualRailOrder } from "./useRailDrag";
 import { resolveDropZone, type DockDirection } from "./dockZones";
-import { getDockGroupRects, addAppletToDock } from "./Dock";
+import { getDockGroupRects } from "./Dock";
+import { addAppletToDock } from "./dockApi";
 
 const REORDER_THRESHOLD = 5;
 
