@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-07-10T06:10:16.039Z"
+status: verifying
+last_updated: "2026-07-10T06:22:22.685Z"
 last_activity: 2026-07-10
 progress:
   total_phases: 7
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 25
-  completed_plans: 24
-  percent: 57
+  completed_plans: 25
+  percent: 71
 ---
 
 # Project State
@@ -26,14 +26,14 @@ See: .planning/PROJECT.md (updated 2026-07-06)
 
 Phase: 04 (applet-framework) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-10
 
 Phase 07 (assistant-harness-core): COMPLETE — all 6 plans done (07-01..07-04 automated, 07-05 live UAT gate 4/4 truths pass, 07-06 D-09 gap closure). 07-VERIFICATION.md status: passed.
 
 Note: `state.advance-plan` tracks a single project-wide plan counter and mis-attributes advances to whichever phase this "Current Position" block names when two phases execute in parallel (landmine, repeats each time — see prior note this replaced). After 07-02's completion this was manually corrected here (via `state.update-progress`, not `state.advance-plan`): Phase 02's plan number was NOT advanced by 07-02's completion. The aggregate `completed_plans` count in frontmatter is derived from `state.update-progress`'s disk-scan (recompute it if it drifts — Phase 01 + Phase 02 + Phase 07's actual SUMMARY.md counts on disk are the source of truth, not this note's numbers, since both phases execute in parallel and this note goes stale quickly). At last recompute during 07-02's completion: Phase 01 (3) + Phase 02 (4, including 02-04) + Phase 07 (07-01, 07-02, 07-03, 07-04 = 4) = 11.
 
-Progress: [██████████] 96%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -74,6 +74,7 @@ Progress: [██████████] 96%
 | Phase 04 P02 | 10min | 3 tasks | 13 files |
 | Phase 04 P03 | 20min | 2 tasks | 4 files |
 | Phase 04 P04 | 15min | 2 tasks | 4 files |
+| Phase 04 P05 | 5min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -126,6 +127,7 @@ Recent decisions affecting current work:
 - [Phase 04]: 04-03: Rule 2 - added a component-local entity picker so the Alberti Unresolved block is reachable this phase
 - [Phase 04-04]: corpus/stats fallback defaults to CORPORA[0] (ficino), not sandbox — shellStore's activeCorpus seeds to the generic "Default" chrome label and doesn't match a demo corpus id; falling back to sandbox's zeroed contradictions would hide the required review CTA
 - [Phase 04-04]: Library's selected document stays component-local useState (seeded doc-ficino-vita), no shellStore selection slice added
+- [Phase 04-05]: AppletCatalog picker (D-18) opens applets via host.open from both Dock '+' and Rail footer; D-19 append implemented inside hydrateFromDisk so any registered appletDefs key missing from the restored railOrder appends at the end
 
 ### Roadmap Evolution
 
@@ -154,6 +156,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-10T06:10:16.028Z
+Last session: 2026-07-10T06:18:06.328Z
 Stopped at: Completed 04-04-PLAN.md
 Resume file: None
