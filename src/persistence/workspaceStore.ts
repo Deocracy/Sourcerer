@@ -325,6 +325,38 @@ export function subscribeSavedLayouts(listener: SavedLayoutsListener): () => voi
 }
 
 // ---------------------------------------------------------------------------
+// instanceState slot (Phase 4, D-10/D-14) — mutate-then-persist idiom mirrored
+// exactly from setSavedLayouts/getSavedLayouts above. The slot itself was
+// created empty in Phase 3; Phase 4 wires only get/set/delete + the dispose
+// GC (host/instanceState.ts, PanelBody.tsx dispose). NOT a sixth host member
+// (FWK-04 stays five) — reserved additive seam finalized by its first real
+// consumer (Phase 5 Notes).
+// ---------------------------------------------------------------------------
+
+/** Mutates the in-memory instanceState slot for one instanceId. Callers must
+ *  call scheduleWorkspaceSave() after this to persist (mutate-then-persist). */
+export function setInstanceState(instanceId: string, value: unknown): void {
+  inMemory = {
+    ...inMemory,
+    instanceState: { ...inMemory.instanceState, [instanceId]: value },
+  };
+}
+
+/** Reads the in-memory instanceState slot for one instanceId, or undefined
+ *  if none has been set. */
+export function getInstanceState(instanceId: string): unknown {
+  return inMemory.instanceState[instanceId];
+}
+
+/** Removes the instanceId's slot entirely (panel-close GC). Callers must call
+ *  scheduleWorkspaceSave() after this to persist. */
+export function deleteInstanceState(instanceId: string): void {
+  const next = { ...inMemory.instanceState };
+  delete next[instanceId];
+  inMemory = { ...inMemory, instanceState: next };
+}
+
+// ---------------------------------------------------------------------------
 // The single debounced flush authority (PERS-04) — re-homes Dock.tsx's exact
 // clear-then-reset 300ms shape. Reads the registered getters at FLUSH time,
 // not schedule time (RESEARCH Pitfall 3: latest value wins).
