@@ -10,7 +10,7 @@ vi.mock("./ai", () => ({
   ai: aiMock,
 }));
 
-import { aiComplete } from "./aiComplete";
+import { aiComplete, AI_INACTIVITY_TIMEOUT_MS } from "./aiComplete";
 
 type Listener = (event: {
   type: string;
@@ -55,6 +55,45 @@ describe("host/aiComplete", () => {
     await aiComplete("prompt", { onDelta });
     expect(onDelta).toHaveBeenNthCalledWith(1, "A");
     expect(onDelta).toHaveBeenNthCalledWith(2, "AB");
+  });
+
+  it("(WR-02) rejects via the inactivity watchdog when the stream goes silent without a terminal event", async () => {
+    vi.useFakeTimers();
+    try {
+      // Channel dispatched fine but never delivers another event — the exact
+      // sidecar-killed-mid-turn / relay-dropped scenario the docblock's
+      // "never hangs" claim must survive.
+      aiMock.mockImplementation(async () => {});
+
+      const pending = aiComplete("prompt");
+      const assertion = expect(pending).rejects.toThrow(/no assistant events/);
+      await vi.advanceTimersByTimeAsync(AI_INACTIVITY_TIMEOUT_MS);
+      await assertion;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("(WR-02) a text_delta resets the watchdog — slow-but-alive streams are not killed", async () => {
+    vi.useFakeTimers();
+    try {
+      let listener: Listener = () => {};
+      aiMock.mockImplementation(async (_req: unknown, onEvent: Listener) => {
+        listener = onEvent;
+      });
+
+      const pending = aiComplete("prompt");
+      // Just before the deadline, a delta arrives — watchdog re-arms…
+      await vi.advanceTimersByTimeAsync(AI_INACTIVITY_TIMEOUT_MS - 1000);
+      listener({ type: "text_delta", id: "1", text: "still alive" });
+      // …so crossing the ORIGINAL deadline must not reject…
+      await vi.advanceTimersByTimeAsync(2000);
+      // …and a done event still resolves normally.
+      listener({ type: "done", id: "1" });
+      await expect(pending).resolves.toBe("still alive");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("generates a sessionId of form oneshot-<id> whose first and last char are alphanumeric", async () => {
