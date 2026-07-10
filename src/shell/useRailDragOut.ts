@@ -78,19 +78,52 @@ export function useRailDragOut() {
     (key: string, e: React.PointerEvent<HTMLDivElement>) => {
       if (e.button !== 0) return;
       const target = e.currentTarget;
+      const pointerId = e.pointerId;
       const startX = e.clientX;
       const startY = e.clientY;
       let moved = false;
-      let capturedId: number | null = null;
       let targetIndex: number | null = null;
       let draggingOut = false;
+
+      // WR-03: capture immediately (not at the 5px threshold) so pointerup /
+      // pointercancel are ALWAYS delivered to this row — a press released
+      // outside the row can no longer strand a stale handleMove/handleUp pair
+      // that double-fires reorderRail/addAppletToDock on the next drag.
+      try {
+        target.setPointerCapture(pointerId);
+      } catch {
+        /* capture unavailable (e.g. jsdom) — listener cleanup still applies */
+      }
+
+      /** WR-03: shared teardown for EVERY gesture exit (up, cancel, lost
+       * capture) — removes all listeners, releases capture, clears drag UI.
+       * Listeners are removed BEFORE releasePointerCapture so the implicit
+       * lostpointercapture that release fires cannot re-enter. */
+      const cleanup = () => {
+        target.removeEventListener("pointermove", handleMove);
+        target.removeEventListener("pointerup", handleUp);
+        target.removeEventListener("pointercancel", handleCancel);
+        target.removeEventListener("lostpointercapture", handleCancel);
+        try {
+          target.releasePointerCapture(pointerId);
+        } catch {
+          /* already released / never captured */
+        }
+        setRowDrag(null);
+        setGhost(null);
+        setOverlay(null);
+      };
+
+      // WR-03: cancel (window blur mid-drag, OS gesture interrupt, capture
+      // lost) is an ABORTED gesture — no reorder, no dock, no click.
+      const handleCancel = () => {
+        cleanup();
+      };
 
       const handleMove = (ev: PointerEvent) => {
         if (!moved) {
           if (Math.hypot(ev.clientX - startX, ev.clientY - startY) < REORDER_THRESHOLD) return;
           moved = true;
-          capturedId = ev.pointerId;
-          target.setPointerCapture(capturedId);
         }
 
         const navRect = navElRef.current?.getBoundingClientRect();
@@ -118,12 +151,7 @@ export function useRailDragOut() {
       };
 
       const handleUp = (ev: PointerEvent) => {
-        target.removeEventListener("pointermove", handleMove);
-        target.removeEventListener("pointerup", handleUp);
-        if (capturedId != null) target.releasePointerCapture(capturedId);
-        setRowDrag(null);
-        setGhost(null);
-        setOverlay(null);
+        cleanup();
 
         if (!moved) {
           // Below the 5px threshold — treat as a click that opens/focuses the applet.
@@ -165,6 +193,8 @@ export function useRailDragOut() {
 
       target.addEventListener("pointermove", handleMove);
       target.addEventListener("pointerup", handleUp);
+      target.addEventListener("pointercancel", handleCancel);
+      target.addEventListener("lostpointercapture", handleCancel);
     },
     [dropIndexFromY, resolveLiveZone],
   );
