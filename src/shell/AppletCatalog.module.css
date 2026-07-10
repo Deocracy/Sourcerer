@@ -1,0 +1,82 @@
+/*
+ * AppletCatalog — the registry-fed Applet Catalog picker (D-18). Metrics
+ * adapted from LayoutsMenu.module.css: 36px rows (--rail-row-h), --color-bg
+ * panel, 1px --color-line border, radius 0 (project-wide radius-0 rule).
+ */
+
+.root {
+  position: relative;
+}
+
+.panel {
+  position: fixed;
+  /* Fallback anchor when no trigger rect was supplied (e.g. Rail footer
+   * triggers without an anchor) — a sensible default near the tab bar. */
+  top: 44px;
+  right: 8px;
+  z-index: 40;
+  min-width: 220px;
+  max-width: 320px;
+  background: var(--color-bg);
+  border: var(--border-w) solid var(--color-line);
+  border-radius: 0;
+}
+
+.panel:focus {
+  outline: none;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: var(--rail-row-h);
+  padding: 0 var(--space-sm);
+  border-left: 2px solid transparent;
+  cursor: pointer;
+}
+
+.row:hover,
+.row.focused {
+  background: var(--color-panel);
+  border-left-color: var(--color-accent);
+}
+
+.glyph {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-body);
+  color: var(--color-accent);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.title {
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  color: var(--color-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.desc {
+  font-family: var(--font-sans);
+  font-size: var(--fs-label);
+  color: var(--color-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

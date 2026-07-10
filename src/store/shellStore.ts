@@ -32,6 +32,11 @@ export interface ShellState {
   railApplet: string | null;
   badges: Record<string, number>;
 
+  // --- session-only: Applet Catalog picker open-state (D-18) ---
+  // NOT persisted — kept out of getRailSubset exactly like railApplet/badges.
+  catalogOpen: boolean;
+  catalogAnchor: { x: number; y: number } | null;
+
   // --- actions ---
   setRailMode(m: RailMode): void;
   cycleRailMode(): void; // expanded -> compact -> hidden -> expanded
@@ -41,6 +46,8 @@ export interface ShellState {
   setActivePaneId(id: string | null): void;
   setRailApplet(key: string | null): void;
   setBadge(key: string, n: number): void;
+  openAppletCatalog(anchor?: { x: number; y: number }): void;
+  closeAppletCatalog(): void;
 }
 
 function arrayMove<T>(arr: T[], from: number, to: number): T[] {
@@ -72,6 +79,8 @@ export const shellStore = createStore<ShellState>()((set, get) => ({
   activePaneId: null,
   railApplet: null,
   badges: {},
+  catalogOpen: false,
+  catalogAnchor: null,
 
   setRailMode: (m) => {
     set({ railMode: m, railOpen: m !== "hidden" });
@@ -107,6 +116,9 @@ export const shellStore = createStore<ShellState>()((set, get) => ({
   setActivePaneId: (id) => set({ activePaneId: id }),
   setRailApplet: (key) => set({ railApplet: key }),
   setBadge: (key, n) => set({ badges: { ...get().badges, [key]: n } }),
+
+  openAppletCatalog: (anchor) => set({ catalogOpen: true, catalogAnchor: anchor ?? null }),
+  closeAppletCatalog: () => set({ catalogOpen: false, catalogAnchor: null }),
 }));
 
 /** Live getter for the rail subset of the unified workspace record — consumed
