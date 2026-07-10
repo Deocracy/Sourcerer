@@ -33,12 +33,23 @@ export function makeAppletStorage(appletKey: string): AppletStorage {
       return raw as T;
     },
     async set(key: string, value: unknown): Promise<void> {
-      await store.set(namespacedKey(appletKey, key), value);
-      await store.save();
+      try {
+        await store.set(namespacedKey(appletKey, key), value);
+        await store.save();
+      } catch {
+        // WR-01: best-effort, never-throws contract (types.ts D-15/D-16) —
+        // a failed IPC/disk write is dropped silently rather than surfacing
+        // as an unhandled rejection in applet code that takes the contract
+        // at its word (`void host.storage.set(...)` without a catch).
+      }
     },
     async remove(key: string): Promise<void> {
-      await store.delete(namespacedKey(appletKey, key));
-      await store.save();
+      try {
+        await store.delete(namespacedKey(appletKey, key));
+        await store.save();
+      } catch {
+        // WR-01: best-effort, never-throws — see set() above.
+      }
     },
   };
 }

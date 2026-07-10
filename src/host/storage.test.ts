@@ -68,6 +68,19 @@ describe("host/storage makeAppletStorage", () => {
     expect(saveSpy).toHaveBeenCalled();
   });
 
+  it("(WR-01) set never rejects when the underlying save fails (best-effort, never-throws contract)", async () => {
+    const storage = makeAppletStorage("Notes");
+    saveSpy.mockRejectedValueOnce(new Error("disk full"));
+    await expect(storage.set("draft", "x")).resolves.toBeUndefined();
+  });
+
+  it("(WR-01) remove never rejects when the underlying save fails", async () => {
+    const storage = makeAppletStorage("Notes");
+    await storage.set("draft", "x");
+    saveSpy.mockRejectedValueOnce(new Error("ipc down"));
+    await expect(storage.remove("draft")).resolves.toBeUndefined();
+  });
+
   it("two different appletKeys never collide (namespace isolation)", async () => {
     const notesStorage = makeAppletStorage("Notes");
     const wikiStorage = makeAppletStorage("Wiki");
