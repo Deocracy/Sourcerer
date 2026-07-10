@@ -1,3 +1,4 @@
+import { Component, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import type { GroupPanelPartInitParameters } from "dockview-core";
 import { appletDefs } from "./appletDefs";
@@ -40,6 +41,36 @@ export function PanelBody({ appletKey }: PanelBodyProps) {
       </div>
     </div>
   );
+}
+
+/**
+ * AppletErrorBoundary (WR-04) — per-panel containment. The framework hosts
+ * per-applet code of varying maturity (generated stubs, future Phase 5+
+ * applets); a registered applet whose App throws during render must not
+ * escape as an uncaught error that blanks the panel with no affordance.
+ * Extends the "dispatch never crashes" guarantee from unknown keys to
+ * throwing bodies: the fallback is the same generic PanelBody placeholder.
+ */
+class AppletErrorBoundary extends Component<
+  { fallback: ReactNode; children: ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError(): { hasError: boolean } {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: unknown): void {
+    if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.error("AppletErrorBoundary: applet render threw", error);
+    }
+  }
+
+  render() {
+    return this.state.hasError ? this.props.fallback : this.props.children;
+  }
 }
 
 export interface DockContentRenderer {
@@ -85,7 +116,11 @@ export function makeRenderer(fullPanelId: string, appletKey: string): DockConten
       const mod = registry[appletKey];
       if (mod) {
         const host = makeHost(instanceId, appletKey);
-        root.render(<mod.App host={host} />);
+        root.render(
+          <AppletErrorBoundary fallback={<PanelBody appletKey={appletKey} />}>
+            <mod.App host={host} />
+          </AppletErrorBoundary>,
+        );
       } else {
         root.render(<PanelBody appletKey={appletKey} />);
       }
