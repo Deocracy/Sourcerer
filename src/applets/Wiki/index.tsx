@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { AppletManifest, AppletModule } from "../../host/types";
 import { appletDefs } from "../../shell/appletDefs";
 import { ARTICLES, FALLBACK, REVIEW } from "./wikiContent";
@@ -475,16 +475,31 @@ function Wiki() {
   const art: WikiArticle = ARTICLES[entity] ?? FALLBACK(entity);
   const valOf = (c: WikiClaim) => edited[c.id] ?? c.val;
 
+  // WR-05: single tracked toast timer — a new toast clears the previous
+  // timer (two rapid toasts no longer cut the second one short), and unmount
+  // clears the pending timer (no leaked callback into a disposed root).
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flash = (m: string) => {
+    if (toastTimer.current != null) clearTimeout(toastTimer.current);
+    setToast(m);
+    toastTimer.current = setTimeout(() => setToast(null), 2600);
+  };
+  useEffect(
+    () => () => {
+      if (toastTimer.current != null) clearTimeout(toastTimer.current);
+    },
+    [],
+  );
+
   const resolve = (id: string, how: ReviewResolution) => {
     setReview((r) => r.filter((x) => x.id !== id));
-    setToast(
+    flash(
       how === "both"
         ? "Kept both — genuine dispute recorded."
         : how === "dismiss"
         ? "Dismissed."
         : "Winner chosen — article recomposed."
     );
-    setTimeout(() => setToast(null), 2600);
   };
 
   const selectEntity = (key: string) => {
@@ -688,8 +703,7 @@ function Wiki() {
           onDone={(v) => {
             if (v != null) {
               setEdited((e) => ({ ...e, [edit.id]: v }));
-              setToast("Claim applied · undo available");
-              setTimeout(() => setToast(null), 2600);
+              flash("Claim applied · undo available");
             }
             setEdit(null);
           }}

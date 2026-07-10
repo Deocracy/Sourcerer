@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { AppletManifest, AppletModule, Host } from "../../host/types";
 import { appletDefs } from "../../shell/appletDefs";
 import {
@@ -724,10 +724,21 @@ function Library({ host }: { host: Host }) {
   // matching store.js's own `activeCorpus || 'ficino'` default).
   const [corpusId] = useState(CORPORA[0].id);
 
+  // WR-05: single tracked toast timer — a new toast clears the previous
+  // timer (two rapid toasts no longer cut the second one short), and unmount
+  // clears the pending timer (no leaked callback into a disposed root).
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flash = (m: string) => {
+    if (toastTimer.current != null) clearTimeout(toastTimer.current);
     setToast(m);
-    setTimeout(() => setToast(null), 2600);
+    toastTimer.current = setTimeout(() => setToast(null), 2600);
   };
+  useEffect(
+    () => () => {
+      if (toastTimer.current != null) clearTimeout(toastTimer.current);
+    },
+    [],
+  );
 
   // Defensive fallback (same discipline the original library.js Dashboard
   // used: `corpora.find(...) || {...}`) — guards a corpusId that doesn't
