@@ -54,10 +54,8 @@ export function Dock() {
 
     const api: DockviewApi = createDockview(host, {
       className: `dockview-theme-abyss ${styles["sourcerer-dock"]}`,
-      createComponent: (opts) => {
-        const key = String(opts.name || opts.id).split(":")[0];
-        return makeRenderer(key);
-      },
+      createComponent: (opts) =>
+        makeRenderer(opts.id, String(opts.name || opts.id).split(":")[0]),
       createRightHeaderActionComponent: () => {
         const el = document.createElement("button");
         el.type = "button";

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
+import { act } from "react-dom/test-utils";
 import type { GroupPanelPartInitParameters } from "dockview-core";
 
 /**
@@ -46,24 +47,34 @@ describe("PanelBody makeRenderer registry dispatch", () => {
     const renderer = makeRenderer("Kanban:abc123", "Kanban");
     document.body.appendChild(renderer.element);
 
-    renderer.init(initParams("Kanban:abc123"));
+    act(() => {
+      renderer.init(initParams("Kanban:abc123"));
+    });
 
     expect(renderer.element.textContent).toContain("Kanban");
     expect(renderer.element.textContent).toContain("DEMO");
 
-    renderer.dispose();
+    act(() => {
+      renderer.dispose();
+    });
   });
 
   it("falls back to the generic PanelBody placeholder for an unregistered key without throwing", () => {
     const renderer = makeRenderer("Bogus:xyz987", "Bogus");
     document.body.appendChild(renderer.element);
 
-    expect(() => renderer.init(initParams("Bogus:xyz987"))).not.toThrow();
+    expect(() => {
+      act(() => {
+        renderer.init(initParams("Bogus:xyz987"));
+      });
+    }).not.toThrow();
     expect(renderer.element.textContent).toContain("Bogus");
     // Generic fallback's fixed copy (PanelBody.module.css/.tsx noteBox), never
     // present on a registered templated stub's DEMO-chip body.
     expect(renderer.element.textContent).toContain("BESPOKE RAILS");
 
-    renderer.dispose();
+    act(() => {
+      renderer.dispose();
+    });
   });
 });

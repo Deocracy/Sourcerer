@@ -191,10 +191,13 @@ describe("workspaceStore (PERS-03 migration fallback)", () => {
     await expect(loadWorkspaceRecord()).resolves.toEqual(rec);
 
     // makeRenderer/PanelBody dispatch must never throw on an unrecognized
-    // applet key (D-06) — it falls back to the generic placeholder.
-    const renderer = makeRenderer("NotARealApplet");
+    // applet key (D-06) — it falls back to the generic placeholder. Phase 4
+    // (04-02) changed makeRenderer's signature to (fullPanelId, appletKey),
+    // deriving instanceId from init(parameters).api.id (04-RESEARCH.md
+    // Pattern 2) rather than a zero-arg init().
+    const renderer = makeRenderer("NotARealApplet:test1", "NotARealApplet");
     document.body.appendChild(renderer.element);
-    renderer.init();
+    renderer.init({ api: { id: "NotARealApplet:test1" } } as Parameters<typeof renderer.init>[0]);
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(renderer.element.textContent).toContain("NotARealApplet");
