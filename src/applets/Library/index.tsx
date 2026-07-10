@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import type { AppletManifest, AppletModule, Host } from "../../host/types";
 import { appletDefs } from "../../shell/appletDefs";
-import { useShellStore } from "../../store/shellStore";
 import {
   CORPORA,
   CORPUS_STATS,
@@ -31,14 +30,13 @@ import styles from "./Library.module.css";
  *
  * The handoff reads `store.getState().activeCorpus` and
  * `store.getState().selection.Library` for the active corpus and selected
- * document. This repo's shellStore already has a session-only `activeCorpus`
- * slice (read via `useShellStore`, mirroring Rail.tsx's established selector
- * idiom) — read where it maps cleanly, falling back to the first known demo
- * corpus/sandbox stats when the value doesn't match a demo corpus id (same
- * fallback discipline the original `library.js` Dashboard already used:
- * `corpora.find(...) || { name: 'Corpus', tier: 'Standard' }`). The selected
- * document has no shellStore counterpart (no `selection` slice, matching
- * 04-03's Wiki precedent), so it stays component-local `useState`.
+ * document. Applets touch the shell ONLY through the `host` seam (CLAUDE.md
+ * / FWK-04 — no shellStore import here, CR-01): both the active corpus and
+ * the selected document are component-local `useState`, matching 04-03's
+ * Wiki entity-picker precedent, defaulted to the fullest demo corpus
+ * (ficino). If a shell-driven corpus is ever genuinely needed, it threads
+ * through the seam (e.g. a prop passed the way `host` is), never a direct
+ * store subscription.
  *
  * Local color literals (T): amber/amberBg/warm/red have no counterpart in
  * src/styles/tokens.css and are NOT promoted there (04-CONTEXT.md Pitfall 4 /
@@ -720,23 +718,20 @@ function Library({ host }: { host: Host }) {
   const [promoted, setPromoted] = useState<Record<string, boolean>>({});
   const [toast, setToast] = useState<string | null>(null);
 
-  // Session-only shellStore slice (Rail.tsx's established selector idiom) —
-  // read where it maps cleanly; falls back to CORPORA[0]/sandbox stats when
-  // the shell's activeCorpus value doesn't match a demo corpus id, same
-  // fallback discipline the original library.js Dashboard already used.
-  const corpusId = useShellStore((s) => s.activeCorpus);
+  // CR-01: component-local corpus selection (04-03 Wiki entity-picker
+  // precedent) — applets never subscribe to the shell store; the `host` seam
+  // is the only shell surface. Defaults to the fullest demo corpus (ficino,
+  // matching store.js's own `activeCorpus || 'ficino'` default).
+  const [corpusId] = useState(CORPORA[0].id);
 
   const flash = (m: string) => {
     setToast(m);
     setTimeout(() => setToast(null), 2600);
   };
 
-  // Fallback to the fullest demo corpus (ficino, matching store.js's own
-  // `activeCorpus: saved.activeCorpus || 'ficino'` default) rather than the
-  // empty sandbox stats — shellStore's activeCorpus seeds to the generic
-  // "Default" chrome label (TitleBar's corpus crumb), which doesn't match any
-  // demo corpus id; falling back to sandbox's zeroed contradictions would
-  // silently hide the review CTA this plan's must_haves truth requires.
+  // Defensive fallback (same discipline the original library.js Dashboard
+  // used: `corpora.find(...) || {...}`) — guards a corpusId that doesn't
+  // match a demo corpus id so the dashboard never renders undefined stats.
   const corpus = CORPORA.find((c) => c.id === corpusId) || CORPORA[0];
   const stats = CORPUS_STATS[corpusId] || CORPUS_STATS[CORPORA[0].id];
   const baseDoc = sel ? DOCS[sel] : null;
