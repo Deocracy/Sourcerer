@@ -1,0 +1,26 @@
+/*
+ * Wiki.module.css — scoped styles for the rich Wiki demo (04-03-PLAN.md).
+ * The ported handoff (wiki.js) is almost entirely inline-styled against its
+ * own local `T` color object (literal fidelity over exhaustive CSS-module
+ * extraction, per plan discretion) — this file only carries the handful of
+ * structural/shared classes that are cleaner as CSS than repeated inline
+ * objects: the host container and the D-12 DEMO chip (lifted verbatim from
+ * TemplatedStub.module.css so the marker treatment stays consistent across
+ * every stub, rich or templated).
+ */
+
+.host {
+  height: 100%;
+}
+
+/* DEMO chip (D-12): mono, uppercase, --color-faint — never accent, never a
+ * full banner. Matches TemplatedStub.module.css's .demoChip exactly. */
+.demoChip {
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  letter-spacing: var(--ls-label-wide);
+  color: var(--color-faint);
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border: 1px solid var(--color-line-2);
+}
