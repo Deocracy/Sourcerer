@@ -1,8 +1,8 @@
 ---
 phase: 03-persistence-layouts
 verified: 2026-07-09T17:00:00Z
-status: human_needed
-score: 4/4 must-haves verified (code-level); 2 items require live human relaunch/kill testing
+status: passed
+score: 4/4 must-haves verified; both live-process items passed 2026-07-09 (see 03-HUMAN-UAT.md — flush-on-close confirmed via real WM_CLOSE + store mtime advance; kill/relaunch recovery confirmed with canary cleared, no .bak, no reset loop)
 overrides_applied: 0
 human_verification:
   - test: "Change layout (dock a panel / reorder rail), close the window immediately (graceful close), relaunch — the last change is present."
@@ -17,7 +17,7 @@ human_verification:
 
 **Phase Goal:** The workspace remembers itself — the whole dock/rail/tab state persists crash-safely, survives schema drift, and users can save and switch named layouts without ever losing or corrupting their workspace.
 **Verified:** 2026-07-09T17:00:00Z
-**Status:** human_needed
+**Status:** passed (human items closed 2026-07-09 via 03-HUMAN-UAT.md)
 **Re-verification:** No — initial verification
 
 ## Goal Achievement
