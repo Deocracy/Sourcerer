@@ -1,14 +1,48 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// MISSING — implemented in Task 3. RED scaffold (Nyquist rule): this file
-// exists and fails before src/host/open.ts is written.
-describe("host/open", () => {
-  it.todo("focuses an existing panel whose id splits to appletKey via setActivePanel");
-  it.todo("opens a new instance via addAppletToDock when no matching panel exists");
+const { getDockApiMock, addAppletToDockMock } = vi.hoisted(() => {
+  return { getDockApiMock: vi.fn(), addAppletToDockMock: vi.fn() };
+});
 
-  it("RED placeholder fails until Task 3 implements src/host/open.ts", () => {
-    expect(() => {
-      throw new Error("MISSING — src/host/open.ts not implemented yet (Task 3)");
-    }).toThrow();
+vi.mock("../shell/dockApi", () => ({
+  getDockApi: getDockApiMock,
+  addAppletToDock: addAppletToDockMock,
+}));
+
+import { hostOpen } from "./open";
+
+beforeEach(() => {
+  getDockApiMock.mockReset();
+  addAppletToDockMock.mockReset();
+});
+
+describe("host/open hostOpen", () => {
+  it("focuses an existing panel whose id splits to appletKey via panel.api.setActive()", () => {
+    const setActive = vi.fn();
+    const existingPanel = { id: "Wiki:abc123", api: { setActive } };
+    getDockApiMock.mockReturnValue({
+      panels: [existingPanel, { id: "Library:def456", api: { setActive: vi.fn() } }],
+    });
+
+    hostOpen("Wiki");
+
+    expect(setActive).toHaveBeenCalled();
+    expect(addAppletToDockMock).not.toHaveBeenCalled();
+  });
+
+  it("opens a new instance via addAppletToDock when no matching panel exists", () => {
+    getDockApiMock.mockReturnValue({
+      panels: [{ id: "Library:def456", api: { setActive: vi.fn() } }],
+    });
+
+    hostOpen("Wiki");
+
+    expect(addAppletToDockMock).toHaveBeenCalledWith("Wiki");
+  });
+
+  it("no-ops when the dock api is not yet available", () => {
+    getDockApiMock.mockReturnValue(null);
+    expect(() => hostOpen("Wiki")).not.toThrow();
+    expect(addAppletToDockMock).not.toHaveBeenCalled();
   });
 });

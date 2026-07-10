@@ -1,14 +1,36 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
-// MISSING — implemented in Task 3. RED scaffold (Nyquist rule): this file
-// exists and fails before src/host/index.ts is written.
+vi.mock("@tauri-apps/plugin-store", () => {
+  class LazyStore {
+    async get(): Promise<undefined> {
+      return undefined;
+    }
+    async set(): Promise<void> {}
+    async delete(): Promise<boolean> {
+      return true;
+    }
+    async save(): Promise<void> {}
+  }
+  return { LazyStore };
+});
+
+vi.mock("../shell/dockApi", () => ({
+  getDockApi: vi.fn(() => null),
+  addAppletToDock: vi.fn(),
+}));
+
+import { makeHost } from "./index";
+
 describe("host/index makeHost", () => {
-  it.todo("returns exactly the five keys: storage, ai, open, instanceId, theme");
-  it.todo("instanceId passes through as the value given");
+  it("returns exactly the five keys: storage, ai, open, instanceId, theme", () => {
+    const host = makeHost("instance-1", "Notes");
+    expect(Object.keys(host).sort()).toEqual(
+      ["ai", "instanceId", "open", "storage", "theme"].sort(),
+    );
+  });
 
-  it("RED placeholder fails until Task 3 implements src/host/index.ts", () => {
-    expect(() => {
-      throw new Error("MISSING — src/host/index.ts not implemented yet (Task 3)");
-    }).toThrow();
+  it("instanceId passes through as the value given", () => {
+    const host = makeHost("instance-42", "Notes");
+    expect(host.instanceId).toBe("instance-42");
   });
 });
