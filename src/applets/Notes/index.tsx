@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import type { AppletManifest, AppletModule, Host } from "../../host/types";
 import { appletDefs } from "../../shell/appletDefs";
+import { getInstanceState, setInstanceState, scheduleWorkspaceSave } from "../../host/instanceState";
 import { notesStore, useNotesStore, ensureHydrated, scheduleNotesSave, flushNotesSave } from "./store";
 import { relativeTime } from "./relativeTime";
 import styles from "./Notes.module.css";
 
 /**
  * src/applets/Notes/index.tsx — the real Notes applet (FWK-02 stub swap,
- * NOTE-01, 05-01-PLAN.md Task 2). Two-pane list+editor over the module-level
- * shared store (D-04), persisted through host.storage. Create + edit +
- * auto-persist land here; delete + per-tab selected-note memory (D-06/D-07,
- * via src/host/instanceState.ts) land in Task 3.
+ * NOTE-01, 05-01-PLAN.md). Two-pane list+editor over the module-level shared
+ * store (D-04), persisted through host.storage. Create/edit (Task 2) plus
+ * delete and per-tab selected-note memory (Task 3, D-02/D-06/D-07).
  *
  * D-12 exception: Notes is real, not a stub — the eyebrow renders
  * `APPLET · {TITLE} · {CODE}` (TemplatedStub.tsx's exact format) with no
@@ -18,7 +18,9 @@ import styles from "./Notes.module.css";
  *
  * Boundary-safe: only imports from ../../host/** and ../../shell/appletDefs
  * (the one sanctioned shell/** exception) — src/applets/boundary.test.ts
- * enforces this mechanically.
+ * enforces this mechanically. `getInstanceState`/`setInstanceState`/
+ * `scheduleWorkspaceSave` come from src/host/instanceState.ts directly
+ * (NOT the host prop — Host stays five members, RESEARCH Pattern 2).
  */
 
 const def = appletDefs.Notes;
@@ -36,25 +38,35 @@ function Notes({ host }: { host: Host }) {
   const hydrated = useNotesStore((s) => s.hydrated);
   const addNote = useNotesStore((s) => s.addNote);
   const updateNote = useNotesStore((s) => s.updateNote);
+  const deleteNote = useNotesStore((s) => s.deleteNote);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const seededRef = useRef(false);
   const titleRef = useRef<HTMLInputElement>(null);
   const focusTitleRef = useRef(false);
 
+  const [confirming, setConfirming] = useState(false);
+  const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     void ensureHydrated(host.storage);
   }, [host.storage]);
 
-  // First-hydrate default selection (most-recently-updated note, D-01's
-  // sort order). Task 3 replaces this with the getInstanceState-driven
-  // per-tab restore (D-06/D-07).
+  // First-hydrate restore (D-06/D-07): the per-tab remembered selection only
+  // wins if that note still exists (CR-02 GC-tolerant); otherwise fall back
+  // silently to notes[0] (most-recently-updated, D-01's sort order) or null
+  // — never an error.
   useEffect(() => {
     if (hydrated && !seededRef.current) {
       seededRef.current = true;
-      setSelectedId(notes[0]?.id ?? null);
+      const saved = getInstanceState(host.instanceId) as { selectedNoteId?: string } | undefined;
+      const initial =
+        saved?.selectedNoteId && notes.some((n) => n.id === saved.selectedNoteId)
+          ? saved.selectedNoteId
+          : (notes[0]?.id ?? null);
+      setSelectedId(initial);
     }
-  }, [hydrated, notes]);
+  }, [hydrated, notes, host.instanceId]);
 
   useEffect(() => {
     if (focusTitleRef.current) {
@@ -63,10 +75,27 @@ function Notes({ host }: { host: Host }) {
     }
   }, [selectedId]);
 
+  // WR-05 single-tracked-timer discipline (mirrors Library's toast timer) —
+  // clear any pending confirm-flip timer on unmount.
+  useEffect(
+    () => () => {
+      if (confirmTimerRef.current != null) clearTimeout(confirmTimerRef.current);
+    },
+    [],
+  );
+
+  // Mutate-then-persist idiom (src/shell/Dock.tsx's exact shape): mutate the
+  // in-memory instanceState slice, then flush via scheduleWorkspaceSave.
+  function selectNote(id: string | null) {
+    setSelectedId(id);
+    setInstanceState(host.instanceId, { selectedNoteId: id });
+    scheduleWorkspaceSave();
+  }
+
   function handleAddNote() {
     const id = addNote();
     scheduleNotesSave(host.storage, notesStore.getState().notes);
-    setSelectedId(id);
+    selectNote(id);
     focusTitleRef.current = true;
   }
 
@@ -82,6 +111,20 @@ function Notes({ host }: { host: Host }) {
 
   function flush() {
     flushNotesSave(host.storage, notesStore.getState().notes);
+  }
+
+  function handleDeleteClick() {
+    if (!confirming) {
+      setConfirming(true);
+      confirmTimerRef.current = setTimeout(() => setConfirming(false), 3000);
+      return;
+    }
+    if (confirmTimerRef.current != null) clearTimeout(confirmTimerRef.current);
+    setConfirming(false);
+    if (!selectedId) return;
+    const nextId = deleteNote(selectedId);
+    flushNotesSave(host.storage, notesStore.getState().notes);
+    selectNote(nextId);
   }
 
   const selectedNote = notes.find((n) => n.id === selectedId) ?? null;
@@ -103,7 +146,7 @@ function Notes({ host }: { host: Host }) {
               <div
                 key={note.id}
                 className={note.id === selectedId ? `${styles.row} ${styles.active}` : styles.row}
-                onClick={() => setSelectedId(note.id)}
+                onClick={() => selectNote(note.id)}
               >
                 <div className={styles.rowLabel}>{note.title.trim() || "Untitled"}</div>
                 <div className={styles.rowMeta}>{relativeTime(note.updatedAt)}</div>
@@ -123,6 +166,17 @@ function Notes({ host }: { host: Host }) {
                 onChange={(e) => handleTitleChange(selectedNote.id, e.target.value)}
                 onBlur={flush}
               />
+              <div className={styles.toolbar}>
+                <span className={styles.toolbarTime}>{relativeTime(selectedNote.updatedAt)}</span>
+                <button
+                  type="button"
+                  className={styles.delete}
+                  aria-label="Delete note"
+                  onClick={handleDeleteClick}
+                >
+                  {confirming ? "Delete for real?" : "Delete"}
+                </button>
+              </div>
               <textarea
                 className={styles.bodyInput}
                 aria-label="Note body"
