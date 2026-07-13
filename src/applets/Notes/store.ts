@@ -39,6 +39,23 @@ function sortByUpdatedDesc(notes: Note[]): Note[] {
   return [...notes].sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
+/** WR-04: shape-guard a single persisted note. host.storage.get returns
+ *  `raw as T` with zero validation, so a hand-edited / partially-written /
+ *  schema-drifted applets.json can hand us non-Note values that crash the
+ *  editor on `note.title.trim()`. Filter to well-formed notes only. */
+function isNote(v: unknown): v is Note {
+  const n = v as Note;
+  return (
+    !!n &&
+    typeof n === "object" &&
+    typeof n.id === "string" &&
+    typeof n.title === "string" &&
+    typeof n.body === "string" &&
+    typeof n.createdAt === "number" &&
+    typeof n.updatedAt === "number"
+  );
+}
+
 export const notesStore = createStore<NotesState>()((set, get) => ({
   notes: [],
   hydrated: false,
@@ -88,9 +105,27 @@ let hydratePromise: Promise<void> | null = null;
  *  stale disk data). */
 export function ensureHydrated(storage: AppletStorage): Promise<void> {
   if (!hydratePromise) {
-    hydratePromise = storage.get<Note[]>("notes", []).then((notes) => {
-      notesStore.setState({ notes: sortByUpdatedDesc(notes), hydrated: true });
-    });
+    hydratePromise = storage
+      .get<unknown>("notes", [])
+      .then((raw) => {
+        const diskNotes = Array.isArray(raw) ? raw.filter(isNote) : [];
+        // CR-01: the UI is interactive before this resolves. If the user
+        // already created/edited a note in the race window, those local
+        // mutations must win — replacing the array here would wipe them from
+        // the UI and (with the flush-time save below) clobber disk. Only
+        // adopt disk state when the store is still empty.
+        notesStore.setState((s) =>
+          s.notes.length > 0
+            ? { hydrated: true }
+            : { notes: sortByUpdatedDesc(diskNotes), hydrated: true },
+        );
+      })
+      .catch(() => {
+        // WR-04: never cache a rejected promise — degrade to empty and flip
+        // hydrated so the applet isn't wedged on the empty state for the
+        // whole session (every remount reuses this same promise).
+        notesStore.setState({ hydrated: true });
+      });
   }
   return hydratePromise;
 }
@@ -100,21 +135,27 @@ let saveTimer: ReturnType<typeof setTimeout> | undefined;
 
 /** Debounced write-through of the full notes array to host.storage,
  *  independent of workspace.json's own 300ms scheduleWorkspaceSave debounce
- *  (a different file, different concern — 05-RESEARCH.md Pattern 3). */
-export function scheduleNotesSave(storage: AppletStorage, notes: Note[]): void {
+ *  (a different file, different concern — 05-RESEARCH.md Pattern 3).
+ *
+ *  CR-01: reads the notes array at FLUSH time, not schedule time. Snapshotting
+ *  at schedule time let a pre-hydration `[newNote]` capture reach disk 400ms
+ *  later and clobber every previously persisted note. Reading at flush mirrors
+ *  workspaceStore's read-at-flush contract. */
+export function scheduleNotesSave(storage: AppletStorage): void {
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     saveTimer = undefined;
-    void storage.set("notes", notes);
+    void storage.set("notes", notesStore.getState().notes);
   }, SAVE_DEBOUNCE_MS);
 }
 
-/** Immediate write-through, bypassing the debounce — called on blur so
- *  navigating away from a note doesn't lose the trailing debounce window. */
-export function flushNotesSave(storage: AppletStorage, notes: Note[]): void {
+/** Immediate write-through, bypassing the debounce — called on blur (and on
+ *  unmount, WR-03) so navigating away from a note doesn't lose the trailing
+ *  debounce window. Reads current store state at call time (CR-01). */
+export function flushNotesSave(storage: AppletStorage): void {
   if (saveTimer) {
     clearTimeout(saveTimer);
     saveTimer = undefined;
   }
-  void storage.set("notes", notes);
+  void storage.set("notes", notesStore.getState().notes);
 }

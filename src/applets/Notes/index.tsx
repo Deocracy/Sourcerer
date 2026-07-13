@@ -51,6 +51,11 @@ function Notes({ host }: { host: Host }) {
   const [summary, setSummary] = useState<string | null>(null);
   const [summarizing, setSummarizing] = useState(false);
   const [summarizeError, setSummarizeError] = useState(false);
+  // CR-02: monotonic token guarding in-flight host.ai() results. Bumped on
+  // every selection change and every new summarize, so a request that resolves
+  // after the user moved to another note is discarded instead of leaking its
+  // summary across notes (D-03).
+  const summarizeSeqRef = useRef(0);
 
   useEffect(() => {
     void ensureHydrated(host.storage);
@@ -72,12 +77,43 @@ function Notes({ host }: { host: Host }) {
     }
   }, [hydrated, notes, host.instanceId]);
 
+  // WR-02: repair a dangling selection. Another tab (D-04 live mirror) can
+  // delete the note this tab has selected; without this, the editor shows the
+  // misleading "No notes yet" empty state beside a populated list and never
+  // recovers until the user manually clicks a row. Re-point at the top note
+  // (or null when truly empty). Only runs once seeded so it can't fight the
+  // D-06 restore.
+  useEffect(() => {
+    if (
+      hydrated &&
+      seededRef.current &&
+      selectedId !== null &&
+      !notes.some((n) => n.id === selectedId)
+    ) {
+      selectNote(notes[0]?.id ?? null);
+    }
+    // selectNote is a hoisted, stable-enough handler; deps track the state it reads.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notes, hydrated, selectedId]);
+
   useEffect(() => {
     if (focusTitleRef.current) {
       focusTitleRef.current = false;
       titleRef.current?.focus();
     }
   }, [selectedId]);
+
+  // WR-03: React does not fire input blur on unmount, so closing the Notes
+  // panel or switching layouts (Phase 4 CR-02 disposes panels) within the
+  // 400ms debounce window drops the trailing edits. Flush on unmount, guarded
+  // on hydrated so a pre-hydration unmount can't write an empty array over
+  // real persisted notes.
+  useEffect(
+    () => () => {
+      if (notesStore.getState().hydrated) flushNotesSave(host.storage);
+    },
+    [host.storage],
+  );
 
   // WR-05 single-tracked-timer discipline (mirrors Library's toast timer) —
   // clear any pending confirm-flip timer on unmount.
@@ -91,6 +127,12 @@ function Notes({ host }: { host: Host }) {
   // Mutate-then-persist idiom (src/shell/Dock.tsx's exact shape): mutate the
   // in-memory instanceState slice, then flush via scheduleWorkspaceSave.
   function selectNote(id: string | null) {
+    // WR-01: disarm any pending delete confirmation — consent given for the
+    // previously-selected note must not carry onto a different record.
+    if (confirmTimerRef.current != null) clearTimeout(confirmTimerRef.current);
+    setConfirming(false);
+    // CR-02: invalidate any in-flight summarize so its late result is dropped.
+    summarizeSeqRef.current++;
     setSelectedId(id);
     setInstanceState(host.instanceId, { selectedNoteId: id });
     scheduleWorkspaceSave();
@@ -102,23 +144,23 @@ function Notes({ host }: { host: Host }) {
 
   function handleAddNote() {
     const id = addNote();
-    scheduleNotesSave(host.storage, notesStore.getState().notes);
+    scheduleNotesSave(host.storage);
     selectNote(id);
     focusTitleRef.current = true;
   }
 
   function handleTitleChange(id: string, value: string) {
     updateNote(id, { title: value });
-    scheduleNotesSave(host.storage, notesStore.getState().notes);
+    scheduleNotesSave(host.storage);
   }
 
   function handleBodyChange(id: string, value: string) {
     updateNote(id, { body: value });
-    scheduleNotesSave(host.storage, notesStore.getState().notes);
+    scheduleNotesSave(host.storage);
   }
 
   function flush() {
-    flushNotesSave(host.storage, notesStore.getState().notes);
+    flushNotesSave(host.storage);
   }
 
   function handleDeleteClick() {
@@ -131,7 +173,7 @@ function Notes({ host }: { host: Host }) {
     setConfirming(false);
     if (!selectedId) return;
     const nextId = deleteNote(selectedId);
-    flushNotesSave(host.storage, notesStore.getState().notes);
+    flushNotesSave(host.storage);
     selectNote(nextId);
   }
 
@@ -142,17 +184,19 @@ function Notes({ host }: { host: Host }) {
   // hang. The result is local-only state (D-03 ephemeral): never written to
   // host.storage, and cleared on note switch by selectNote() above.
   async function handleSummarize(note: { title: string; body: string }) {
+    const seq = ++summarizeSeqRef.current;
     setSummarizing(true);
     setSummarizeError(false);
     try {
       const result = await host.ai(
         `Summarize this note in 1-2 sentences:\n\n${note.title}\n\n${note.body}`,
       );
-      setSummary(result);
+      // CR-02: only apply the result if the user is still on this note.
+      if (seq === summarizeSeqRef.current) setSummary(result);
     } catch {
-      setSummarizeError(true);
+      if (seq === summarizeSeqRef.current) setSummarizeError(true);
     } finally {
-      setSummarizing(false);
+      if (seq === summarizeSeqRef.current) setSummarizing(false);
     }
   }
 
@@ -166,7 +210,12 @@ function Notes({ host }: { host: Host }) {
       <div className={styles.layout}>
         <div className={styles.listPane}>
           <div className={styles.listHeader}>
-            <button type="button" className={styles.newNoteBtn} onClick={handleAddNote}>
+            <button
+              type="button"
+              className={styles.newNoteBtn}
+              onClick={handleAddNote}
+              disabled={!hydrated}
+            >
               + New Note
             </button>
           </div>
@@ -184,7 +233,11 @@ function Notes({ host }: { host: Host }) {
           </div>
         </div>
         <div className={styles.editorPane}>
-          {selectedNote ? (
+          {/* CR-01: don't render the mutation UI until hydration completes —
+              a note created pre-hydration would be silently wiped when disk
+              state loads, and (with WR-02) the empty state pre-hydration is
+              misleading. */}
+          {!hydrated ? null : selectedNote ? (
             <>
               <input
                 ref={titleRef}
