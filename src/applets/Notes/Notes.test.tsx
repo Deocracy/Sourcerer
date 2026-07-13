@@ -27,15 +27,16 @@ interface SeedNote {
   updatedAt: number;
 }
 
-function makeStubHost(seed: SeedNote[]) {
+function makeStubHost(seed: SeedNote[], ai?: Host["ai"]) {
   const setMock = vi.fn(async () => {});
+  const aiMock = vi.fn(ai ?? (async () => ""));
   const host: Host = {
     storage: {
       get: (async (_key: string, fallback: unknown) => seed ?? fallback) as Host["storage"]["get"],
       set: setMock as Host["storage"]["set"],
       remove: async () => {},
     },
-    ai: async () => "",
+    ai: aiMock as Host["ai"],
     open: vi.fn(),
     instanceId: "test-instance",
     theme: {
@@ -54,7 +55,7 @@ function makeStubHost(seed: SeedNote[]) {
       fontSans: "sans",
     },
   };
-  return { host, setMock };
+  return { host, setMock, aiMock };
 }
 
 beforeEach(() => {
@@ -121,5 +122,42 @@ describe("Notes applet", () => {
     fireEvent.click(deleteBtn);
     fireEvent.click(deleteBtn);
     expect(await screen.findByText("No notes yet")).toBeTruthy();
+  });
+
+  it("summarize: clicking Summarize calls host.ai with a prompt containing the note and renders the result inline", async () => {
+    const now = Date.now();
+    const seed: SeedNote[] = [
+      { id: "n1", title: "Alpha", body: "Alpha body", createdAt: now - 1000, updatedAt: now - 1000 },
+    ];
+    const { host, aiMock } = makeStubHost(seed, async () => "A concise summary.");
+    const { App } = await import("./index");
+    render(<App host={host} />);
+
+    await screen.findByText("Alpha");
+    fireEvent.click(screen.getByRole("button", { name: "Summarize" }));
+
+    expect(await screen.findByText("A concise summary.")).toBeTruthy();
+    expect(aiMock).toHaveBeenCalledTimes(1);
+    const promptArg = aiMock.mock.calls[0][0] as string;
+    expect(promptArg).toContain("Alpha");
+    expect(promptArg).toContain("Alpha body");
+  });
+
+  it("summarize error: a rejected host.ai renders the honest-degrade copy without hanging", async () => {
+    const now = Date.now();
+    const seed: SeedNote[] = [
+      { id: "n1", title: "Alpha", body: "Alpha body", createdAt: now - 1000, updatedAt: now - 1000 },
+    ];
+    const { host } = makeStubHost(seed, async () => {
+      throw new Error("boom");
+    });
+    const { App } = await import("./index");
+    render(<App host={host} />);
+
+    await screen.findByText("Alpha");
+    fireEvent.click(screen.getByRole("button", { name: "Summarize" }));
+
+    expect(await screen.findByText("Couldn't summarize this note.")).toBeTruthy();
+    expect(screen.getByText("Check your connection and try again.")).toBeTruthy();
   });
 });
