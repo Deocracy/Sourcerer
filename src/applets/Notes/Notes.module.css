@@ -160,6 +160,26 @@
   color: var(--color-faint);
 }
 
+.summarize {
+  border: none;
+  background: transparent;
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  letter-spacing: var(--ls-label-wide);
+  cursor: pointer;
+  padding: var(--space-xs) var(--space-sm);
+}
+
+.summarize:hover:not(:disabled) {
+  color: var(--color-accent-hover);
+}
+
+.summarize:disabled {
+  color: var(--color-faint);
+  cursor: default;
+}
+
 .delete {
   border: none;
   background: transparent;
@@ -173,6 +193,28 @@
 
 .delete:hover {
   color: var(--color-danger);
+}
+
+.summaryBlock {
+  flex-shrink: 0;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: var(--border-w) solid var(--color-line);
+  font-family: var(--font-serif);
+  font-size: var(--fs-body);
+  font-style: italic;
+  line-height: var(--lh-body);
+  color: var(--color-muted);
+}
+
+.summaryError {
+  flex-shrink: 0;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: var(--border-w) solid var(--color-line);
+  font-family: var(--font-serif);
+  font-size: var(--fs-body);
+  font-style: italic;
+  line-height: var(--lh-body);
+  color: var(--color-muted);
 }
 
 .titleInput {

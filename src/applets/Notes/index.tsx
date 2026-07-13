@@ -48,6 +48,10 @@ function Notes({ host }: { host: Host }) {
   const [confirming, setConfirming] = useState(false);
   const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [summary, setSummary] = useState<string | null>(null);
+  const [summarizing, setSummarizing] = useState(false);
+  const [summarizeError, setSummarizeError] = useState(false);
+
   useEffect(() => {
     void ensureHydrated(host.storage);
   }, [host.storage]);
@@ -90,6 +94,10 @@ function Notes({ host }: { host: Host }) {
     setSelectedId(id);
     setInstanceState(host.instanceId, { selectedNoteId: id });
     scheduleWorkspaceSave();
+    // D-03: the AI summary is ephemeral — never persisted, and must not leak
+    // across notes. Clear it (and any error) on every selection change.
+    setSummary(null);
+    setSummarizeError(false);
   }
 
   function handleAddNote() {
@@ -125,6 +133,27 @@ function Notes({ host }: { host: Host }) {
     const nextId = deleteNote(selectedId);
     flushNotesSave(host.storage, notesStore.getState().notes);
     selectNote(nextId);
+  }
+
+  // NOTE-02: the Summarize action — host.ai() is the sole AI seam (never
+  // invoke("host_ai") directly). One try/catch covers every failure mode
+  // aiComplete's Promise contract can produce (in-band error event OR the
+  // 120s inactivity watchdog) — exactly one honest-degrade error, never a
+  // hang. The result is local-only state (D-03 ephemeral): never written to
+  // host.storage, and cleared on note switch by selectNote() above.
+  async function handleSummarize(note: { title: string; body: string }) {
+    setSummarizing(true);
+    setSummarizeError(false);
+    try {
+      const result = await host.ai(
+        `Summarize this note in 1-2 sentences:\n\n${note.title}\n\n${note.body}`,
+      );
+      setSummary(result);
+    } catch {
+      setSummarizeError(true);
+    } finally {
+      setSummarizing(false);
+    }
   }
 
   const selectedNote = notes.find((n) => n.id === selectedId) ?? null;
@@ -170,6 +199,14 @@ function Notes({ host }: { host: Host }) {
                 <span className={styles.toolbarTime}>{relativeTime(selectedNote.updatedAt)}</span>
                 <button
                   type="button"
+                  className={styles.summarize}
+                  disabled={summarizing}
+                  onClick={() => void handleSummarize(selectedNote)}
+                >
+                  {summarizing ? "Summarizing…" : "Summarize"}
+                </button>
+                <button
+                  type="button"
                   className={styles.delete}
                   aria-label="Delete note"
                   onClick={handleDeleteClick}
@@ -177,6 +214,13 @@ function Notes({ host }: { host: Host }) {
                   {confirming ? "Delete for real?" : "Delete"}
                 </button>
               </div>
+              {summary != null && <div className={styles.summaryBlock}>{summary}</div>}
+              {summarizeError && (
+                <div className={styles.summaryError}>
+                  <div>Couldn&#39;t summarize this note.</div>
+                  <div>Check your connection and try again.</div>
+                </div>
+              )}
               <textarea
                 className={styles.bodyInput}
                 aria-label="Note body"
