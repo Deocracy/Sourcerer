@@ -27,12 +27,26 @@ interface SeedNote {
   updatedAt: number;
 }
 
-function makeStubHost(seed: SeedNote[], ai?: Host["ai"]) {
+/** A promise whose resolution the test controls — lets us hold host.ai() /
+ *  host.storage.get() in flight and interleave UI actions against them
+ *  (the exact seam timing the CR-01/CR-02 races hide behind). */
+function deferred<T>() {
+  let resolve!: (v: T) => void;
+  let reject!: (e: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
+function makeStubHost(seed: SeedNote[], ai?: Host["ai"], getOverride?: Host["storage"]["get"]) {
   const setMock = vi.fn(async () => {});
   const aiMock = vi.fn(ai ?? (async () => ""));
   const host: Host = {
     storage: {
-      get: (async (_key: string, fallback: unknown) => seed ?? fallback) as Host["storage"]["get"],
+      get: (getOverride ??
+        (async (_key: string, fallback: unknown) => seed ?? fallback)) as Host["storage"]["get"],
       set: setMock as Host["storage"]["set"],
       remove: async () => {},
     },
@@ -159,5 +173,79 @@ describe("Notes applet", () => {
 
     expect(await screen.findByText("Couldn't summarize this note.")).toBeTruthy();
     expect(screen.getByText("Check your connection and try again.")).toBeTruthy();
+  });
+
+  // WR-05 / CR-02: D-03 — a summarize that resolves after the user has switched
+  // notes must NOT render its result under the new note.
+  it("D-03: an in-flight summary that resolves after a note switch does not leak across notes", async () => {
+    const now = Date.now();
+    const seed: SeedNote[] = [
+      { id: "n1", title: "Alpha", body: "Alpha body", createdAt: now, updatedAt: now },
+      { id: "n2", title: "Beta", body: "Beta body", createdAt: now - 1000, updatedAt: now - 1000 },
+    ];
+    const gate = deferred<string>();
+    const { host } = makeStubHost(seed, () => gate.promise);
+    const { App } = await import("./index");
+    render(<App host={host} />);
+
+    // Alpha is most-recent → selected by default.
+    await screen.findByText("Alpha");
+    fireEvent.click(screen.getByRole("button", { name: "Summarize" }));
+    // While the request is in flight, switch to Beta.
+    fireEvent.click(screen.getByText("Beta"));
+    // Now resolve the stale Alpha request.
+    gate.resolve("ALPHA-ONLY SUMMARY");
+    await gate.promise;
+
+    // The result belonged to Alpha; it must not appear under Beta.
+    expect(screen.queryByText("ALPHA-ONLY SUMMARY")).toBeNull();
+    expect(screen.getByDisplayValue("Beta")).toBeTruthy();
+  });
+
+  // WR-05: D-06/D-07 — the per-tab remembered selection is restored on hydrate,
+  // winning over the most-recently-updated default when the note still exists.
+  it("D-06: restores the saved selectedNoteId over the most-recent default", async () => {
+    const now = Date.now();
+    const seed: SeedNote[] = [
+      { id: "n1", title: "Alpha", body: "Alpha body", createdAt: now - 2000, updatedAt: now - 2000 },
+      { id: "n2", title: "Beta", body: "Beta body", createdAt: now, updatedAt: now },
+    ];
+    const { host } = makeStubHost(seed);
+    const { App } = await import("./index");
+    // Same module epoch as ./index (post-resetModules) — shares the instanceState store.
+    const { setInstanceState } = await import("../../host/instanceState");
+    setInstanceState("test-instance", { selectedNoteId: "n1" });
+    render(<App host={host} />);
+
+    // Without the saved selection, Beta (most recent) would be selected.
+    // D-06 restore must pick Alpha instead.
+    expect(await screen.findByDisplayValue("Alpha")).toBeTruthy();
+    expect(screen.queryByDisplayValue("Beta")).toBeNull();
+  });
+
+  // WR-05 / CR-01: the mutation UI must be gated until hydration resolves, so a
+  // note created in the race window can't be wiped when disk state loads.
+  it("CR-01: the New Note button is disabled until hydration completes", async () => {
+    const now = Date.now();
+    const seed: SeedNote[] = [
+      { id: "n1", title: "Alpha", body: "Alpha body", createdAt: now, updatedAt: now },
+    ];
+    const gate = deferred<SeedNote[]>();
+    const { host } = makeStubHost(seed, undefined, (async () => gate.promise) as Host["storage"]["get"]);
+    const { App } = await import("./index");
+    render(<App host={host} />);
+
+    // Pre-hydration: the only + New Note button (list header) is disabled and
+    // the editor pane renders nothing (no misleading empty state).
+    const addBtn = screen.getByRole("button", { name: "+ New Note" }) as HTMLButtonElement;
+    expect(addBtn.disabled).toBe(true);
+    expect(screen.queryByText("No notes yet")).toBeNull();
+
+    // Resolve hydration → button enables and the persisted note appears.
+    gate.resolve(seed);
+    expect(await screen.findByText("Alpha")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "+ New Note" }) as HTMLButtonElement).disabled).toBe(
+      false,
+    );
   });
 });
