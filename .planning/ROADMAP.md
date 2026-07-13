@@ -151,7 +151,7 @@ Plans:
 
 Plans:
 **Wave 1**
-- [ ] 05-01-PLAN.md — Notes CRUD vertical slice: shared module store + two-pane list/editor + persistence + per-tab selected-note memory + registry swap (NOTE-01)
+- [x] 05-01-PLAN.md — Notes CRUD vertical slice: shared module store + two-pane list/editor + persistence + per-tab selected-note memory + registry swap (NOTE-01)
 **Wave 2** *(blocked on Wave 1 — shared Notes/index.tsx)*
 - [ ] 05-02-PLAN.md — AI Summarize vertical slice: host.ai() call + inline ephemeral result + honest-degrade error, closing the full framework loop (NOTE-02)
 
@@ -185,7 +185,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 2. Workspace Core | 6/6 | Complete   | 2026-07-08 |
 | 3. Persistence & Layouts | 5/5 | Complete    | 2026-07-10 |
 | 4. Applet Framework | 5/5 | Complete    | 2026-07-10 |
-| 5. Notes Applet | 0/2 | Not started | - |
+| 5. Notes Applet | 1/2 | In Progress|  |
 | 6. Dashboard Assistant & Home | 0/TBD | Not started | - |
 | 7. Assistant Harness Core | 6/6 | Complete   | 2026-07-08 |
 

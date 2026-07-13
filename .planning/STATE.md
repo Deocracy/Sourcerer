@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-13T01:19:28.182Z"
-last_activity: 2026-07-13 -- Phase 05 planning complete
+last_updated: "2026-07-13T01:46:04.990Z"
+last_activity: 2026-07-13
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 27
-  completed_plans: 25
+  completed_plans: 26
   percent: 71
 ---
 
@@ -20,20 +20,20 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-06)
 
 **Core value:** A pixel-perfect, fully interactive desktop shell where the applet framework demonstrably works end-to-end — Notes proves the loop, every other applet is a believable stub.
-**Current focus:** Phase 07 — assistant harness core headless pi sidecar behind the host a
+**Current focus:** Phase 05 — notes-applet
 
 ## Current Position
 
-Phase: 07
-Plan: Not started
+Phase: 05 (notes-applet) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-07-13 -- Phase 05 planning complete
+Last activity: 2026-07-13
 
 Phase 07 (assistant-harness-core): COMPLETE — all 6 plans done (07-01..07-04 automated, 07-05 live UAT gate 4/4 truths pass, 07-06 D-09 gap closure). 07-VERIFICATION.md status: passed.
 
 Note: `state.advance-plan` tracks a single project-wide plan counter and mis-attributes advances to whichever phase this "Current Position" block names when two phases execute in parallel (landmine, repeats each time — see prior note this replaced). After 07-02's completion this was manually corrected here (via `state.update-progress`, not `state.advance-plan`): Phase 02's plan number was NOT advanced by 07-02's completion. The aggregate `completed_plans` count in frontmatter is derived from `state.update-progress`'s disk-scan (recompute it if it drifts — Phase 01 + Phase 02 + Phase 07's actual SUMMARY.md counts on disk are the source of truth, not this note's numbers, since both phases execute in parallel and this note goes stale quickly). At last recompute during 07-02's completion: Phase 01 (3) + Phase 02 (4, including 02-04) + Phase 07 (07-01, 07-02, 07-03, 07-04 = 4) = 11.
 
-Progress: [██████████] 100%
+Progress: [██████████] 96%
 
 ## Performance Metrics
 
@@ -76,6 +76,7 @@ Progress: [██████████] 100%
 | Phase 04 P03 | 20min | 2 tasks | 4 files |
 | Phase 04 P04 | 15min | 2 tasks | 4 files |
 | Phase 04 P05 | 5min | 2 tasks | 7 files |
+| Phase 05-notes-applet P01 | 45min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -129,6 +130,9 @@ Recent decisions affecting current work:
 - [Phase 04-04]: corpus/stats fallback defaults to CORPORA[0] (ficino), not sandbox — shellStore's activeCorpus seeds to the generic "Default" chrome label and doesn't match a demo corpus id; falling back to sandbox's zeroed contradictions would hide the required review CTA
 - [Phase 04-04]: Library's selected document stays component-local useState (seeded doc-ficino-vita), no shellStore selection slice added
 - [Phase 04-05]: AppletCatalog picker (D-18) opens applets via host.open from both Dock '+' and Rail footer; D-19 append implemented inside hydrateFromDisk so any registered appletDefs key missing from the restored railOrder appends at the end
+- [Phase 05-01]: List pane shows no rows (not a duplicate empty-state message) when notes.length===0 - only the editor pane's empty state carries No notes yet copy
+- [Phase 05-01]: Notes' shared module-level store is a deliberate app-lifetime singleton (D-04); Notes.test.tsx uses vi.resetModules() + dynamic import for isolation
+- [Phase 05-01]: Delete button keeps a stable aria-label (Delete note) through the two-step confirm; only its visible text flips to Delete for real?
 
 ### Roadmap Evolution
 
@@ -157,6 +161,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-13T00:53:56.023Z
-Stopped at: Phase 5 context gathered
-Resume file: .planning/phases/05-notes-applet/05-CONTEXT.md
+Last session: 2026-07-13T01:46:04.978Z
+Stopped at: Completed 05-01-PLAN.md
+Resume file: None
