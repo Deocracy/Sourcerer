@@ -1,0 +1,211 @@
+/*
+ * Notes.module.css — the real Notes applet's two-pane layout (05-UI-SPEC.md).
+ * Every value resolves to an existing src/styles/tokens.css custom property
+ * (zero new sizes/weights/colors) except the ~240px list-pane width, which
+ * UI-SPEC specifies as a fixed layout metric with no matching --space-* step
+ * (same discipline tokens.css itself uses for chrome metrics like
+ * --titlebar-h that aren't on the 4pt scale).
+ *
+ * Row/active/delete treatment mirrors src/shell/LayoutsMenu.module.css's
+ * .row/.row.active/.delete pattern per UI-SPEC's explicit mandate; the host
+ * container + no-DEMO-chip eyebrow mirrors src/applets/Library/Library.module.css
+ * (D-12 exception — Notes is real, so no .demoChip sibling renders).
+ */
+
+.host {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+}
+
+.eyebrow {
+  flex-shrink: 0;
+  padding: var(--space-sm) var(--space-md) 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  letter-spacing: var(--ls-label-wide);
+  color: var(--color-faint);
+}
+
+.layout {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.listPane {
+  width: 240px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: var(--border-w) solid var(--color-line);
+}
+
+.listHeader {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  height: var(--rail-row-h);
+  padding: 0 var(--space-sm);
+  border-bottom: var(--border-w) solid var(--color-line);
+}
+
+.newNoteBtn {
+  border: none;
+  background: transparent;
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  letter-spacing: var(--ls-label-wide);
+  cursor: pointer;
+  padding: 0;
+}
+
+.newNoteBtn:hover {
+  color: var(--color-accent-hover);
+}
+
+.listBody {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: var(--rail-row-h);
+  padding: 0 var(--space-sm);
+  border-left: var(--rail-active-border);
+  border-left-color: transparent;
+  cursor: pointer;
+}
+
+.row:hover {
+  background: var(--color-panel);
+}
+
+.row.active {
+  border-left-color: var(--color-accent);
+}
+
+.row.active .rowLabel {
+  color: var(--color-accent);
+  font-weight: var(--fw-semibold);
+}
+
+.rowLabel {
+  font-size: var(--fs-body);
+  color: var(--color-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowMeta {
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  color: var(--color-faint);
+}
+
+.editorPane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.editorEmpty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  text-align: center;
+}
+
+.editorEmptyHeading {
+  font-family: var(--font-serif);
+  font-size: var(--fs-heading);
+  line-height: var(--lh-heading);
+  color: var(--color-fg);
+}
+
+.editorEmptyBody {
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  color: var(--color-muted);
+  max-width: 420px;
+}
+
+.toolbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: var(--rail-row-h);
+  padding: 0 var(--space-lg);
+  border-bottom: var(--border-w) solid var(--color-line);
+}
+
+.toolbarTime {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  color: var(--color-faint);
+}
+
+.delete {
+  border: none;
+  background: transparent;
+  color: var(--color-faint);
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  letter-spacing: var(--ls-label-wide);
+  cursor: pointer;
+  padding: var(--space-xs) var(--space-sm);
+}
+
+.delete:hover {
+  color: var(--color-danger);
+}
+
+.titleInput {
+  flex-shrink: 0;
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: var(--space-lg) var(--space-lg) 0;
+  font-family: var(--font-serif);
+  font-size: var(--fs-heading);
+  line-height: var(--lh-heading);
+  color: var(--color-fg);
+}
+
+.titleInput:focus {
+  background: var(--color-panel-2);
+}
+
+.bodyInput {
+  flex: 1;
+  width: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  padding: var(--space-md) var(--space-lg) var(--space-lg);
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  color: var(--color-fg);
+}
+
+.bodyInput:focus {
+  background: var(--color-panel-2);
+}

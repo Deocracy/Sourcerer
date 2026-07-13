@@ -1,6 +1,7 @@
 import { templatedModules } from "../applets/templated";
 import * as WikiModule from "../applets/Wiki";
 import * as LibraryModule from "../applets/Library";
+import * as NotesModule from "../applets/Notes";
 import type { AppletManifest, AppletModule } from "../host/types";
 
 export type { AppletManifest, AppletModule };
@@ -21,4 +22,5 @@ export const registry: Record<string, AppletModule> = {
   ...templatedModules,
   Wiki: WikiModule,
   Library: LibraryModule,
+  Notes: NotesModule,
 };
