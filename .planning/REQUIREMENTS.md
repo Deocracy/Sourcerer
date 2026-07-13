@@ -45,7 +45,7 @@ Scope decided at init: pixel-perfect Tauri shell + applet framework + **Notes as
 ### Notes Applet (NOTE)
 
 - [x] **NOTE-01**: User can create, edit, and delete persistent notes in the Notes applet (stored via host.storage)
-- [ ] **NOTE-02**: User can invoke AI summarize on a note through host.ai() (stub response in v1) — proving the full framework loop
+- [x] **NOTE-02**: User can invoke AI summarize on a note through host.ai() (stub response in v1) — proving the full framework loop
 
 ### Dashboard Assistant (ASST)
 
@@ -100,7 +100,7 @@ Scope decided at init: pixel-perfect Tauri shell + applet framework + **Notes as
 | FWK-03 | Phase 4 | Complete |
 | FWK-04 | Phase 4 | Complete |
 | NOTE-01 | Phase 5 | Complete |
-| NOTE-02 | Phase 5 | Pending |
+| NOTE-02 | Phase 5 | Complete |
 | ASST-01 | Phase 6 | Pending |
 | ASST-02 | Phase 6 | Pending |
 | ASST-03 | Phase 6 | Pending |

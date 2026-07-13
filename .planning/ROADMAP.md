@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Workspace Core** - Left rail (3 modes) + dock tree (tabs, 5-zone docking, splits, focus, clamps) (completed 2026-07-08)
 - [x] **Phase 3: Persistence & Layouts** - Crash-safe workspace persistence, schema versioning, named layouts (completed 2026-07-09)
 - [x] **Phase 4: Applet Framework** - Static registry, host API, high-fidelity demo stubs for every applet (completed 2026-07-10)
-- [ ] **Phase 5: Notes Applet** - First real applet proving registry → host → storage → ai seam
+- [x] **Phase 5: Notes Applet** - First real applet proving registry → host → storage → ai seam (completed 2026-07-13)
 - [ ] **Phase 6: Dashboard Assistant & Home** - Stubbed AI assistant panel + metro Home dashboard
 
 ## Phase Details
@@ -153,7 +153,7 @@ Plans:
 **Wave 1**
 - [x] 05-01-PLAN.md — Notes CRUD vertical slice: shared module store + two-pane list/editor + persistence + per-tab selected-note memory + registry swap (NOTE-01)
 **Wave 2** *(blocked on Wave 1 — shared Notes/index.tsx)*
-- [ ] 05-02-PLAN.md — AI Summarize vertical slice: host.ai() call + inline ephemeral result + honest-degrade error, closing the full framework loop (NOTE-02)
+- [x] 05-02-PLAN.md — AI Summarize vertical slice: host.ai() call + inline ephemeral result + honest-degrade error, closing the full framework loop (NOTE-02)
 
 **UI hint**: yes
 
@@ -185,7 +185,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 2. Workspace Core | 6/6 | Complete   | 2026-07-08 |
 | 3. Persistence & Layouts | 5/5 | Complete    | 2026-07-10 |
 | 4. Applet Framework | 5/5 | Complete    | 2026-07-10 |
-| 5. Notes Applet | 1/2 | In Progress|  |
+| 5. Notes Applet | 2/2 | Complete   | 2026-07-13 |
 | 6. Dashboard Assistant & Home | 0/TBD | Not started | - |
 | 7. Assistant Harness Core | 6/6 | Complete   | 2026-07-08 |
 
