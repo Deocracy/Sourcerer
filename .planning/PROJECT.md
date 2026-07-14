@@ -89,4 +89,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-10 after Phase 4 (applet-framework) completion*
+*Last updated: 2026-07-14 after Phase 6 (dashboard-assistant-home) completion — assistant panel (multi-session, proposals, live resize) + metro Home dashboard shipped; 8/8 plans incl. 2 UAT gap-closure plans; rail polish deferred by user*
