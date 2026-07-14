@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { nanoid } from "nanoid";
 import { host, type AssistantEvent } from "../host/ai";
 import { sessionSeeds, newRealSession, type SessionEntry } from "./sessionSeeds";
+import { parseProposal, type Proposal } from "./proposalParse";
+import { shellStore } from "../store/shellStore";
 import styles from "./AssistantPanel.module.css";
 
 type MessageRole = "user" | "assistant";
@@ -13,6 +15,13 @@ interface ChatMessage {
   text: string;
   status: MessageStatus;
   toolNotice?: string;
+  // ASST-02 (D-02): attached to the final assistant message of a turn (or a
+  // seed transcript's last assistant turn) when its text carries a proposal
+  // marker. proposalResolved tracks the approve/reject state; diffOpen shows
+  // the raw marker+blockquote text.
+  proposal?: Proposal | null;
+  proposalResolved?: "approved" | "rejected" | null;
+  diffOpen?: boolean;
 }
 
 const RESEARCH_MODE = "research";
@@ -86,6 +95,10 @@ export function AssistantPanel() {
   const [closedIds, setClosedIds] = useState<Set<string>>(() => new Set());
   const [activeSessionId, setActiveSessionId] = useState<string>(() => realSessions[0].id);
   const [historyOpen, setHistoryOpen] = useState(false);
+  // ASST-02: id of the message whose proposal currently responds to y/d/n.
+  // Auto-focused whenever a new proposal is attached (session load or a
+  // just-completed turn); a click on a proposal block re-focuses it.
+  const [focusedProposalId, setFocusedProposalId] = useState<string | null>(null);
 
   const allSessions = [...realSessions, ...sessionSeeds];
   const visibleSessions = allSessions.filter((s) => !closedIds.has(s.id));
@@ -120,7 +133,23 @@ export function AssistantPanel() {
       text: turn.text,
       status: "done",
     }));
+
+    // ASST-02: attach a parsed proposal to the transcript's final assistant
+    // turn if it carries one (this is what surfaces the seed-careggi demo's
+    // guaranteed-parseable proposal) and auto-focus it.
+    let seededProposalId: string | null = null;
+    for (let i = seeded.length - 1; i >= 0; i--) {
+      if (seeded[i].role === "assistant") {
+        const proposal = parseProposal(seeded[i].text);
+        if (proposal) {
+          seeded[i] = { ...seeded[i], proposal, proposalResolved: null };
+          seededProposalId = seeded[i].id;
+        }
+        break;
+      }
+    }
     setMessages(seeded);
+    setFocusedProposalId(seededProposalId);
 
     if (active.kind !== "real") return;
 
@@ -159,6 +188,65 @@ export function AssistantPanel() {
       setActiveSessionId(fresh.id);
     }
   }
+
+  // ASST-02 proposal actions — approve publishes lastResolvedProposal to
+  // shellStore and reveals ＋MAKE CARD; reject is reversible (toggles, no
+  // confirm, T-06-03 non-destructive); diff toggles the raw marker text.
+  function approveProposal(id: string) {
+    const msg = messages.find((m) => m.id === id);
+    if (!msg?.proposal) return;
+    shellStore.getState().setLastResolvedProposal(msg.proposal.body);
+    setMessages((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, proposalResolved: "approved" } : m)),
+    );
+  }
+
+  function rejectProposal(id: string) {
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === id
+          ? { ...m, proposalResolved: m.proposalResolved === "rejected" ? null : "rejected" }
+          : m,
+      ),
+    );
+  }
+
+  function toggleProposalDiff(id: string) {
+    setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, diffOpen: !m.diffOpen } : m)));
+  }
+
+  // D-06 producer half: writes pendingCardMint, which Home (Plan 06-06)
+  // consumes to mint a card from the approved proposal.
+  function makeCardFromProposal(id: string) {
+    const msg = messages.find((m) => m.id === id);
+    if (!msg?.proposal) return;
+    const title = msg.proposal.target ?? msg.proposal.body.split("\n")[0]!.slice(0, 60);
+    shellStore.getState().requestCardMint({ title, foot: "from assistant" });
+  }
+
+  // Keyboard y/d/n act ONLY on the currently-focused proposal. Ignored while
+  // typing in an input/textarea (composer) so the shortcuts never hijack
+  // normal text entry.
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (!focusedProposalId) return;
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === "TEXTAREA" || tag === "INPUT") return;
+      if (e.key === "y") {
+        e.preventDefault();
+        approveProposal(focusedProposalId);
+      } else if (e.key === "n") {
+        e.preventDefault();
+        rejectProposal(focusedProposalId);
+      } else if (e.key === "d") {
+        e.preventDefault();
+        toggleProposalDiff(focusedProposalId);
+      }
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusedProposalId, messages]);
 
   async function handleSend() {
     const text = composerText.trim();
@@ -199,14 +287,23 @@ export function AssistantPanel() {
             toolNotice: undefined,
           });
           break;
-        case "done":
+        case "done": {
+          // ASST-02: parse the FINAL accumulated text once (not per delta —
+          // T-06-03-02) and attach the result only to the just-completed
+          // assistant message, guarded against the error status.
+          let sawProposalId: string | null = null;
           setMessages((prev) =>
-            prev.map((m) =>
-              m.id === assistantId && m.status !== "error" ? { ...m, status: "done" } : m,
-            ),
+            prev.map((m) => {
+              if (m.id !== assistantId || m.status === "error") return m;
+              const proposal = parseProposal(m.text);
+              if (proposal) sawProposalId = m.id;
+              return { ...m, status: "done", proposal, proposalResolved: proposal ? null : m.proposalResolved };
+            }),
           );
+          if (sawProposalId) setFocusedProposalId(sawProposalId);
           setSending(false);
           break;
+        }
         case "ready":
         case "thinking_delta":
           // Suppressed in the panel (Phase 7 discretion default, unchanged).
@@ -342,6 +439,53 @@ export function AssistantPanel() {
               {m.text}
             </div>
             {m.toolNotice && <div className={styles.toolNotice}>{m.toolNotice}</div>}
+            {m.proposal && (
+              <div
+                className={styles.proposalBlock}
+                tabIndex={0}
+                onFocus={() => setFocusedProposalId(m.id)}
+                onClick={() => setFocusedProposalId(m.id)}
+                data-focused={focusedProposalId === m.id}
+              >
+                <blockquote className={styles.proposalQuote}>{m.proposal.body}</blockquote>
+                {m.diffOpen && <pre className={styles.proposalRaw}>{m.proposal.raw}</pre>}
+                <div className={styles.proposalActions}>
+                  <button
+                    type="button"
+                    className={styles.actionApprove}
+                    onClick={() => approveProposal(m.id)}
+                  >
+                    [y] approve
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.actionDiff}
+                    onClick={() => toggleProposalDiff(m.id)}
+                  >
+                    [d] diff
+                  </button>
+                  <button
+                    type="button"
+                    className={
+                      m.proposalResolved === "rejected" ? styles.actionRejectActive : styles.actionReject
+                    }
+                    onClick={() => rejectProposal(m.id)}
+                  >
+                    [n] reject
+                  </button>
+                </div>
+                {m.proposalResolved === "approved" && (
+                  <button
+                    type="button"
+                    className={styles.makeCard}
+                    aria-label="Make card from this response"
+                    onClick={() => makeCardFromProposal(m.id)}
+                  >
+                    ＋ MAKE CARD
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>

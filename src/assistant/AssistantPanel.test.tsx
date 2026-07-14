@@ -351,3 +351,82 @@ describe("AssistantPanel (D-01 multi-session list + header chrome — 06-02)", (
     });
   });
 });
+
+describe("AssistantPanel (ASST-02 proposals + D-06 mint producer — 06-03)", () => {
+  it("renders the seed-careggi transcript's proposal as a serif-italic quote block", async () => {
+    render(<AssistantPanel />);
+
+    fireEvent.click(screen.getByTitle("Poliziano · Careggi"));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('"Attended irregularly 1477–1494 — free from teaching."'),
+      ).toBeTruthy();
+    });
+    expect(screen.getByText("[y] approve")).toBeTruthy();
+    expect(screen.getByText("[d] diff")).toBeTruthy();
+    expect(screen.getByText("[n] reject")).toBeTruthy();
+  });
+
+  it("pressing y on the focused proposal approves it, publishes lastResolvedProposal, and reveals ＋MAKE CARD which sets pendingCardMint", async () => {
+    const { shellStore } = await import("../store/shellStore");
+
+    render(<AssistantPanel />);
+
+    fireEvent.click(screen.getByTitle("Poliziano · Careggi"));
+    await waitFor(() => {
+      expect(screen.getByText("[y] approve")).toBeTruthy();
+    });
+
+    fireEvent.keyDown(document, { key: "y" });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Make card from this response")).toBeTruthy();
+    });
+    expect(shellStore.getState().lastResolvedProposal).toBe(
+      '"Attended irregularly 1477–1494 — free from teaching."',
+    );
+
+    fireEvent.click(screen.getByLabelText("Make card from this response"));
+    expect(shellStore.getState().pendingCardMint).toEqual({
+      title: "§ Poliziano · role at Careggi",
+      foot: "from assistant",
+    });
+  });
+
+  it("pressing n on the focused proposal marks it rejected without a confirm dialog, and is reversible", async () => {
+    render(<AssistantPanel />);
+
+    fireEvent.click(screen.getByTitle("Poliziano · Careggi"));
+    await waitFor(() => {
+      expect(screen.getByText("[n] reject")).toBeTruthy();
+    });
+
+    fireEvent.keyDown(document, { key: "n" });
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.queryByLabelText("Make card from this response")).toBeNull();
+
+    // Reversible: pressing n again reopens (un-rejects).
+    fireEvent.keyDown(document, { key: "n" });
+    fireEvent.keyDown(document, { key: "y" });
+    await waitFor(() => {
+      expect(screen.getByLabelText("Make card from this response")).toBeTruthy();
+    });
+  });
+
+  it("pressing d toggles the inline diff/raw view of the proposal", async () => {
+    const { container } = render(<AssistantPanel />);
+
+    fireEvent.click(screen.getByTitle("Poliziano · Careggi"));
+    await waitFor(() => {
+      expect(screen.getByText("[d] diff")).toBeTruthy();
+    });
+
+    expect(container.querySelector("pre")).toBeNull();
+    fireEvent.keyDown(document, { key: "d" });
+    await waitFor(() => {
+      expect(container.querySelector("pre")?.textContent).toMatch(/Proposal —/);
+    });
+  });
+});
