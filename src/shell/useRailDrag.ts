@@ -51,21 +51,50 @@ export function useRailDrag() {
     const handleMove = (ev: PointerEvent) => {
       const raw = Math.max(0, Math.min(520, ev.clientX - navLeft));
       setLiveSnap(snapWidthToMode(raw));
+      // GAP-2 (06-HUMAN-UAT.md): the prototype's startRailResize calls
+      // relayout() on EVERY pointermove so the center dock reflows in step
+      // with the rail width; without it the dock visibly lags the rail
+      // during the drag (the reported jank/tearing). There's no direct
+      // relayout() handle here — dispatching a window resize event is
+      // dockview-core's own documented resize hook (mirrors useAssistantResize's
+      // identical fix for GAP-1/T-06g1-02). Bounded to the drag lifetime by
+      // teardown() below, so no runaway resize storm after the drag ends
+      // (T-06g2-01).
+      window.dispatchEvent(new Event("resize"));
+    };
+
+    // WR-06 parity: shared teardown for BOTH the normal release and a
+    // cancelled drag (window blur, OS gesture, touch cancel, element
+    // removal). Previously an interrupted drag left the move/up listeners
+    // attached (stacking a second set on the next pointerdown) and pinned
+    // the live snap cue via a never-cleared liveSnap (T-06g2-02).
+    const teardown = () => {
+      try {
+        target.releasePointerCapture(pointerId);
+      } catch {
+        // Capture already lost (that's often WHY the drag cancelled).
+      }
+      target.removeEventListener("pointermove", handleMove);
+      target.removeEventListener("pointerup", handleUp);
+      target.removeEventListener("pointercancel", handleCancel);
+      setLiveSnap(null);
     };
 
     const handleUp = (ev: PointerEvent) => {
-      target.releasePointerCapture(pointerId);
-      target.removeEventListener("pointermove", handleMove);
-      target.removeEventListener("pointerup", handleUp);
-      setLiveSnap(null);
+      teardown();
       const raw = Math.max(0, Math.min(520, ev.clientX - navLeft));
       const snap = snapWidthToMode(raw);
       shellStore.getState().setRailMode(snap.mode);
       if (snap.mode === "expanded") shellStore.getState().setRailWidth(snap.width);
     };
 
+    // A cancelled drag tears down WITHOUT applying a snap — the rail stays
+    // at its pre-drag mode/width.
+    const handleCancel = () => teardown();
+
     target.addEventListener("pointermove", handleMove);
     target.addEventListener("pointerup", handleUp);
+    target.addEventListener("pointercancel", handleCancel);
   }, []);
 
   const onResizeDoubleClick = useCallback(() => {
