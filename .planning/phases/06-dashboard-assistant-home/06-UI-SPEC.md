@@ -36,6 +36,17 @@ shadcn for this phase.
 
 ---
 
+## Focal Points
+
+- **Assistant panel focal point:** the active message thread (`asst-body` text + the current
+  `proposal-quote` block when a proposal is pending). Session chips, resize grip, and the
+  history/new-session icons are secondary chrome around this focal region.
+- **Home dashboard focal point:** the **＋ MAKE CARD** action affordance (primary CTA, accent
+  color, D-06). Section grids (PINNED/FRESH/LIVING/ARCHIVE) are the supporting content field
+  around this focal point.
+
+---
+
 ## Spacing Scale
 
 Declared values (must be multiples of 4) — inherited from `src/styles/tokens.css`, already shipped:
@@ -50,20 +61,34 @@ Declared values (must be multiples of 4) — inherited from `src/styles/tokens.c
 | 2xl | 48px | Not used this phase |
 | 3xl | 64px | Not used this phase |
 
-**Exceptions (fixed chrome metrics, pixel-locked by the handoff — not on the 4pt scale, same
-class as existing `--rail-*`/`--titlebar-*` tokens):**
+### Spacing exception basis (approval authority)
 
-| New token to add | Value | Usage |
-|---|---|---|
-| `--asst-header-h` | 44px | Assistant header row height (session chips + history/new-session icons) |
-| `--asst-width-default` | 280px | Assistant panel default width (`rightWidth` in the handoff state) — mirrors the existing `--rail-expanded-default: 220px` precedent |
-| `--asst-resize-handle-w` | 6px | Left-edge resize grip width — identical value to `--rail-resize-handle-w`, reuse the same pattern (D-03) |
-| `--asst-closed-w` | 6px | Collapsed/closed strip width — reuse `--rail-hidden-w` value for visual symmetry |
-| `--asst-thread-pad` | 18px | Message thread padding (both axes) — handoff-literal, does not round to 16px |
-| `--asst-session-chip` | 26px | Session chip square size (roman-numeral tile) |
-| `--home-card-min-h` | 82px | Home card minimum height |
-| `--home-card-w` | 176px | Home card 1-span width (2-span = `176*2 + 4` gap = 356px) |
-| `--home-section-pad-y` | 20px | Home content top/bottom padding (`padding: 20px 24px` — the 24px horizontal already matches `--space-lg`; the 20px vertical is handoff-literal, do not round to 24) |
+CLAUDE.md records a standing project-level USER DECISION: **"Pixel-perfect fidelity to the new
+handoff's tokens/metrics"** with `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/`
+named as the design source of truth — this is the approval authority for every non-4pt value
+below. This is not a novel exception class: the shipped shell already carries handoff-literal,
+non-4pt chrome metrics through Phases 1–4 (`--titlebar-h: 40px`, dock/tab bars: `34px`) with
+**no grid-alignment issues reported or observed** across four shipped phases (see
+`.planning/phases/01-*` through `04-applet-framework`). The tokens below are the same class of
+value — fixed chrome metrics pixel-locked by the handoff's own `dc.html`/`home-cards.js` markup,
+not invented spacing — and are declared as `--asst-*`/`--home-*` exception tokens exactly the
+way `--rail-*`/`--titlebar-*` already are in `tokens.css`, following that established precedent
+rather than introducing a new one.
+
+| New token to add | Value | Usage | Exception basis |
+|---|---|---|---|
+| `--asst-header-h` | 44px | Assistant header row height (session chips + history/new-session icons) | handoff-literal (dc.html), same exception class as `--titlebar-h: 40px` |
+| `--asst-width-default` | 280px | Assistant panel default width (`rightWidth` in the handoff state) — mirrors the existing `--rail-expanded-default: 220px` precedent | handoff-literal, mirrors shipped `--rail-expanded-default` |
+| `--asst-resize-handle-w` | 6px | Left-edge resize grip width — identical value to `--rail-resize-handle-w`, reuse the same pattern (D-03) | identical to shipped `--rail-resize-handle-w` |
+| `--asst-closed-w` | 6px | Collapsed/closed strip width — reuse `--rail-hidden-w` value for visual symmetry | identical to shipped `--rail-hidden-w` |
+| `--asst-thread-pad` | 18px | Message thread padding (both axes) — handoff-literal, does not round to 16px | handoff-literal (dc.html), pixel-locked |
+| `--asst-session-chip` | 26px | Session chip square size (roman-numeral tile) | handoff-literal (dc.html), pixel-locked |
+| `--home-card-min-h` | 82px | Home card minimum height | handoff-literal (home-cards.js), pixel-locked |
+| `--home-card-w` | 176px | Home card 1-span width (2-span = `176*2 + 4` gap = 356px) | handoff-literal (home-cards.js), pixel-locked |
+| `--home-section-pad-y` | 20px | Home content top/bottom padding (`padding: 20px 24px` — the 24px horizontal already matches `--space-lg`; the 20px vertical is handoff-literal, do not round to 24) | handoff-literal (home-cards.js), pixel-locked |
+
+Do NOT round any of these values to the nearest 4px multiple — that would violate the pixel-perfect
+fidelity constraint and diverge from the locked handoff source.
 
 Snap thresholds for assistant resize (close-at / expand-to-fullscreen-at px) are **not** locked
 here — 07-CONTEXT.md/06-CONTEXT.md leave exact px to planner's discretion, following the D-03
@@ -82,24 +107,33 @@ Base roles (already shipped in `tokens.css`, reused as-is):
 | Heading | 26px (`--fs-heading`) | 400 (`--fw-regular`) | 1.1 (`--lh-heading`) |
 | Display | 12px (`--fs-display`) | 400 | 1 |
 
-**Phase 6 additions — this phase's content system is a dense information-dashboard aesthetic
-(same family already established in the Phase 4 Wiki/Library demo stubs). Declare these as
-named exceptions to the 4-size base scale, scoped strictly to assistant/Home surfaces:**
+### Typography exception basis (approval authority)
 
-| Named role | Size | Family | Weight | Line height | Usage |
-|---|---|---|---|---|---|
-| `asst-body` | 13px | Sans | 400 | 1.55 | Thread message text, composer input |
-| `asst-label-mono` | 11px | Mono | 500 | 1, letter-spacing 0.14–0.18em, uppercase | Model/effort picker text, `[y] approve` / `[d] diff` / `[n] reject` action row, "LET GO TO SNAP" resize cue, section headers ("◆ PINNED", "FRESH", "LIVING", "ARCHIVE") |
-| `proposal-quote` | 14px | Serif italic | 400 | 1.5 | The accepted/pending proposal quote block (serif-italic per ASST-02) |
-| `card-title` | 15px | Serif | 400 | 1.15 | Home card title text |
-| `living-quote` | 19px | Serif italic | 400 | 1.2 | LIVING section question card |
-| `card-micro` | 8–10px | Mono | 400–500 | 1, letter-spacing 0.14em | Card `kind` tag, foot/metadata row, timestamps — dense metadata only, never primary UI chrome |
+The same standing project-level USER DECISION cited above ("Pixel-perfect fidelity to the new
+handoff's tokens/metrics," CLAUDE.md) is the approval authority for extending the base 4-size
+scale on this phase's surfaces. Sourcerer's dashboard/card system is explicitly a data-dense
+information-display surface (already established in Phase 4's Wiki/Library demo stubs), not a
+marketing page, and the handoff's own type system for these two surfaces (`dc.html` for the
+assistant, `home-cards.js` for Home) specifies more than 4 sizes. Every size below is traceable
+to a specific line/selector in those two handoff-literal source files — none are invented by this
+spec. Declare these as named exceptions, scoped strictly to assistant/Home surfaces only; every
+other surface in the shell continues to use only the 4 base roles above.
 
-Rationale for the wider size set: this is a data-dense card/dashboard system (established
-precedent in Phase 4's Wiki/Library rich demos), not a marketing surface — the checker's
-"3–4 sizes" default is extended here deliberately per the handoff's own type system, not
-arbitrary drift. Keep every new size traceable to `home-cards.js`/`dc.html` — do not invent
-additional sizes beyond this table.
+| Named role | Size | Family | Weight | Line height | Usage | Source |
+|---|---|---|---|---|---|---|
+| `asst-body` | 13px | Sans | 400 | 1.55 | Thread message text, composer input | reuses base `--fs-body` (13px), line-height variant only |
+| `asst-label-mono` | 11px | Mono | 500 | 1, letter-spacing 0.14–0.18em, uppercase | Model/effort picker text, `[y] approve` / `[d] diff` / `[n] reject` action row, "LET GO TO SNAP" resize cue, section headers ("◆ PINNED", "FRESH", "LIVING", "ARCHIVE") | reuses base `--fs-label` (11px), tracking/font-family variant only |
+| `proposal-quote` | 14px | Serif italic | 400 | 1.5 | The accepted/pending proposal quote block (serif-italic per ASST-02) | dc.html proposal block, handoff-literal |
+| `card-title` | 15px | Serif | 400 | 1.15 | Home card title text | home-cards.js `.card-title`, handoff-literal |
+| `living-quote` | 19px | Serif italic | 400 | 1.2 | LIVING section question card | home-cards.js LIVING block, handoff-literal |
+| `card-micro` | 8–10px | Mono | 400–500 | 1, letter-spacing 0.14em | Card `kind` tag, foot/metadata row, timestamps — dense metadata only, never primary UI chrome | home-cards.js `.card-micro`/kind tag, handoff-literal |
+
+Of the six named roles above, two (`asst-body`, `asst-label-mono`) reuse an existing base size —
+they are not new pixel values, only line-height/tracking variants of the base scale. The
+remaining four (`proposal-quote` 14px, `card-title` 15px, `living-quote` 19px, `card-micro`
+8–10px) are genuinely new sizes, each handoff-literal and traceable to `home-cards.js`/`dc.html`
+as noted in the Source column. Do not invent additional sizes beyond this table; any new UI
+element on these two surfaces must reuse one of the sizes already declared here.
 
 ---
 
@@ -141,6 +175,20 @@ stays reserved for its existing Phase 1/2 role (window close button) and must no
 | Error state (assistant) | "assistant unavailable: {message}" — reuse the existing Phase 7 honest-degrade string verbatim (`AssistantPanel.tsx` line 121), do not introduce a second error copy pattern |
 | Error state (Home persistence write failure) | "Couldn't save your changes — try again." (host.storage write failure while dragging/persisting card layout, D-05) |
 | Destructive confirmation | **None in this phase.** Session-chip close (×) is non-destructive (history persists per Phase 7 D-06) and needs no confirm dialog; proposal reject (`[n]`) is reversible and needs no confirm. If a future phase adds a true delete (e.g. permanently discarding a session's JSONL), that requires its own confirmation copy — out of scope here. |
+
+### Accessibility — icon-only actions
+
+All icon-only actions (no visible text label) MUST carry an explicit `aria-label` attribute.
+Exact labels for this phase:
+
+| Icon | Location | `aria-label` |
+|------|----------|--------------|
+| Clock (history) | Assistant header | `"View session history"` |
+| Plus (new session) | Assistant header | `"Start new session"` |
+| Send arrow | Composer | `"Send message"` |
+| Magnifier (search) | Assistant header / Home search | `"Search"` |
+| ＋ MAKE CARD (if rendered icon-only at narrow width) | Assistant footer/proposal row | `"Make card from this response"` |
+| Session chip close (×) | Session chip | `"Close session {sessionLabel}"` |
 
 ---
 
