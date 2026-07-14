@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-14T20:18:02.005Z"
+last_updated: "2026-07-14T20:24:26.909Z"
 last_activity: 2026-07-14
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 33
-  completed_plans: 31
+  completed_plans: 32
   percent: 86
 ---
 
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-07-06)
 ## Current Position
 
 Phase: 06 (dashboard-assistant-home) — EXECUTING
-Plan: 5 of 6
+Plan: 6 of 6
 Status: Ready to execute
 Last activity: 2026-07-14
 
@@ -33,7 +33,7 @@ Phase 07 (assistant-harness-core): COMPLETE — all 6 plans done (07-01..07-04 a
 
 Note: `state.advance-plan` tracks a single project-wide plan counter and mis-attributes advances to whichever phase this "Current Position" block names when two phases execute in parallel (landmine, repeats each time — see prior note this replaced). After 07-02's completion this was manually corrected here (via `state.update-progress`, not `state.advance-plan`): Phase 02's plan number was NOT advanced by 07-02's completion. The aggregate `completed_plans` count in frontmatter is derived from `state.update-progress`'s disk-scan (recompute it if it drifts — Phase 01 + Phase 02 + Phase 07's actual SUMMARY.md counts on disk are the source of truth, not this note's numbers, since both phases execute in parallel and this note goes stale quickly). At last recompute during 07-02's completion: Phase 01 (3) + Phase 02 (4, including 02-04) + Phase 07 (07-01, 07-02, 07-03, 07-04 = 4) = 11.
 
-Progress: [█████████░] 94%
+Progress: [██████████] 97%
 
 ## Performance Metrics
 
@@ -82,6 +82,7 @@ Progress: [█████████░] 94%
 | Phase 06 P02 | 40min | 2 tasks | 5 files |
 | Phase 06 P03 | 35min | 2 tasks tasks | 5 files files |
 | Phase 06 P05 | 25min | 2 tasks | 8 files |
+| Phase 06 P04 | 20min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -148,6 +149,8 @@ Recent decisions affecting current work:
 - [Phase 06-03]: focusedProposalId auto-sets to the newly-surfaced proposal on attachment, so y/d/n work immediately without requiring an explicit click first
 - [Phase 06]: 06-05: Home section state is local useState seeded from DEFAULT_SECTIONS this plan (no persistence/drag) - Plan 06-06 swaps in host.storage-backed slice
 - [Phase 06]: 06-05: DiviChip/LogoCluster both drive shellStore.homeOpen as the single Home-visibility signal, replacing the stale railApplet==Home comparison (RESEARCH Pitfall 4)
+- [Phase ?]: 06-04: reopen-from-closed restores persisted asstWidth unless it's below a sane floor (<44), rather than always resetting to 280
+- [Phase ?]: 06-04: full-snap width computed as hostWidth-160 at pointerup time, not a dedicated full-width constant
 
 ### Roadmap Evolution
 
@@ -176,6 +179,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-14T20:14:15.515Z
+Last session: 2026-07-14T20:24:02.115Z
 Stopped at: Completed 06-01-PLAN.md
 Resume file: None
