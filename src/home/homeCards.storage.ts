@@ -1,5 +1,5 @@
 import { LazyStore } from "@tauri-apps/plugin-store";
-import { DEFAULT_SECTIONS, SECTION_ORDER } from "./cardDefs";
+import { DEFAULT_SECTIONS, SECTION_ORDER, cardDefs } from "./cardDefs";
 import type { SectionMap } from "./homeCardsReducer";
 
 /*
@@ -52,7 +52,16 @@ export async function loadSections(): Promise<SectionMap> {
     return DEFAULT_SECTIONS;
   }
   if (!isValidSectionMap(raw)) return DEFAULT_SECTIONS;
-  return raw;
+  // WR-01: minted-card defs live only in the in-memory cardDefs registry
+  // (card CONTENT is demo-scoped this phase, D-05), so persisted minted ids
+  // outlive their defs across a restart. Filter unknown ids at load time —
+  // otherwise ghost `minted-…` ids accumulate unboundedly in the persisted
+  // map and in every findSection/drag iteration, while rendering nothing.
+  const pruned = {} as SectionMap;
+  for (const key of SECTION_ORDER) {
+    pruned[key] = raw[key].filter((id) => cardDefs[id] !== undefined);
+  }
+  return pruned;
 }
 
 async function flush(): Promise<void> {

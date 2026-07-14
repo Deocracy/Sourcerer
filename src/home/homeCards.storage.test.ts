@@ -69,6 +69,21 @@ describe("loadSections (CR-02: corrupt persisted values fall back to DEFAULT_SEC
     expect(await loadSections()).toEqual(DEFAULT_SECTIONS);
   });
 
+  it("prunes ids with no cardDefs entry (WR-01: dead minted ids never accumulate)", async () => {
+    storedValue = {
+      pins: ["corpus", "minted-ghost-from-last-session"],
+      fresh: ["minted-another-ghost", "contradiction"],
+      living: [],
+      archive: ["a-mach"],
+    };
+    expect(await loadSections()).toEqual({
+      pins: ["corpus"],
+      fresh: ["contradiction"],
+      living: [],
+      archive: ["a-mach"],
+    });
+  });
+
   it("returns a structurally valid persisted map as-is", async () => {
     const valid = {
       pins: ["corpus"],
