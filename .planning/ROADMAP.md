@@ -179,7 +179,7 @@ Plans:
 - [x] 06-02-PLAN.md — ASST-01 multi-session vertical slice: session list (real + seeded transcripts), header chrome, ⌘↵ streamed send + all --asst-* tokens (ASST-01)
 **Wave 2** *(parallel — disjoint files)*
 - [x] 06-03-PLAN.md — ASST-02 proposals: client-side proposalParse + serif-italic quote block + y/d/n + ＋MAKE CARD producer (ASST-02)
-- [ ] 06-05-PLAN.md — HOME-01 metro overlay: cardDefs/HomeCard port + four sections + DiviChip/LogoCluster summon wiring (HOME-01)
+- [x] 06-05-PLAN.md — HOME-01 metro overlay: cardDefs/HomeCard port + four sections + DiviChip/LogoCluster summon wiring (HOME-01)
 **Wave 3** *(parallel — disjoint files)*
 - [ ] 06-04-PLAN.md — ASST-03 resize: assistantSnap + bespoke pointer hook + snap-to-close/fullscreen "LET GO TO SNAP" + persisted width (ASST-03)
 - [ ] 06-06-PLAN.md — HOME-02 drag/persist: dnd-kit install + SortableCard + pure reducer + debounced host.storage + D-06 ＋MAKE CARD consumer (HOME-02)
@@ -198,7 +198,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Persistence & Layouts | 5/5 | Complete    | 2026-07-10 |
 | 4. Applet Framework | 5/5 | Complete    | 2026-07-10 |
 | 5. Notes Applet | 2/2 | Complete   | 2026-07-13 |
-| 6. Dashboard Assistant & Home | 3/6 | In Progress|  |
+| 6. Dashboard Assistant & Home | 4/6 | In Progress|  |
 | 7. Assistant Harness Core | 6/6 | Complete   | 2026-07-08 |
 
 ### Phase 7: Assistant Harness Core
