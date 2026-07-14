@@ -159,7 +159,7 @@ Plans:
 
 ### Phase 6: Dashboard Assistant & Home
 
-**Goal**: The shell's two remaining first-class surfaces — the persistent right-hand Dashboard Assistant (against the stubbed AI seam) and the metro Home dashboard — complete the pixel-perfect experience.
+**Goal**: The shell's two remaining first-class surfaces — the persistent right-hand Dashboard Assistant (now against the REAL Phase 7 Pi-sidecar `host.ai()` seam, not a stub — see 06-CONTEXT.md reality correction) and the metro Home dashboard — complete the pixel-perfect experience.
 **Mode:** mvp
 **Depends on**: Phase 4
 **Requirements**: ASST-01, ASST-02, ASST-03, HOME-01, HOME-02
@@ -171,7 +171,19 @@ Plans:
   4. Empty workspace renders the metro card dashboard with PINNED / FRESH / LIVING / ARCHIVE sections.
   5. User can drag cards between sections with FLIP animation, and the assistant "＋MAKE CARD" action mints a card.
 
-**Plans**: TBD
+**Plans**: 6 plans
+
+Plans:
+**Wave 1** *(parallel — disjoint files)*
+- [ ] 06-01-PLAN.md — Shell-store foundation slice (asstWidth/assistantOpen persisted + homeOpen/lastResolvedProposal/pendingCardMint session-only) + WorkspaceRecordV1 schema (ASST-03/HOME-01)
+- [ ] 06-02-PLAN.md — ASST-01 multi-session vertical slice: session list (real + seeded transcripts), header chrome, ⌘↵ streamed send + all --asst-* tokens (ASST-01)
+**Wave 2** *(parallel — disjoint files)*
+- [ ] 06-03-PLAN.md — ASST-02 proposals: client-side proposalParse + serif-italic quote block + y/d/n + ＋MAKE CARD producer (ASST-02)
+- [ ] 06-05-PLAN.md — HOME-01 metro overlay: cardDefs/HomeCard port + four sections + DiviChip/LogoCluster summon wiring (HOME-01)
+**Wave 3** *(parallel — disjoint files)*
+- [ ] 06-04-PLAN.md — ASST-03 resize: assistantSnap + bespoke pointer hook + snap-to-close/fullscreen "LET GO TO SNAP" + persisted width (ASST-03)
+- [ ] 06-06-PLAN.md — HOME-02 drag/persist: dnd-kit install + SortableCard + pure reducer + debounced host.storage + D-06 ＋MAKE CARD consumer (HOME-02)
+
 **UI hint**: yes
 
 ## Progress
@@ -186,7 +198,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Persistence & Layouts | 5/5 | Complete    | 2026-07-10 |
 | 4. Applet Framework | 5/5 | Complete    | 2026-07-10 |
 | 5. Notes Applet | 2/2 | Complete   | 2026-07-13 |
-| 6. Dashboard Assistant & Home | 0/TBD | Not started | - |
+| 6. Dashboard Assistant & Home | 0/6 | Not started | - |
 | 7. Assistant Harness Core | 6/6 | Complete   | 2026-07-08 |
 
 ### Phase 7: Assistant Harness Core
