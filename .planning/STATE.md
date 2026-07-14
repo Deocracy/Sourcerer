@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-07-14T19:26:56.444Z"
-last_activity: 2026-07-14 -- Phase 6 planning complete
+last_updated: "2026-07-14T19:36:29.629Z"
+last_activity: 2026-07-14
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 33
-  completed_plans: 27
-  percent: 82
+  completed_plans: 28
+  percent: 85
 ---
 
 # Project State
@@ -20,20 +20,20 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-06)
 
 **Core value:** A pixel-perfect, fully interactive desktop shell where the applet framework demonstrably works end-to-end — Notes proves the loop, every other applet is a believable stub.
-**Current focus:** Phase 05 — notes-applet
+**Current focus:** Phase 06 — dashboard-assistant-home
 
 ## Current Position
 
-Phase: 05 (notes-applet) — EXECUTING
-Plan: 2 of 2
+Phase: 06 (dashboard-assistant-home) — EXECUTING
+Plan: 2 of 6
 Status: Ready to execute
-Last activity: 2026-07-14 -- Phase 6 planning complete
+Last activity: 2026-07-14
 
 Phase 07 (assistant-harness-core): COMPLETE — all 6 plans done (07-01..07-04 automated, 07-05 live UAT gate 4/4 truths pass, 07-06 D-09 gap closure). 07-VERIFICATION.md status: passed.
 
 Note: `state.advance-plan` tracks a single project-wide plan counter and mis-attributes advances to whichever phase this "Current Position" block names when two phases execute in parallel (landmine, repeats each time — see prior note this replaced). After 07-02's completion this was manually corrected here (via `state.update-progress`, not `state.advance-plan`): Phase 02's plan number was NOT advanced by 07-02's completion. The aggregate `completed_plans` count in frontmatter is derived from `state.update-progress`'s disk-scan (recompute it if it drifts — Phase 01 + Phase 02 + Phase 07's actual SUMMARY.md counts on disk are the source of truth, not this note's numbers, since both phases execute in parallel and this note goes stale quickly). At last recompute during 07-02's completion: Phase 01 (3) + Phase 02 (4, including 02-04) + Phase 07 (07-01, 07-02, 07-03, 07-04 = 4) = 11.
 
-Progress: [██████████] 100%
+Progress: [█████████░] 85%
 
 ## Performance Metrics
 
@@ -78,6 +78,7 @@ Progress: [██████████] 100%
 | Phase 04 P05 | 5min | 2 tasks | 7 files |
 | Phase 05-notes-applet P01 | 45min | 3 tasks | 7 files |
 | Phase 05 P02 | 15min | 2 tasks | 3 files |
+| Phase 06 P01 | 15min | 2 tasks tasks | 4 files files |
 
 ## Accumulated Context
 
@@ -136,6 +137,8 @@ Recent decisions affecting current work:
 - [Phase 05-01]: Delete button keeps a stable aria-label (Delete note) through the two-step confirm; only its visible text flips to Delete for real?
 - [Phase ?]: [Phase 05-02]: Ephemeral summarize reset (summary/summarizeError) lives inside selectNote() rather than a separate useEffect - piggybacks on the single existing per-tab-selection mutation point
 - [Phase ?]: [Phase 05-02]: Summarize button carries no aria-label override (unlike Delete) - its visible text never diverges from its accessible name
+- [Phase ?]: 06-01: asstWidth/assistantOpen added to WorkspaceRecordV1.rail (not a new top-level slice); no schemaVersion bump
+- [Phase ?]: 06-01: homeOpen/lastResolvedProposal/pendingCardMint are session-only (never persisted) - ephemeral D-06 hand-off + Home overlay visibility
 
 ### Roadmap Evolution
 
@@ -164,6 +167,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-14T18:45:29.117Z
-Stopped at: Phase 6 UI-SPEC approved
-Resume file: .planning/phases/06-dashboard-assistant-home/06-UI-SPEC.md
+Last session: 2026-07-14T19:36:29.618Z
+Stopped at: Completed 06-01-PLAN.md
+Resume file: None

@@ -51,11 +51,11 @@ Scope decided at init: pixel-perfect Tauri shell + applet framework + **Notes as
 
 - [ ] **ASST-01**: User sees the right-panel assistant (header, session list, message thread, composer) per spec and can send messages (⌘↵) receiving stubbed replies
 - [ ] **ASST-02**: Assistant proposals render as serif-italic quote blocks with y/d/n keyboard actions on the focused proposal
-- [ ] **ASST-03**: User can resize the assistant via its grip with snap-to-close and expand-to-fullscreen ("LET GO TO SNAP" cue)
+- [x] **ASST-03**: User can resize the assistant via its grip with snap-to-close and expand-to-fullscreen ("LET GO TO SNAP" cue)
 
 ### Home (HOME)
 
-- [ ] **HOME-01**: Empty workspace renders the metro card dashboard with PINNED/FRESH/LIVING/ARCHIVE sections
+- [x] **HOME-01**: Empty workspace renders the metro card dashboard with PINNED/FRESH/LIVING/ARCHIVE sections
 - [ ] **HOME-02**: User can drag cards between sections with FLIP animation; assistant "＋MAKE CARD" mints a card
 
 ## v2 / Future
@@ -103,6 +103,6 @@ Scope decided at init: pixel-perfect Tauri shell + applet framework + **Notes as
 | NOTE-02 | Phase 5 | Complete |
 | ASST-01 | Phase 6 | Pending |
 | ASST-02 | Phase 6 | Pending |
-| ASST-03 | Phase 6 | Pending |
-| HOME-01 | Phase 6 | Pending |
+| ASST-03 | Phase 6 | Complete |
+| HOME-01 | Phase 6 | Complete |
 | HOME-02 | Phase 6 | Pending |
