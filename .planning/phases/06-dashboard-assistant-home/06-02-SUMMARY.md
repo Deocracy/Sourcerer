@@ -108,6 +108,10 @@ None - no external service configuration required.
 - Plan 06-04 (assistant resize) can consume the 6 `--asst-*` tokens already in `tokens.css` without further token edits.
 - No blockers.
 
+## Self-Check: PASSED
+
+All created/modified files verified present on disk; all 4 task/plan commit hashes (fde0067, 34fc2a7, b3f6682, bbe011e) verified in git log.
+
 ---
 *Phase: 06-dashboard-assistant-home*
 *Completed: 2026-07-14*
