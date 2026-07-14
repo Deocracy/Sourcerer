@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-last_updated: "2026-07-14T20:41:20.824Z"
+last_updated: "2026-07-14T22:05:37.845Z"
 last_activity: 2026-07-14
 progress:
   total_phases: 7
-  completed_phases: 7
-  total_plans: 33
-  completed_plans: 33
-  percent: 100
+  completed_phases: 6
+  total_plans: 35
+  completed_plans: 34
+  percent: 86
 ---
 
 # Project State
@@ -33,7 +33,7 @@ Phase 07 (assistant-harness-core): COMPLETE — all 6 plans done (07-01..07-04 a
 
 Note: `state.advance-plan` tracks a single project-wide plan counter and mis-attributes advances to whichever phase this "Current Position" block names when two phases execute in parallel (landmine, repeats each time — see prior note this replaced). After 07-02's completion this was manually corrected here (via `state.update-progress`, not `state.advance-plan`): Phase 02's plan number was NOT advanced by 07-02's completion. The aggregate `completed_plans` count in frontmatter is derived from `state.update-progress`'s disk-scan (recompute it if it drifts — Phase 01 + Phase 02 + Phase 07's actual SUMMARY.md counts on disk are the source of truth, not this note's numbers, since both phases execute in parallel and this note goes stale quickly). At last recompute during 07-02's completion: Phase 01 (3) + Phase 02 (4, including 02-04) + Phase 07 (07-01, 07-02, 07-03, 07-04 = 4) = 11.
 
-Progress: [██████████] 100%
+Progress: [██████████] 97%
 
 ## Performance Metrics
 
@@ -84,6 +84,7 @@ Progress: [██████████] 100%
 | Phase 06 P05 | 25min | 2 tasks | 8 files |
 | Phase 06 P04 | 20min | 2 tasks | 5 files |
 | Phase 06 P06 | 50min | 3 tasks | 8 files |
+| Phase 06 P07 | 5min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -154,6 +155,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 06-04: full-snap width computed as hostWidth-160 at pointerup time, not a dedicated full-width constant
 - [Phase 06-06]: Minted cards register by mutating the shared cardDefs Record directly (mirrors Notes' 05-01 module-singleton precedent), avoiding a merged-lookup prop threaded through SortableCard/OverlayCard
 - [Phase 06-06]: dirtyRef guards Home.tsx's mount-time loadSections() resolution against clobbering a drag/mint that lands before the disk read settles (Rule 1 fix)
+- [Phase ?]: 06-07: assistantFull modeled as a session-only (non-persisted) zustand field; asstWidth still carries the real pixel width, restored via a closure-local prevWidth on exit from full (mirrors prototype rightPrev), avoiding a workspace.json schema bump
+- [Phase ?]: 06-07: liveWidth is a parallel piece of hook state to liveSnap (not derived), cleared together in the existing WR-06 teardown; a window resize dispatch on each pointermove substitutes for the prototype's direct relayout() call to keep dockview in step with the drag
 
 ### Roadmap Evolution
 
@@ -182,6 +185,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-14T20:36:29.135Z
-Stopped at: Completed 06-01-PLAN.md
+Last session: 2026-07-14T22:05:37.829Z
+Stopped at: Completed 06-07-PLAN.md (GAP-1 gap closure)
 Resume file: None

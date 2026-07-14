@@ -198,7 +198,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Persistence & Layouts | 5/5 | Complete    | 2026-07-10 |
 | 4. Applet Framework | 5/5 | Complete    | 2026-07-10 |
 | 5. Notes Applet | 2/2 | Complete   | 2026-07-13 |
-| 6. Dashboard Assistant & Home | 6/6 | Complete   | 2026-07-14 |
+| 6. Dashboard Assistant & Home | 7/8 | In Progress|  |
 | 7. Assistant Harness Core | 6/6 | Complete   | 2026-07-08 |
 
 ### Phase 7: Assistant Harness Core
