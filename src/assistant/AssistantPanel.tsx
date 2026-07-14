@@ -3,7 +3,8 @@ import { nanoid } from "nanoid";
 import { host, type AssistantEvent } from "../host/ai";
 import { sessionSeeds, newRealSession, type SessionEntry } from "./sessionSeeds";
 import { parseProposal, type Proposal } from "./proposalParse";
-import { shellStore } from "../store/shellStore";
+import { shellStore, useShellStore } from "../store/shellStore";
+import { useAssistantResize } from "./useAssistantResize";
 import styles from "./AssistantPanel.module.css";
 
 type MessageRole = "user" | "assistant";
@@ -87,6 +88,9 @@ function toRoman(n: number): string {
  * suppressed (Phase 7 discretion default, unchanged this phase).
  */
 export function AssistantPanel() {
+  const asstWidth = useShellStore((s) => s.asstWidth);
+  const assistantOpen = useShellStore((s) => s.assistantOpen);
+  const { hostRef, onResizePointerDown, liveSnap, reopen } = useAssistantResize();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [composerText, setComposerText] = useState("");
   const [sending, setSending] = useState(false);
@@ -333,8 +337,40 @@ export function AssistantPanel() {
 
   const composerDisabled = activeKind !== "real";
 
+  // ASST-03 (D-03): the panel self-sizes from shellStore's asstWidth/
+  // assistantOpen (persisted, Plan 06-01) rather than the shell layout
+  // computing/passing a width — no shell-layout-component edit needed.
+  // Closed renders only a thin --asst-closed-w strip with a reopen click
+  // affordance.
+  if (!assistantOpen) {
+    return (
+      <div
+        ref={hostRef}
+        className={styles.closedStrip}
+        role="button"
+        tabIndex={0}
+        aria-label="Reopen Dashboard Assistant"
+        onClick={reopen}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            reopen();
+          }
+        }}
+      >
+        <div className={styles.grip} onPointerDown={onResizePointerDown} />
+      </div>
+    );
+  }
+
   return (
-    <div className={styles.panel}>
+    <div ref={hostRef} className={styles.panel} style={{ width: asstWidth }}>
+      <div className={styles.grip} onPointerDown={onResizePointerDown} />
+      {liveSnap?.mode === "full" && (
+        <div className={styles.snapCue} aria-hidden="true">
+          LET GO TO SNAP
+        </div>
+      )}
       <div className={styles.header}>
         <div className={styles.sessionRow}>
           {visibleSessions.map((s, i) => (

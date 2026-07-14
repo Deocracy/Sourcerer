@@ -6,10 +6,10 @@
  */
 
 .panel {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
-  width: 320px;
   flex: 0 0 auto;
   background: var(--color-panel);
   border-left: var(--border-w) solid var(--color-line);
@@ -17,6 +17,61 @@
   font-family: var(--font-sans);
   font-size: var(--fs-body);
   color: var(--color-fg);
+}
+
+/*
+ * ASST-03 (D-03) resize grip — left edge of the panel, mirrors the rail's
+ * resize-handle CSS shape (cursor col-resize, 0 radius, --asst-* tokens).
+ * Absolutely positioned so it overlays the panel's left border without
+ * shifting content width.
+ */
+.grip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--asst-resize-handle-w);
+  cursor: col-resize;
+  border-radius: 0;
+  z-index: 2;
+  touch-action: none;
+}
+
+.grip:hover {
+  background: var(--color-line-2);
+}
+
+/* Collapsed panel — a thin --asst-closed-w strip with a reopen click
+ * affordance (D-03: "drag narrow past the close threshold snaps the panel
+ * closed"). The grip stays draggable even while closed, so a drag-out from
+ * the strip can reopen without a separate click first. */
+.closedStrip {
+  position: relative;
+  height: 100%;
+  width: var(--asst-closed-w);
+  flex: 0 0 auto;
+  background: var(--color-bg);
+  border-left: var(--border-w) solid var(--color-line);
+  cursor: pointer;
+}
+
+/* "LET GO TO SNAP" cue — shown while a live drag is in the fullscreen snap
+ * zone (asst-label-mono role per 06-UI-SPEC.md). */
+.snapCue {
+  position: absolute;
+  top: var(--space-sm);
+  left: calc(var(--asst-resize-handle-w) + var(--space-sm));
+  z-index: 3;
+  font-family: var(--font-mono);
+  font-size: var(--fs-label);
+  letter-spacing: var(--ls-label-wide);
+  text-transform: uppercase;
+  color: var(--color-accent);
+  background: var(--color-panel-2);
+  border: var(--border-w) solid var(--color-accent);
+  border-radius: var(--radius);
+  padding: var(--space-xs) var(--space-sm);
+  pointer-events: none;
 }
 
 .header {
