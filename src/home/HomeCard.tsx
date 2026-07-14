@@ -65,10 +65,19 @@ export interface CardBodyResult {
 // eslint-disable-next-line react-hooks/rules-of-hooks -- CardBody is a
 // hook-using render helper called from HomeCard's render body, mirroring the
 // reference's own CardBody({t}) shape (home-cards.js line 77).
-export function CardBody({ t }: { t: CardDef }): CardBodyResult {
+export function CardBody({ t }: { t: CardDef | undefined }): CardBodyResult {
   const [stackIndex, setStackIndex] = useState(0);
   const [actionState, setActionState] = useState<"open" | "resolved" | "dismissed">("open");
   const [checks, setChecks] = useState<Record<string, boolean>>({ villa: true, vasari: false });
+
+  // WR-05: callers (SortableCard/OverlayCard/HomeCard) must call CardBody
+  // BEFORE their own `if (!t) return null` guard so the useState hooks above
+  // run unconditionally (hook-ordering). That means an unknown id reaches
+  // this line with t === undefined — degrade to an empty body instead of
+  // throwing on `t.dim` and making the callers' null guards dead code.
+  if (!t) {
+    return { kids: [], barColor: null, bgOverride: null, onClickExtra: null };
+  }
 
   const inkMain = t.dim ? "#4A4B4F" : "#E6E4DE";
   const inkSub = t.dim ? "#4A4B4F" : t.bar ? "#D8C69C" : "#A5A29A";
