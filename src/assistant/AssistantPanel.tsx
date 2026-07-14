@@ -84,7 +84,7 @@ function toRoman(n: number): string {
 export function AssistantPanel() {
   const asstWidth = useShellStore((s) => s.asstWidth);
   const assistantOpen = useShellStore((s) => s.assistantOpen);
-  const { hostRef, onResizePointerDown, liveSnap, reopen } = useAssistantResize();
+  const { hostRef, onResizePointerDown, liveSnap, liveWidth, reopen } = useAssistantResize();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [composerText, setComposerText] = useState("");
   const [sending, setSending] = useState(false);
@@ -415,7 +415,15 @@ export function AssistantPanel() {
   }
 
   return (
-    <div ref={hostRef} className={styles.panel} style={{ width: asstWidth }}>
+    <div
+      ref={hostRef}
+      className={styles.panel}
+      // GAP-1: render the live drag width while a resize is in flight (every
+      // pointermove frame) so the panel follows the pointer fluidly; falls
+      // back to the persisted asstWidth once the drag ends (liveWidth is
+      // cleared to null in useAssistantResize's teardown).
+      style={{ width: liveWidth ?? asstWidth }}
+    >
       <div className={styles.grip} onPointerDown={onResizePointerDown} />
       {liveSnap?.mode === "full" && (
         <div className={styles.snapCue} aria-hidden="true">

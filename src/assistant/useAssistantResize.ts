@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import { shellStore } from "../store/shellStore";
-import { snapWidthToAsstMode, type AsstSnap } from "./assistantSnap";
+import { HIDDEN_W, snapWidthToAsstMode, type AsstSnap } from "./assistantSnap";
 
 const REOPEN_DEFAULT_WIDTH = 280; // matches --asst-width-default
 
@@ -19,6 +19,12 @@ const REOPEN_DEFAULT_WIDTH = 280; // matches --asst-width-default
 export function useAssistantResize() {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const [liveSnap, setLiveSnap] = useState<AsstSnap | null>(null);
+  // GAP-1 (06-HUMAN-UAT.md): the panel previously only re-rendered its width
+  // on pointerup, so the grip drag felt janky (the panel snapped to its
+  // final width on release instead of following the pointer). liveWidth is
+  // the clamped raw drag distance recomputed on every pointermove — mirrors
+  // the prototype's startRightResize move() setting rightLiveW every frame.
+  const [liveWidth, setLiveWidth] = useState<number | null>(null);
 
   const applySnapToShellStore = useCallback((snap: AsstSnap, hostWidth: number) => {
     if (snap.mode === "closed") {
@@ -56,7 +62,16 @@ export function useAssistantResize() {
 
       const handleMove = (ev: PointerEvent) => {
         const raw = hostRight - ev.clientX;
+        const clamped = Math.max(HIDDEN_W, Math.min(hostWidth - 160, raw));
+        setLiveWidth(clamped);
         setLiveSnap(snapWidthToAsstMode(raw, hostWidth));
+        // Prototype's move() calls this.relayout() every frame so the
+        // dockview workspace reflows in step with the drag. There's no
+        // direct relayout() handle here — dispatching a window resize event
+        // is dockview-core's own documented resize hook, and this listener
+        // is torn down with everything else in teardown() below (T-06g1-02:
+        // bounded to the drag lifetime, no runaway listener).
+        window.dispatchEvent(new Event("resize"));
       };
 
       // WR-06: shared teardown for BOTH the normal release and a cancelled
@@ -73,6 +88,7 @@ export function useAssistantResize() {
         target.removeEventListener("pointermove", handleMove);
         target.removeEventListener("pointerup", handleUp);
         target.removeEventListener("pointercancel", handleCancel);
+        setLiveWidth(null);
         setLiveSnap(null);
       };
 
@@ -101,5 +117,5 @@ export function useAssistantResize() {
     }
   }, []);
 
-  return { hostRef, onResizePointerDown, liveSnap, reopen };
+  return { hostRef, onResizePointerDown, liveSnap, liveWidth, reopen };
 }

@@ -19,7 +19,9 @@ describe("TitleBar (SHELL-01, Chrome Rework D-03)", () => {
   it("renders both rail-toggle buttons with their aria-labels", () => {
     render(<TitleBar />);
     expect(screen.getByLabelText("Cycle rail mode (left)")).toBeTruthy();
-    expect(screen.getByLabelText("Cycle rail mode (right)")).toBeTruthy();
+    // GAP-1: the right button now drives the assistant, not the left rail
+    // (06-07-PLAN.md Task 2) — aria-label renamed accordingly.
+    expect(screen.getByLabelText("Cycle assistant panel (right)")).toBeTruthy();
   });
 
   it("renders the three window controls with correct aria-labels", () => {
@@ -47,7 +49,7 @@ describe("TitleBar (SHELL-01, Chrome Rework D-03)", () => {
       "Maximize window",
       "Close window",
       "Cycle rail mode (left)",
-      "Cycle rail mode (right)",
+      "Cycle assistant panel (right)",
     ]) {
       const btn = screen.getByLabelText(label);
       expect(btn.hasAttribute("data-tauri-drag-region")).toBe(false);
