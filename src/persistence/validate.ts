@@ -33,7 +33,12 @@ export function isValidRail(value: unknown): value is WorkspaceRecordV1["rail"] 
     Array.isArray(v.railOrder) &&
     v.railOrder.every((k) => typeof k === "string") &&
     Array.isArray(v.leftRailPinned) &&
-    v.leftRailPinned.every((k) => typeof k === "string")
+    v.leftRailPinned.every((k) => typeof k === "string") &&
+    // Phase 6 (ASST-03): optional-tolerant — old persisted records predate
+    // asstWidth/assistantOpen; accept absence OR a correctly-typed value.
+    (v.asstWidth === undefined ||
+      (typeof v.asstWidth === "number" && Number.isFinite(v.asstWidth))) &&
+    (v.assistantOpen === undefined || typeof v.assistantOpen === "boolean")
   );
 }
 

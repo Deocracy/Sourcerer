@@ -31,6 +31,12 @@ export interface WorkspaceRecordV1 {
     railWidth: number;
     railOrder: string[];
     leftRailPinned: string[];
+    /** Phase 6 (ASST-03): Dashboard Assistant panel width, mirrors railWidth's
+     *  persisted-number pattern exactly. Defaults to 280 (--asst-width-default). */
+    asstWidth: number;
+    /** Phase 6 (HOME-01/ASST-03): whether the Dashboard Assistant panel is
+     *  open, mirrors railMode's persisted-boolean-adjacent pattern. */
+    assistantOpen: boolean;
   };
   savedLayouts: Record<
     string,
@@ -75,6 +81,8 @@ export const DEFAULT_WORKSPACE: WorkspaceRecordV1 = {
     railWidth: 220,
     railOrder: [...DEFAULT_RAIL_ORDER],
     leftRailPinned: [],
+    asstWidth: 280,
+    assistantOpen: true,
   },
   savedLayouts: {},
   instanceState: {},
