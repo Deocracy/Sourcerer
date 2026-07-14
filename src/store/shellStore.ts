@@ -29,6 +29,11 @@ export interface ShellState {
   railOrder: string[];
   leftRailPinned: string[];
 
+  // --- persisted (Phase 6, ASST-03): Dashboard Assistant panel, mirrors the
+  // railWidth/railMode persisted-field template exactly. ---
+  asstWidth: number;
+  assistantOpen: boolean;
+
   // --- session-only (never persisted) ---
   railOpen: boolean;
   activeCorpus: string;
@@ -41,6 +46,13 @@ export interface ShellState {
   catalogOpen: boolean;
   catalogAnchor: { x: number; y: number } | null;
 
+  // --- session-only (Phase 6, HOME-01/D-06): Home overlay visibility + the
+  // assistant -> Home card-mint hand-off seam. NOT persisted — kept out of
+  // getRailSubset exactly like railApplet/badges. ---
+  homeOpen: boolean;
+  lastResolvedProposal: string | null;
+  pendingCardMint: { title: string; foot: string } | null;
+
   // --- actions ---
   setRailMode(m: RailMode): void;
   cycleRailMode(): void; // expanded -> compact -> hidden -> expanded
@@ -52,6 +64,15 @@ export interface ShellState {
   setBadge(key: string, n: number): void;
   openAppletCatalog(anchor?: { x: number; y: number }): void;
   closeAppletCatalog(): void;
+
+  // --- Phase 6 actions ---
+  setAsstWidth(w: number): void;
+  setAssistantOpen(open: boolean): void;
+  setHomeOpen(open: boolean): void;
+  toggleHomeOpen(): void;
+  setLastResolvedProposal(text: string | null): void;
+  requestCardMint(card: { title: string; foot: string }): void;
+  clearPendingCardMint(): void;
 }
 
 function arrayMove<T>(arr: T[], from: number, to: number): T[] {
@@ -77,6 +98,8 @@ export const shellStore = createStore<ShellState>()((set, get) => ({
   railWidth: seedRail.railWidth,
   railOrder: [...seedRail.railOrder],
   leftRailPinned: [...seedRail.leftRailPinned],
+  asstWidth: seedRail.asstWidth ?? 280,
+  assistantOpen: seedRail.assistantOpen ?? true,
 
   railOpen: seedRail.railMode !== "hidden",
   activeCorpus: "Default",
@@ -85,6 +108,10 @@ export const shellStore = createStore<ShellState>()((set, get) => ({
   badges: {},
   catalogOpen: false,
   catalogAnchor: null,
+
+  homeOpen: false,
+  lastResolvedProposal: null,
+  pendingCardMint: null,
 
   setRailMode: (m) => {
     set({ railMode: m, railOpen: m !== "hidden" });
@@ -123,6 +150,24 @@ export const shellStore = createStore<ShellState>()((set, get) => ({
 
   openAppletCatalog: (anchor) => set({ catalogOpen: true, catalogAnchor: anchor ?? null }),
   closeAppletCatalog: () => set({ catalogOpen: false, catalogAnchor: null }),
+
+  // Phase 6 persisted actions — mutate + persist together (setRailWidth template).
+  setAsstWidth: (w) => {
+    set({ asstWidth: w });
+    scheduleWorkspaceSave();
+  },
+  setAssistantOpen: (open) => {
+    set({ assistantOpen: open });
+    scheduleWorkspaceSave();
+  },
+
+  // Phase 6 session-only actions — never call scheduleWorkspaceSave (mirrors
+  // setActivePaneId/setRailApplet/setBadge above).
+  setHomeOpen: (open) => set({ homeOpen: open }),
+  toggleHomeOpen: () => set({ homeOpen: !get().homeOpen }),
+  setLastResolvedProposal: (text) => set({ lastResolvedProposal: text }),
+  requestCardMint: (card) => set({ pendingCardMint: card }),
+  clearPendingCardMint: () => set({ pendingCardMint: null }),
 }));
 
 /** Live getter for the rail subset of the unified workspace record — consumed
@@ -134,6 +179,8 @@ export function getRailSubset(): {
   railWidth: number;
   railOrder: string[];
   leftRailPinned: string[];
+  asstWidth: number;
+  assistantOpen: boolean;
 } {
   const s = shellStore.getState();
   return {
@@ -141,6 +188,8 @@ export function getRailSubset(): {
     railWidth: s.railWidth,
     railOrder: s.railOrder,
     leftRailPinned: s.leftRailPinned,
+    asstWidth: s.asstWidth,
+    assistantOpen: s.assistantOpen,
   };
 }
 
@@ -161,6 +210,8 @@ export function hydrateFromDisk(record: WorkspaceRecordV1): void {
     railOrder,
     leftRailPinned: rail.leftRailPinned,
     railOpen: rail.railMode !== "hidden",
+    asstWidth: rail.asstWidth ?? 280,
+    assistantOpen: rail.assistantOpen ?? true,
   });
 }
 

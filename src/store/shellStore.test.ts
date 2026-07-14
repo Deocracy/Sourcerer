@@ -19,6 +19,8 @@ vi.mock("../persistence/workspaceStore", () => ({
       railWidth: 220,
       railOrder: ["Sources", "Library", "Wiki", "Graph"],
       leftRailPinned: [],
+      asstWidth: 280,
+      assistantOpen: true,
     },
     savedLayouts: {},
     instanceState: {},
@@ -27,8 +29,9 @@ vi.mock("../persistence/workspaceStore", () => ({
   scheduleWorkspaceSave: scheduleWorkspaceSaveMock,
 }));
 
-import { shellStore, hydrateFromDisk } from "./shellStore";
+import { shellStore, hydrateFromDisk, getRailSubset } from "./shellStore";
 import { appletDefs } from "../shell/appletDefs";
+import type { WorkspaceRecordV1 } from "../persistence/workspaceStore";
 
 // Deterministic starting state before each behavior assertion. The store is a
 // singleton created once at import; reset the mutable slices between tests.
@@ -42,6 +45,11 @@ beforeEach(() => {
     railOrder: ["Sources", "Library", "Wiki", "Graph"],
     leftRailPinned: [],
     badges: {},
+    asstWidth: 280,
+    assistantOpen: true,
+    homeOpen: false,
+    lastResolvedProposal: null,
+    pendingCardMint: null,
   });
 });
 
@@ -164,5 +172,61 @@ describe("shellStore rail actions call scheduleWorkspaceSave (PERS-04 wiring)", 
   it("setRailMode triggers scheduleWorkspaceSave exactly once", () => {
     shellStore.getState().setRailMode("hidden");
     expect(scheduleWorkspaceSaveMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("shellStore.setAsstWidth(w) (Phase 6, ASST-03)", () => {
+  it("updates asstWidth, is reflected in getRailSubset(), and triggers scheduleWorkspaceSave", () => {
+    shellStore.getState().setAsstWidth(340);
+    expect(getRailSubset().asstWidth).toBe(340);
+    expect(scheduleWorkspaceSaveMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("shellStore hydrateFromDisk asstWidth/assistantOpen defaulting (Phase 6, T-06-01-01)", () => {
+  it("defaults asstWidth to 280 and assistantOpen to true when the loaded record omits them", () => {
+    hydrateFromDisk({
+      schemaVersion: 1,
+      dockTree: null,
+      rail: {
+        railMode: "expanded",
+        railWidth: 220,
+        railOrder: ["Sources"],
+        leftRailPinned: [],
+        // asstWidth/assistantOpen intentionally omitted — legacy record shape.
+      } as unknown as WorkspaceRecordV1["rail"],
+      savedLayouts: {},
+      instanceState: {},
+    });
+
+    const state = shellStore.getState();
+    expect(state.asstWidth).toBe(280);
+    expect(state.assistantOpen).toBe(true);
+  });
+});
+
+describe("shellStore.toggleHomeOpen() (Phase 6, HOME-01)", () => {
+  it("flips homeOpen and is never present in getRailSubset()", () => {
+    expect(shellStore.getState().homeOpen).toBe(false);
+    shellStore.getState().toggleHomeOpen();
+    expect(shellStore.getState().homeOpen).toBe(true);
+    shellStore.getState().toggleHomeOpen();
+    expect(shellStore.getState().homeOpen).toBe(false);
+
+    expect(getRailSubset()).not.toHaveProperty("homeOpen");
+    expect(getRailSubset()).not.toHaveProperty("pendingCardMint");
+  });
+});
+
+describe("shellStore.requestCardMint(card) / clearPendingCardMint() (Phase 6, D-06)", () => {
+  it("requestCardMint sets pendingCardMint and clearPendingCardMint nulls it", () => {
+    shellStore.getState().requestCardMint({ title: "Renaissance Papers", foot: "342 docs" });
+    expect(shellStore.getState().pendingCardMint).toEqual({
+      title: "Renaissance Papers",
+      foot: "342 docs",
+    });
+
+    shellStore.getState().clearPendingCardMint();
+    expect(shellStore.getState().pendingCardMint).toBeNull();
   });
 });
