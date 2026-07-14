@@ -90,3 +90,28 @@ describe("useRailDrag pointercancel teardown (GAP-2, WR-06 parity)", () => {
     expect(shellStore.getState().railWidth).toBe(240);
   });
 });
+
+describe("useRailDrag toggle cycling (GAP-2 Task 3: double-click + Cmd/Ctrl-\\)", () => {
+  it("double-click on the grip advances railMode one cycle step (expanded -> compact)", () => {
+    const { getByTestId } = render(<Harness />);
+    fireEvent.doubleClick(getByTestId("grip"));
+    expect(shellStore.getState().railMode).toBe("compact");
+  });
+
+  it("Cmd/Ctrl-backslash advances railMode one cycle step from anywhere in the document", () => {
+    render(<Harness />);
+    fireEvent.keyDown(document, { key: "\\", ctrlKey: true });
+    expect(shellStore.getState().railMode).toBe("compact");
+  });
+
+  it("chains double-click cycling through the full bounce (expanded -> compact -> hidden -> expanded)", () => {
+    const { getByTestId } = render(<Harness />);
+    const grip = getByTestId("grip");
+    fireEvent.doubleClick(grip);
+    expect(shellStore.getState().railMode).toBe("compact");
+    fireEvent.doubleClick(grip);
+    expect(shellStore.getState().railMode).toBe("hidden");
+    fireEvent.doubleClick(grip);
+    expect(shellStore.getState().railMode).toBe("expanded");
+  });
+});
