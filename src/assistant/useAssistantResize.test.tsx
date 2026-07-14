@@ -101,6 +101,20 @@ describe("useAssistantResize (CR-01: hostWidth must be workspace-scale, not the 
     expect(shellStore.getState().asstWidth).toBe(WINDOW_W - 160);
   });
 
+  it("a cancelled drag tears down without applying a snap (WR-06)", () => {
+    const { getByTestId } = render(<Harness />);
+    const grip = getByTestId("grip");
+
+    fireEvent.pointerDown(grip, { button: 0, pointerId: 1, clientX: PANEL_RIGHT - PANEL_W });
+    fireEvent.pointerMove(grip, { pointerId: 1, clientX: PANEL_RIGHT - 100 }); // would close
+    fireEvent.pointerCancel(grip, { pointerId: 1 });
+    // The post-cancel pointerup must be inert — listeners were removed.
+    fireEvent.pointerUp(grip, { pointerId: 1, clientX: PANEL_RIGHT - 100 });
+
+    expect(shellStore.getState().assistantOpen).toBe(true);
+    expect(shellStore.getState().asstWidth).toBe(PANEL_W);
+  });
+
   it("releasing under CLOSE_AT still closes the panel", () => {
     const { getByTestId } = render(<Harness />);
     dragTo(getByTestId("grip"), PANEL_RIGHT - 100); // raw = 100 < CLOSE_AT (180)

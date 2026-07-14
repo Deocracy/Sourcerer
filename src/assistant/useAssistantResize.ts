@@ -59,18 +59,37 @@ export function useAssistantResize() {
         setLiveSnap(snapWidthToAsstMode(raw, hostWidth));
       };
 
-      const handleUp = (ev: PointerEvent) => {
-        target.releasePointerCapture(pointerId);
+      // WR-06: shared teardown for BOTH the normal release and a cancelled
+      // drag (window blur, OS gesture, touch cancel, element removal). An
+      // interrupted drag previously left the move/up listeners attached
+      // (stacking a second set on the next pointerdown) and pinned the
+      // "LET GO TO SNAP" cue via a never-cleared liveSnap.
+      const teardown = () => {
+        try {
+          target.releasePointerCapture(pointerId);
+        } catch {
+          // Capture already lost (that's often WHY the drag cancelled).
+        }
         target.removeEventListener("pointermove", handleMove);
         target.removeEventListener("pointerup", handleUp);
+        target.removeEventListener("pointercancel", handleCancel);
         setLiveSnap(null);
+      };
+
+      const handleUp = (ev: PointerEvent) => {
+        teardown();
         const raw = hostRight - ev.clientX;
         const snap = snapWidthToAsstMode(raw, hostWidth);
         applySnapToShellStore(snap, hostWidth);
       };
 
+      // A cancelled drag tears down WITHOUT applying a snap — the panel
+      // stays at its pre-drag width.
+      const handleCancel = () => teardown();
+
       target.addEventListener("pointermove", handleMove);
       target.addEventListener("pointerup", handleUp);
+      target.addEventListener("pointercancel", handleCancel);
     },
     [applySnapToShellStore],
   );
