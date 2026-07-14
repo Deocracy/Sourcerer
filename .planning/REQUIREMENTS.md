@@ -50,7 +50,7 @@ Scope decided at init: pixel-perfect Tauri shell + applet framework + **Notes as
 ### Dashboard Assistant (ASST)
 
 - [x] **ASST-01**: User sees the right-panel assistant (header, session list, message thread, composer) per spec and can send messages (⌘↵) receiving stubbed replies
-- [ ] **ASST-02**: Assistant proposals render as serif-italic quote blocks with y/d/n keyboard actions on the focused proposal
+- [x] **ASST-02**: Assistant proposals render as serif-italic quote blocks with y/d/n keyboard actions on the focused proposal
 - [x] **ASST-03**: User can resize the assistant via its grip with snap-to-close and expand-to-fullscreen ("LET GO TO SNAP" cue)
 
 ### Home (HOME)
@@ -102,7 +102,7 @@ Scope decided at init: pixel-perfect Tauri shell + applet framework + **Notes as
 | NOTE-01 | Phase 5 | Complete |
 | NOTE-02 | Phase 5 | Complete |
 | ASST-01 | Phase 6 | Complete |
-| ASST-02 | Phase 6 | Pending |
+| ASST-02 | Phase 6 | Complete |
 | ASST-03 | Phase 6 | Complete |
 | HOME-01 | Phase 6 | Complete |
 | HOME-02 | Phase 6 | Pending |
