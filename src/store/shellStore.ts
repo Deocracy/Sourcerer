@@ -34,6 +34,12 @@ export interface ShellState {
   asstWidth: number;
   assistantOpen: boolean;
 
+  // --- session-only (never persisted, GAP-1 gap closure): true while the
+  // assistant is in the prototype's "full" bounce state (cycleRight's third
+  // stop). Modeled as a transient flag rather than a persisted schema field
+  // (06-07-PLAN.md) — asstWidth still carries the actual pixel width. ---
+  assistantFull: boolean;
+
   // --- session-only (never persisted) ---
   railOpen: boolean;
   activeCorpus: string;
@@ -68,6 +74,9 @@ export interface ShellState {
   // --- Phase 6 actions ---
   setAsstWidth(w: number): void;
   setAssistantOpen(open: boolean): void;
+  // GAP-1: three-state bounce (closed -> open -> full -> open -> closed,
+  // never wraps) mirroring the prototype's cycleRight/applyRightState.
+  cycleAssistant(): void;
   setHomeOpen(open: boolean): void;
   toggleHomeOpen(): void;
   setLastResolvedProposal(text: string | null): void;
@@ -93,13 +102,50 @@ const CYCLE: Record<RailMode, RailMode> = {
 // workspace.json load resolves).
 const seedRail = DEFAULT_WORKSPACE.rail;
 
-export const shellStore = createStore<ShellState>()((set, get) => ({
+export const shellStore = createStore<ShellState>()((set, get) => {
+  // GAP-1 closure-local (non-reactive) state for the assistant bounce cycle —
+  // mirrors the prototype's rightPrev (width to restore on exitRightFull) and
+  // rightDir (which way the next cycleRight bounce goes). Neither needs to
+  // trigger a re-render, so they stay outside the zustand state shape rather
+  // than widening ShellState/getRailSubset with fields nothing else reads.
+  let assistantPrevWidth: number | null = null;
+  let assistantDir: 1 | -1 = 1;
+
+  const enterAssistantFull = () => {
+    assistantPrevWidth = get().asstWidth;
+    set({ assistantFull: true });
+    get().setAsstWidth(Math.max(0, window.innerWidth - 160));
+  };
+
+  const exitAssistantFull = () => {
+    const prev = assistantPrevWidth;
+    assistantPrevWidth = null;
+    set({ assistantFull: false });
+    if (prev != null) get().setAsstWidth(prev);
+  };
+
+  // Mirrors the prototype's applyRightState exactly (closed/open/full).
+  const applyAssistantState = (next: "closed" | "open" | "full") => {
+    if (next === "closed") {
+      if (get().assistantFull) exitAssistantFull();
+      if (get().assistantOpen) get().setAssistantOpen(false);
+    } else if (next === "open") {
+      if (get().assistantFull) exitAssistantFull();
+      if (!get().assistantOpen) get().setAssistantOpen(true);
+    } else {
+      if (!get().assistantOpen) get().setAssistantOpen(true);
+      if (!get().assistantFull) enterAssistantFull();
+    }
+  };
+
+  return {
   railMode: seedRail.railMode,
   railWidth: seedRail.railWidth,
   railOrder: [...seedRail.railOrder],
   leftRailPinned: [...seedRail.leftRailPinned],
   asstWidth: seedRail.asstWidth ?? 280,
   assistantOpen: seedRail.assistantOpen ?? true,
+  assistantFull: false,
 
   railOpen: seedRail.railMode !== "hidden",
   activeCorpus: "Default",
@@ -161,6 +207,23 @@ export const shellStore = createStore<ShellState>()((set, get) => ({
     scheduleWorkspaceSave();
   },
 
+  // GAP-1: bounces closed -> open -> full, never wrapping. dir resets to
+  // opening at 'closed' and to closing at 'full' (bounce-off-the-ends), and
+  // otherwise keeps the previous direction — exactly the prototype's
+  // cycleRight dir logic.
+  cycleAssistant: () => {
+    const order: Array<"closed" | "open" | "full"> = ["closed", "open", "full"];
+    const cur: "closed" | "open" | "full" = get().assistantFull
+      ? "full"
+      : get().assistantOpen
+        ? "open"
+        : "closed";
+    if (cur === "closed") assistantDir = 1;
+    else if (cur === "full") assistantDir = -1;
+    const next = order[order.indexOf(cur) + assistantDir];
+    applyAssistantState(next);
+  },
+
   // Phase 6 session-only actions — never call scheduleWorkspaceSave (mirrors
   // setActivePaneId/setRailApplet/setBadge above).
   setHomeOpen: (open) => set({ homeOpen: open }),
@@ -168,7 +231,8 @@ export const shellStore = createStore<ShellState>()((set, get) => ({
   setLastResolvedProposal: (text) => set({ lastResolvedProposal: text }),
   requestCardMint: (card) => set({ pendingCardMint: card }),
   clearPendingCardMint: () => set({ pendingCardMint: null }),
-}));
+  };
+});
 
 /** Live getter for the rail subset of the unified workspace record — consumed
  *  by Dock.tsx's single `registerStateSources` call site (03-02) so the rail
@@ -212,6 +276,9 @@ export function hydrateFromDisk(record: WorkspaceRecordV1): void {
     railOpen: rail.railMode !== "hidden",
     asstWidth: rail.asstWidth ?? 280,
     assistantOpen: rail.assistantOpen ?? true,
+    // assistantFull is never persisted (GAP-1) — hydration always starts
+    // out of the full-screen bounce state, matching a fresh app boot.
+    assistantFull: false,
   });
 }
 

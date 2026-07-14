@@ -17,8 +17,7 @@ beforeEach(() => {
   shellStore.setState({
     railMode: "expanded",
     assistantOpen: true,
-    // assistantFull does not exist on ShellState pre-fix (Task 2 adds it);
-    // omitted here so this file type-checks identically before and after.
+    assistantFull: false,
   });
 });
 
