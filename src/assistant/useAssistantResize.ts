@@ -44,7 +44,15 @@ export function useAssistantResize() {
       target.setPointerCapture(pointerId);
       const hostRect = hostRef.current?.getBoundingClientRect();
       const hostRight = hostRect ? hostRect.right : window.innerWidth;
-      const hostWidth = hostRect ? hostRect.width : window.innerWidth;
+      // CR-01: the snap math (assistantSnap.ts) expects the WORKSPACE-scale
+      // drag-context width — its open clamp is `hostWidth - 160` and FULL_AT
+      // is 620px. Measuring the panel's OWN width here (the old
+      // `hostRect.width`) made the "open" bucket unreachable at the default
+      // 280px width (clamp upper bound 120 < CLOSE_AT 180) and snapped
+      // "full" to 120px (or 0px from the 6px closed strip). The window width
+      // is the correct drag-context reference: the grip drags against the
+      // whole window, mirroring useRailDrag's viewport-scale nav reference.
+      const hostWidth = window.innerWidth;
 
       const handleMove = (ev: PointerEvent) => {
         const raw = hostRight - ev.clientX;
