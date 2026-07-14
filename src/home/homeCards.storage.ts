@@ -1,5 +1,5 @@
 import { LazyStore } from "@tauri-apps/plugin-store";
-import { DEFAULT_SECTIONS } from "./cardDefs";
+import { DEFAULT_SECTIONS, SECTION_ORDER } from "./cardDefs";
 import type { SectionMap } from "./homeCardsReducer";
 
 /*
@@ -27,9 +27,23 @@ const SAVE_DEBOUNCE_MS = 300;
 let saveTimer: ReturnType<typeof setTimeout> | undefined;
 let pending: SectionMap | undefined;
 
+/** CR-02: structural guard for untrusted persisted JSON — the same standard
+ *  src/persistence/validate.ts applies to workspace.json (its CR-05: a
+ *  key-presence/blind-cast check passes garbage through, then a `.map` on a
+ *  non-array crashes the consumer's render). Every section key must be
+ *  present as an array of strings before the value is trusted as a
+ *  SectionMap. */
+function isValidSectionMap(value: unknown): value is SectionMap {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const v = value as Record<string, unknown>;
+  return SECTION_ORDER.every(
+    (key) => Array.isArray(v[key]) && (v[key] as unknown[]).every((id) => typeof id === "string"),
+  );
+}
+
 /** loadSections — returns the persisted SectionMap, or DEFAULT_SECTIONS on
- *  any read error / absent value (T-06-06-01: corrupt/missing storage never
- *  crashes Home). */
+ *  any read error / absent value / structurally invalid value (T-06-06-01:
+ *  corrupt/missing storage never crashes Home). */
 export async function loadSections(): Promise<SectionMap> {
   let raw: unknown;
   try {
@@ -37,8 +51,8 @@ export async function loadSections(): Promise<SectionMap> {
   } catch {
     return DEFAULT_SECTIONS;
   }
-  if (raw === null || raw === undefined) return DEFAULT_SECTIONS;
-  return raw as SectionMap;
+  if (!isValidSectionMap(raw)) return DEFAULT_SECTIONS;
+  return raw;
 }
 
 async function flush(): Promise<void> {
