@@ -134,7 +134,19 @@ export function Home() {
 
   const onDragEnd = ({ active, over }: DragEndEvent) => {
     setActiveId(null);
-    if (!over) return;
+    if (!over) {
+      // WR-08: a release outside any droppable still ENDS a drag whose
+      // onDragOver hover frames already applied cross-section moves to
+      // state (deliberately unsaved per RESEARCH.md Pitfall 3). Persist the
+      // settled state so screen and disk agree — otherwise the moved layout
+      // survives on screen (dirtyRef blocks the mount load) but silently
+      // reverts on restart.
+      setSections((prev) => {
+        scheduleSaveSections(prev);
+        return prev;
+      });
+      return;
+    }
     dirtyRef.current = true;
     setSections((prev) => {
       const next = reorderWithinSection(prev, String(active.id), String(over.id));
