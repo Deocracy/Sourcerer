@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, cleanup, act } from "@testing-library/react";
 import { mockIPC, clearMocks } from "@tauri-apps/api/mocks";
 
 import { AssistantPanel } from "./AssistantPanel";
@@ -235,6 +235,41 @@ describe("AssistantPanel (D-09 restart-reload)", () => {
     expect(capturedSessionId).toMatch(SESSION_ID_PATTERN);
     const stored = JSON.parse(localStorage.getItem(SESSION_IDS_KEY) ?? "[]") as string[];
     expect(stored[0]).toBe(capturedSessionId);
+  });
+
+  it("a stale load_session history stream never overwrites the newly selected session (CR-03)", async () => {
+    const captured: LoadSessionArgs[] = [];
+    mockIPC((cmd, args) => {
+      if (cmd === "load_session") {
+        captured.push(args as unknown as LoadSessionArgs);
+      }
+      return undefined;
+    });
+
+    render(<AssistantPanel />);
+    // Session A: the freshly-minted real session's mount-time load.
+    await waitFor(() => {
+      expect(captured.length).toBe(1);
+    });
+
+    // Switch to session B BEFORE A's history event arrives.
+    fireEvent.click(screen.getByLabelText("Start new session"));
+    await waitFor(() => {
+      expect(captured.length).toBe(2);
+    });
+
+    // A's slow history stream lands late — it must be dropped, not rendered
+    // under B's chip.
+    act(() => {
+      captured[0]!.onEvent.onmessage({
+        type: "history",
+        id: "late-a",
+        turns: [{ role: "assistant", text: "STALE SESSION A TRANSCRIPT" }],
+      });
+    });
+
+    expect(screen.queryByText("STALE SESSION A TRANSCRIPT")).toBeNull();
+    expect(screen.getByText("New assistant ready. What should I look into?")).toBeTruthy();
   });
 
   it("an empty-turns history event leaves the panel empty and usable, no crash", async () => {

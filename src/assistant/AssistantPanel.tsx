@@ -157,7 +157,15 @@ export function AssistantPanel() {
 
     if (active.kind !== "real") return;
 
+    // CR-03: staleness guard — the sidecar history round-trip is async and
+    // unbounded, so switching from session A to session B before A's
+    // `history` event lands must NOT let A's late event overwrite B's
+    // visible thread. The effect cleanup flips `stale` when activeSessionId
+    // changes (or the panel unmounts); a stale stream's events are dropped.
+    let stale = false;
+
     const onEvent = (event: AssistantEvent) => {
+      if (stale) return;
       if (event.type === "history" && event.turns.length > 0) {
         const replayed: ChatMessage[] = event.turns.map((turn) => ({
           id: nanoid(),
@@ -170,6 +178,9 @@ export function AssistantPanel() {
     };
 
     void host.loadSession(activeSessionId, onEvent);
+    return () => {
+      stale = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSessionId]);
 
