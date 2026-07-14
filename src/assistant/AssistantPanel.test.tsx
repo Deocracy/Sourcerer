@@ -37,7 +37,9 @@ function deliver(onEvent: HostAiArgs["onEvent"], events: QueuedEvent[]) {
   })();
 }
 
-const SESSION_STORAGE_KEY = "sourcerer:assistant:sessionId";
+// D-01 growth: the panel now persists a LIST of real-session ids (JSON array)
+// under a generalized key, replacing Phase 7's single-sessionId key.
+const SESSION_IDS_KEY = "sourcerer:assistant:sessionIds";
 const SESSION_ID_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/;
 
 interface LoadSessionArgs {
@@ -81,7 +83,7 @@ describe("AssistantPanel (D-01 streamed chat + D-06 honest-degrade)", () => {
     fireEvent.change(screen.getByLabelText("Message"), {
       target: { value: "hi there" },
     });
-    fireEvent.click(screen.getByText("Send"));
+    fireEvent.click(screen.getByLabelText("Send message"));
 
     await waitFor(() => {
       expect(screen.getByText("Hello world")).toBeTruthy();
@@ -91,10 +93,6 @@ describe("AssistantPanel (D-01 streamed chat + D-06 honest-degrade)", () => {
   });
 
   it("generates a sessionId that satisfies the sidecar SESSION_ID_PATTERN (CR-01)", async () => {
-    // Mirror of sidecar SESSION_ID_PATTERN (sessions.ts): first AND last char must be
-    // alphanumeric. Default nanoid() would fail this ~6% of the time; the panel now
-    // draws IDs from an alphanumeric-only alphabet so every launch is valid.
-    const SESSION_ID_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/;
     let capturedSessionId: string | undefined;
     mockIPC((cmd, args) => {
       if (cmd === "host_ai") {
@@ -107,7 +105,7 @@ describe("AssistantPanel (D-01 streamed chat + D-06 honest-degrade)", () => {
 
     render(<AssistantPanel />);
     fireEvent.change(screen.getByLabelText("Message"), { target: { value: "hi" } });
-    fireEvent.click(screen.getByText("Send"));
+    fireEvent.click(screen.getByLabelText("Send message"));
 
     await waitFor(() => {
       expect(capturedSessionId).toBeDefined();
@@ -134,7 +132,7 @@ describe("AssistantPanel (D-01 streamed chat + D-06 honest-degrade)", () => {
     fireEvent.change(screen.getByLabelText("Message"), {
       target: { value: "will this fail" },
     });
-    fireEvent.click(screen.getByText("Send"));
+    fireEvent.click(screen.getByLabelText("Send message"));
 
     await waitFor(() => {
       expect(screen.getByText(/assistant unavailable: wiki unavailable/)).toBeTruthy();
@@ -144,7 +142,7 @@ describe("AssistantPanel (D-01 streamed chat + D-06 honest-degrade)", () => {
     fireEvent.change(screen.getByLabelText("Message"), {
       target: { value: "trying again" },
     });
-    expect((screen.getByText("Send") as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByLabelText("Send message") as HTMLButtonElement).disabled).toBe(false);
   });
 
   it("toggling Research invokes set_modes with [\"research\"]", async () => {
@@ -168,7 +166,7 @@ describe("AssistantPanel (D-01 streamed chat + D-06 honest-degrade)", () => {
 
 describe("AssistantPanel (D-09 restart-reload)", () => {
   it("renders prior turns delivered via a mount-time load_session history event", async () => {
-    localStorage.setItem(SESSION_STORAGE_KEY, "prior-session-1");
+    localStorage.setItem(SESSION_IDS_KEY, JSON.stringify(["prior-session-1"]));
 
     mockIPC((cmd, args) => {
       if (cmd === "load_session") {
@@ -198,7 +196,7 @@ describe("AssistantPanel (D-09 restart-reload)", () => {
   });
 
   it("reuses the persisted sessionId across mounts (restart survival)", async () => {
-    localStorage.setItem(SESSION_STORAGE_KEY, "existing-session-42");
+    localStorage.setItem(SESSION_IDS_KEY, JSON.stringify(["existing-session-42"]));
     let capturedSessionId: string | undefined;
 
     mockIPC((cmd, args) => {
@@ -235,11 +233,12 @@ describe("AssistantPanel (D-09 restart-reload)", () => {
       expect(capturedSessionId).toBeDefined();
     });
     expect(capturedSessionId).toMatch(SESSION_ID_PATTERN);
-    expect(localStorage.getItem(SESSION_STORAGE_KEY)).toBe(capturedSessionId);
+    const stored = JSON.parse(localStorage.getItem(SESSION_IDS_KEY) ?? "[]") as string[];
+    expect(stored[0]).toBe(capturedSessionId);
   });
 
   it("an empty-turns history event leaves the panel empty and usable, no crash", async () => {
-    localStorage.setItem(SESSION_STORAGE_KEY, "empty-session-1");
+    localStorage.setItem(SESSION_IDS_KEY, JSON.stringify(["empty-session-1"]));
 
     mockIPC((cmd, args) => {
       if (cmd === "load_session") {
@@ -255,6 +254,100 @@ describe("AssistantPanel (D-09 restart-reload)", () => {
     await waitFor(() => {
       expect(screen.getByLabelText("Message")).toBeTruthy();
     });
-    expect((screen.getByText("Send") as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByLabelText("Send message") as HTMLButtonElement).disabled).toBe(true);
+  });
+});
+
+describe("AssistantPanel (D-01 multi-session list + header chrome — 06-02)", () => {
+  it("renders a session list containing both seeds and the initial real session", async () => {
+    render(<AssistantPanel />);
+
+    await waitFor(() => {
+      expect(screen.getByTitle("Poliziano · Careggi")).toBeTruthy();
+      expect(screen.getByTitle("Medici patronage")).toBeTruthy();
+      expect(screen.getByTitle("New assistant")).toBeTruthy();
+    });
+  });
+
+  it("selecting a seed chip shows its canned transcript and disables the composer", async () => {
+    render(<AssistantPanel />);
+
+    fireEvent.click(screen.getByTitle("Poliziano · Careggi"));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          "Find every mention of Poliziano in the Careggi context and propose Wiki edits.",
+        ),
+      ).toBeTruthy();
+    });
+    expect((screen.getByLabelText("Message") as HTMLTextAreaElement).disabled).toBe(true);
+  });
+
+  it("selecting the real session chip keeps the composer enabled", async () => {
+    render(<AssistantPanel />);
+
+    fireEvent.click(screen.getByTitle("Poliziano · Careggi"));
+    await waitFor(() => {
+      expect((screen.getByLabelText("Message") as HTMLTextAreaElement).disabled).toBe(true);
+    });
+
+    fireEvent.click(screen.getByTitle("New assistant"));
+    await waitFor(() => {
+      expect((screen.getByLabelText("Message") as HTMLTextAreaElement).disabled).toBe(false);
+    });
+  });
+
+  it("Start new session mints a new real session and shows the new-session greeting", async () => {
+    render(<AssistantPanel />);
+
+    fireEvent.click(screen.getByLabelText("Start new session"));
+
+    await waitFor(() => {
+      expect(screen.getByText("New assistant ready. What should I look into?")).toBeTruthy();
+    });
+    expect((screen.getByLabelText("Message") as HTMLTextAreaElement).disabled).toBe(false);
+  });
+
+  it("Cmd+Enter in the composer of a real session triggers host.ai() send", async () => {
+    let capturedMessage: string | undefined;
+    mockIPC((cmd, args) => {
+      if (cmd === "host_ai") {
+        const a = args as unknown as HostAiArgs;
+        capturedMessage = a.message;
+        deliver(a.onEvent, [{ type: "done", id: "turn-cmd-enter" }]);
+      }
+      return undefined;
+    });
+
+    render(<AssistantPanel />);
+
+    fireEvent.change(screen.getByLabelText("Message"), { target: { value: "cmd-enter send" } });
+    fireEvent.keyDown(screen.getByLabelText("Message"), { key: "Enter", metaKey: true });
+
+    await waitFor(() => {
+      expect(capturedMessage).toBe("cmd-enter send");
+    });
+  });
+
+  it("every icon-only header control carries its exact aria-label", async () => {
+    render(<AssistantPanel />);
+
+    expect(screen.getByLabelText("View session history")).toBeTruthy();
+    expect(screen.getByLabelText("Start new session")).toBeTruthy();
+  });
+
+  it("closing a session chip removes it from the list (non-destructive)", async () => {
+    render(<AssistantPanel />);
+
+    await waitFor(() => {
+      expect(screen.getByTitle("Medici patronage")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByLabelText("Close session Medici patronage"));
+
+    await waitFor(() => {
+      expect(screen.queryByTitle("Medici patronage")).toBeNull();
+    });
   });
 });
