@@ -59,6 +59,31 @@ function loadRealSessions(): SessionEntry[] {
   return [newRealSession()];
 }
 
+/**
+ * WR-04: shared last-assistant-turn proposal attachment — used by BOTH the
+ * seeded-transcript path and the `history` replay path so a real session
+ * whose last assistant turn carries a proposal keeps its y/d/n block after
+ * an app restart (previously only seeds got parsed). Returns the (possibly
+ * new) message array and the id to focus, or null when no proposal parses.
+ */
+function attachProposalToLastAssistantTurn(msgs: ChatMessage[]): {
+  messages: ChatMessage[];
+  proposalId: string | null;
+} {
+  for (let i = msgs.length - 1; i >= 0; i--) {
+    if (msgs[i].role === "assistant") {
+      const proposal = parseProposal(msgs[i].text);
+      if (proposal) {
+        const next = [...msgs];
+        next[i] = { ...next[i], proposal, proposalResolved: null };
+        return { messages: next, proposalId: next[i].id };
+      }
+      break;
+    }
+  }
+  return { messages: msgs, proposalId: null };
+}
+
 function toRoman(n: number): string {
   const map: [number, string][] = [
     [10, "X"],
@@ -142,19 +167,9 @@ export function AssistantPanel() {
     // ASST-02: attach a parsed proposal to the transcript's final assistant
     // turn if it carries one (this is what surfaces the seed-careggi demo's
     // guaranteed-parseable proposal) and auto-focus it.
-    let seededProposalId: string | null = null;
-    for (let i = seeded.length - 1; i >= 0; i--) {
-      if (seeded[i].role === "assistant") {
-        const proposal = parseProposal(seeded[i].text);
-        if (proposal) {
-          seeded[i] = { ...seeded[i], proposal, proposalResolved: null };
-          seededProposalId = seeded[i].id;
-        }
-        break;
-      }
-    }
-    setMessages(seeded);
-    setFocusedProposalId(seededProposalId);
+    const seededResult = attachProposalToLastAssistantTurn(seeded);
+    setMessages(seededResult.messages);
+    setFocusedProposalId(seededResult.proposalId);
 
     if (active.kind !== "real") return;
 
@@ -174,7 +189,14 @@ export function AssistantPanel() {
           text: turn.text,
           status: "done",
         }));
-        setMessages(replayed);
+        // WR-04: run the SAME last-assistant-turn proposal attachment the
+        // seeded path uses, and re-point focusedProposalId at the replayed
+        // result (or clear it — the seeded ids no longer exist once the
+        // replay replaces them, and a dangling focus id swallows bare
+        // y/d/n keypresses shell-wide while doing nothing visible).
+        const replayedResult = attachProposalToLastAssistantTurn(replayed);
+        setMessages(replayedResult.messages);
+        setFocusedProposalId(replayedResult.proposalId);
       }
     };
 

@@ -237,6 +237,40 @@ describe("AssistantPanel (D-09 restart-reload)", () => {
     expect(stored[0]).toBe(capturedSessionId);
   });
 
+  it("a replayed history transcript's final proposal keeps its y/d/n block (WR-04)", async () => {
+    localStorage.setItem(SESSION_IDS_KEY, JSON.stringify(["proposal-session-1"]));
+
+    mockIPC((cmd, args) => {
+      if (cmd === "load_session") {
+        const { onEvent } = args as unknown as LoadSessionArgs;
+        deliver(onEvent, [
+          {
+            type: "history",
+            id: "load-p",
+            turns: [
+              { role: "user", text: "propose the edit" },
+              {
+                role: "assistant",
+                text: 'Proposal — updates § Test target:\n\n> "Replayed proposal body."',
+              },
+            ],
+          },
+          { type: "done", id: "load-p" },
+        ]);
+        return undefined;
+      }
+      return undefined;
+    });
+
+    render(<AssistantPanel />);
+
+    await waitFor(() => {
+      expect(screen.getByText('"Replayed proposal body."')).toBeTruthy();
+    });
+    expect(screen.getByText("[y] approve")).toBeTruthy();
+    expect(screen.getByText("[n] reject")).toBeTruthy();
+  });
+
   it("a stale load_session history stream never overwrites the newly selected session (CR-03)", async () => {
     const captured: LoadSessionArgs[] = [];
     mockIPC((cmd, args) => {
