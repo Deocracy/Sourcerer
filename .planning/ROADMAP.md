@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Persistence & Layouts** - Crash-safe workspace persistence, schema versioning, named layouts (completed 2026-07-09)
 - [x] **Phase 4: Applet Framework** - Static registry, host API, high-fidelity demo stubs for every applet (completed 2026-07-10)
 - [x] **Phase 5: Notes Applet** - First real applet proving registry → host → storage → ai seam (completed 2026-07-13)
-- [ ] **Phase 6: Dashboard Assistant & Home** - Stubbed AI assistant panel + metro Home dashboard
+- [x] **Phase 6: Dashboard Assistant & Home** - Stubbed AI assistant panel + metro Home dashboard (completed 2026-07-14)
 
 ## Phase Details
 
@@ -182,7 +182,7 @@ Plans:
 - [x] 06-05-PLAN.md — HOME-01 metro overlay: cardDefs/HomeCard port + four sections + DiviChip/LogoCluster summon wiring (HOME-01)
 **Wave 3** *(parallel — disjoint files)*
 - [x] 06-04-PLAN.md — ASST-03 resize: assistantSnap + bespoke pointer hook + snap-to-close/fullscreen "LET GO TO SNAP" + persisted width (ASST-03)
-- [ ] 06-06-PLAN.md — HOME-02 drag/persist: dnd-kit install + SortableCard + pure reducer + debounced host.storage + D-06 ＋MAKE CARD consumer (HOME-02)
+- [x] 06-06-PLAN.md — HOME-02 drag/persist: dnd-kit install + SortableCard + pure reducer + debounced host.storage + D-06 ＋MAKE CARD consumer (HOME-02)
 
 **UI hint**: yes
 
@@ -198,7 +198,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Persistence & Layouts | 5/5 | Complete    | 2026-07-10 |
 | 4. Applet Framework | 5/5 | Complete    | 2026-07-10 |
 | 5. Notes Applet | 2/2 | Complete   | 2026-07-13 |
-| 6. Dashboard Assistant & Home | 5/6 | In Progress|  |
+| 6. Dashboard Assistant & Home | 6/6 | Complete   | 2026-07-14 |
 | 7. Assistant Harness Core | 6/6 | Complete   | 2026-07-08 |
 
 ### Phase 7: Assistant Harness Core

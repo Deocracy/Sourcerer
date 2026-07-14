@@ -56,7 +56,7 @@ Scope decided at init: pixel-perfect Tauri shell + applet framework + **Notes as
 ### Home (HOME)
 
 - [x] **HOME-01**: Empty workspace renders the metro card dashboard with PINNED/FRESH/LIVING/ARCHIVE sections
-- [ ] **HOME-02**: User can drag cards between sections with FLIP animation; assistant "＋MAKE CARD" mints a card
+- [x] **HOME-02**: User can drag cards between sections with FLIP animation; assistant "＋MAKE CARD" mints a card
 
 ## v2 / Future
 
@@ -105,4 +105,4 @@ Scope decided at init: pixel-perfect Tauri shell + applet framework + **Notes as
 | ASST-02 | Phase 6 | Complete |
 | ASST-03 | Phase 6 | Complete |
 | HOME-01 | Phase 6 | Complete |
-| HOME-02 | Phase 6 | Pending |
+| HOME-02 | Phase 6 | Complete |
