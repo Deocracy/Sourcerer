@@ -218,6 +218,32 @@ describe("shellStore.toggleHomeOpen() (Phase 6, HOME-01)", () => {
   });
 });
 
+describe("shellStore.cycleAssistant() (Phase 6 gap closure GAP-1, ASST-03)", () => {
+  it("bounces closed -> open -> full -> open -> closed, never wrapping (mirrors prototype cycleRight/applyRightState, 06-07-PLAN.md Task 2)", () => {
+    // Fails pre-fix: cycleAssistant does not exist on ShellState yet (TypeError).
+    shellStore.getState().setAssistantOpen(false);
+    const cycle = () => shellStore.getState().cycleAssistant();
+    const fullFlag = () =>
+      (shellStore.getState() as unknown as { assistantFull: boolean }).assistantFull;
+
+    cycle(); // closed -> open
+    expect(shellStore.getState().assistantOpen).toBe(true);
+    expect(fullFlag()).toBe(false);
+
+    cycle(); // open -> full
+    expect(shellStore.getState().assistantOpen).toBe(true);
+    expect(fullFlag()).toBe(true);
+
+    cycle(); // full -> open (bounces off the top, never wraps to closed)
+    expect(shellStore.getState().assistantOpen).toBe(true);
+    expect(fullFlag()).toBe(false);
+
+    cycle(); // open -> closed
+    expect(shellStore.getState().assistantOpen).toBe(false);
+    expect(fullFlag()).toBe(false);
+  });
+});
+
 describe("shellStore.requestCardMint(card) / clearPendingCardMint() (Phase 6, D-06)", () => {
   it("requestCardMint sets pendingCardMint and clearPendingCardMint nulls it", () => {
     shellStore.getState().requestCardMint({ title: "Renaissance Papers", foot: "342 docs" });

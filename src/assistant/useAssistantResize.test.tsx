@@ -36,7 +36,7 @@ const PANEL_W = 280; // --asst-width-default
 const PANEL_RIGHT = WINDOW_W; // panel is flush against the window's right edge
 
 function Harness() {
-  const { hostRef, onResizePointerDown } = useAssistantResize();
+  const { hostRef, onResizePointerDown, liveWidth } = useAssistantResize();
   return (
     <div
       ref={(el) => {
@@ -60,6 +60,10 @@ function Harness() {
       }}
     >
       <div data-testid="grip" onPointerDown={onResizePointerDown} />
+      {/* GAP-1: liveWidth does not exist on the pre-fix hook's return shape
+          (undefined), so this always renders "null" pre-fix regardless of
+          pointermove — proving the panel never followed the pointer live. */}
+      <div data-testid="live-width">{liveWidth ?? "null"}</div>
     </div>
   );
 }
@@ -120,5 +124,32 @@ describe("useAssistantResize (CR-01: hostWidth must be workspace-scale, not the 
     dragTo(getByTestId("grip"), PANEL_RIGHT - 100); // raw = 100 < CLOSE_AT (180)
 
     expect(shellStore.getState().assistantOpen).toBe(false);
+  });
+});
+
+describe("useAssistantResize live drag width (GAP-1: panel must follow the pointer every frame, not only on release)", () => {
+  it("exposes a live width during pointermove equal to the clamped raw pointer distance", () => {
+    // Fails pre-fix: the hook has no liveWidth return value, so the harness
+    // renders "null" here regardless of the pointermove below.
+    const { getByTestId } = render(<Harness />);
+    const grip = getByTestId("grip");
+
+    fireEvent.pointerDown(grip, { button: 0, pointerId: 1, clientX: PANEL_RIGHT - PANEL_W });
+    fireEvent.pointerMove(grip, { pointerId: 1, clientX: PANEL_RIGHT - 350 }); // raw = 350
+
+    expect(getByTestId("live-width").textContent).toBe("350");
+
+    fireEvent.pointerUp(grip, { pointerId: 1, clientX: PANEL_RIGHT - 350 });
+  });
+
+  it("clears the live width back to null on pointerup", () => {
+    const { getByTestId } = render(<Harness />);
+    const grip = getByTestId("grip");
+
+    fireEvent.pointerDown(grip, { button: 0, pointerId: 1, clientX: PANEL_RIGHT - PANEL_W });
+    fireEvent.pointerMove(grip, { pointerId: 1, clientX: PANEL_RIGHT - 350 });
+    fireEvent.pointerUp(grip, { pointerId: 1, clientX: PANEL_RIGHT - 350 });
+
+    expect(getByTestId("live-width").textContent).toBe("null");
   });
 });
