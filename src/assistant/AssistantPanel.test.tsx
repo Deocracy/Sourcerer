@@ -372,6 +372,29 @@ describe("AssistantPanel (D-01 multi-session list + header chrome — 06-02)", (
     expect(screen.getByLabelText("Start new session")).toBeTruthy();
   });
 
+  it("closing a real session removes it from the persisted id list (WR-03: no resurrection)", async () => {
+    render(<AssistantPanel />);
+
+    // Mint a second real session so closing one leaves another to fall to.
+    fireEvent.click(screen.getByLabelText("Start new session"));
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem(SESSION_IDS_KEY) ?? "[]") as string[];
+      expect(stored.length).toBe(2);
+    });
+    const before = JSON.parse(localStorage.getItem(SESSION_IDS_KEY) ?? "[]") as string[];
+
+    // Close the second (active) real session — its chip title is the real
+    // "New assistant" label; both real chips share it, so close via the
+    // last close button's aria-label pairing.
+    const closeButtons = screen.getAllByLabelText("Close session New assistant");
+    fireEvent.click(closeButtons[closeButtons.length - 1]!);
+
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem(SESSION_IDS_KEY) ?? "[]") as string[];
+      expect(stored).toEqual([before[0]]);
+    });
+  });
+
   it("closing a session chip removes it from the list (non-destructive)", async () => {
     render(<AssistantPanel />);
 

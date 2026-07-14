@@ -109,8 +109,9 @@ export function AssistantPanel() {
   const activeSession = allSessions.find((s) => s.id === activeSessionId) ?? allSessions[0];
   const activeKind = activeSession.kind;
 
-  // Persist the real-session id list whenever it grows/shrinks (T-06-02-02:
-  // reading this back at mount is wrapped in try/catch above).
+  // Persist the real-session id list whenever it grows (new session minted)
+  // or shrinks (real session closed, WR-03). T-06-02-02: reading this back
+  // at mount is wrapped in try/catch above.
   useEffect(() => {
     localStorage.setItem(SESSION_IDS_KEY, JSON.stringify(realSessions.map((s) => s.id)));
   }, [realSessions]);
@@ -192,7 +193,16 @@ export function AssistantPanel() {
   }
 
   function closeSession(id: string) {
-    setClosedIds((prev) => new Set(prev).add(id));
+    // WR-03: real sessions are REMOVED from realSessions (letting the
+    // persistence effect shrink the stored id list) — otherwise every closed
+    // real session resurrects on the next launch and the persisted array
+    // grows monotonically. closedIds is kept only for seeds, which cannot be
+    // removed from the static sessionSeeds array.
+    if (realSessions.some((s) => s.id === id)) {
+      setRealSessions((prev) => prev.filter((s) => s.id !== id));
+    } else {
+      setClosedIds((prev) => new Set(prev).add(id));
+    }
     if (id !== activeSessionId) return;
     const remaining = allSessions.filter((s) => s.id !== id && !closedIds.has(s.id));
     if (remaining.length > 0) {
