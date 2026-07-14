@@ -1,6 +1,24 @@
-import { describe, it, expect, afterEach, beforeEach } from "vitest";
+import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup, act } from "@testing-library/react";
 import { mockIPC, clearMocks } from "@tauri-apps/api/mocks";
+
+// WR-09: the real-session id list persists on the plugin store (applets.json)
+// instead of raw localStorage — mock the store with an in-memory Map the
+// tests can seed/inspect directly (mirrors homeCards.storage.test.ts).
+const fakeStore = new Map<string, unknown>();
+vi.mock("@tauri-apps/plugin-store", () => ({
+  LazyStore: class {
+    async get<T>(key: string): Promise<T | undefined> {
+      return fakeStore.get(key) as T | undefined;
+    }
+
+    async set(key: string, value: unknown): Promise<void> {
+      fakeStore.set(key, value);
+    }
+
+    async save(): Promise<void> {}
+  },
+}));
 
 import { AssistantPanel } from "./AssistantPanel";
 
@@ -37,8 +55,9 @@ function deliver(onEvent: HostAiArgs["onEvent"], events: QueuedEvent[]) {
   })();
 }
 
-// D-01 growth: the panel now persists a LIST of real-session ids (JSON array)
-// under a generalized key, replacing Phase 7's single-sessionId key.
+// D-01 growth: the panel now persists a LIST of real-session ids under a
+// generalized key, replacing Phase 7's single-sessionId key. WR-09: the sink
+// is the plugin store (applets.json), no longer raw localStorage.
 const SESSION_IDS_KEY = "sourcerer:assistant:sessionIds";
 const SESSION_ID_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/;
 
@@ -50,12 +69,14 @@ interface LoadSessionArgs {
 beforeEach(() => {
   clearMocks();
   localStorage.clear();
+  fakeStore.clear();
 });
 
 afterEach(() => {
   cleanup();
   clearMocks();
   localStorage.clear();
+  fakeStore.clear();
 });
 
 describe("AssistantPanel (D-01 streamed chat + D-06 honest-degrade)", () => {
@@ -166,7 +187,7 @@ describe("AssistantPanel (D-01 streamed chat + D-06 honest-degrade)", () => {
 
 describe("AssistantPanel (D-09 restart-reload)", () => {
   it("renders prior turns delivered via a mount-time load_session history event", async () => {
-    localStorage.setItem(SESSION_IDS_KEY, JSON.stringify(["prior-session-1"]));
+    fakeStore.set(SESSION_IDS_KEY, ["prior-session-1"]);
 
     mockIPC((cmd, args) => {
       if (cmd === "load_session") {
@@ -196,7 +217,7 @@ describe("AssistantPanel (D-09 restart-reload)", () => {
   });
 
   it("reuses the persisted sessionId across mounts (restart survival)", async () => {
-    localStorage.setItem(SESSION_IDS_KEY, JSON.stringify(["existing-session-42"]));
+    fakeStore.set(SESSION_IDS_KEY, ["existing-session-42"]);
     let capturedSessionId: string | undefined;
 
     mockIPC((cmd, args) => {
@@ -233,12 +254,41 @@ describe("AssistantPanel (D-09 restart-reload)", () => {
       expect(capturedSessionId).toBeDefined();
     });
     expect(capturedSessionId).toMatch(SESSION_ID_PATTERN);
-    const stored = JSON.parse(localStorage.getItem(SESSION_IDS_KEY) ?? "[]") as string[];
-    expect(stored[0]).toBe(capturedSessionId);
+    // WR-09: persisted to the plugin store once hydration settles.
+    await waitFor(() => {
+      const stored = (fakeStore.get(SESSION_IDS_KEY) ?? []) as string[];
+      expect(stored[0]).toBe(capturedSessionId);
+    });
+  });
+
+  it("migrates a legacy localStorage id list onto the plugin store (WR-09)", async () => {
+    localStorage.setItem(SESSION_IDS_KEY, JSON.stringify(["legacy-session-7"]));
+    let capturedSessionId: string | undefined;
+
+    mockIPC((cmd, args) => {
+      if (cmd === "load_session") {
+        const a = args as unknown as LoadSessionArgs;
+        capturedSessionId = a.sessionId;
+        deliver(a.onEvent, [{ type: "done", id: "load-legacy" }]);
+      }
+      return undefined;
+    });
+
+    render(<AssistantPanel />);
+
+    // The legacy session is restored (not orphaned)…
+    await waitFor(() => {
+      expect(capturedSessionId).toBe("legacy-session-7");
+    });
+    // …and its list now lives on the plugin store, legacy copy removed.
+    await waitFor(() => {
+      expect(fakeStore.get(SESSION_IDS_KEY)).toEqual(["legacy-session-7"]);
+    });
+    expect(localStorage.getItem(SESSION_IDS_KEY)).toBeNull();
   });
 
   it("a replayed history transcript's final proposal keeps its y/d/n block (WR-04)", async () => {
-    localStorage.setItem(SESSION_IDS_KEY, JSON.stringify(["proposal-session-1"]));
+    fakeStore.set(SESSION_IDS_KEY, ["proposal-session-1"]);
 
     mockIPC((cmd, args) => {
       if (cmd === "load_session") {
@@ -307,7 +357,7 @@ describe("AssistantPanel (D-09 restart-reload)", () => {
   });
 
   it("an empty-turns history event leaves the panel empty and usable, no crash", async () => {
-    localStorage.setItem(SESSION_IDS_KEY, JSON.stringify(["empty-session-1"]));
+    fakeStore.set(SESSION_IDS_KEY, ["empty-session-1"]);
 
     mockIPC((cmd, args) => {
       if (cmd === "load_session") {
@@ -412,10 +462,10 @@ describe("AssistantPanel (D-01 multi-session list + header chrome — 06-02)", (
     // Mint a second real session so closing one leaves another to fall to.
     fireEvent.click(screen.getByLabelText("Start new session"));
     await waitFor(() => {
-      const stored = JSON.parse(localStorage.getItem(SESSION_IDS_KEY) ?? "[]") as string[];
+      const stored = (fakeStore.get(SESSION_IDS_KEY) ?? []) as string[];
       expect(stored.length).toBe(2);
     });
-    const before = JSON.parse(localStorage.getItem(SESSION_IDS_KEY) ?? "[]") as string[];
+    const before = fakeStore.get(SESSION_IDS_KEY) as string[];
 
     // Close the second (active) real session — its chip title is the real
     // "New assistant" label; both real chips share it, so close via the
@@ -424,8 +474,7 @@ describe("AssistantPanel (D-01 multi-session list + header chrome — 06-02)", (
     fireEvent.click(closeButtons[closeButtons.length - 1]!);
 
     await waitFor(() => {
-      const stored = JSON.parse(localStorage.getItem(SESSION_IDS_KEY) ?? "[]") as string[];
-      expect(stored).toEqual([before[0]]);
+      expect(fakeStore.get(SESSION_IDS_KEY)).toEqual([before[0]]);
     });
   });
 

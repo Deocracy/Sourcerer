@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { nanoid } from "nanoid";
 import { host, type AssistantEvent } from "../host/ai";
 import { sessionSeeds, newRealSession, type SessionEntry } from "./sessionSeeds";
+import { loadSessionIds, saveSessionIds } from "./sessionIdsStorage";
 import { parseProposal, type Proposal } from "./proposalParse";
 import { shellStore, useShellStore } from "../store/shellStore";
 import { useAssistantResize } from "./useAssistantResize";
@@ -26,38 +27,6 @@ interface ChatMessage {
 }
 
 const RESEARCH_MODE = "research";
-
-// D-01 growth: generalizes Phase 7's single `sourcerer:assistant:sessionId`
-// key into a persisted LIST of real-session ids (JSON array), so the panel
-// can hold several real sessions alongside the read-only seeds. Namespaced
-// per the applet `sourcerer:<key>:<k>` storage convention.
-const SESSION_IDS_KEY = "sourcerer:assistant:sessionIds";
-
-/**
- * Loads the persisted list of real-session ids and reconstructs their
- * (locally empty — history is reloaded per-session via `host.loadSession`)
- * SessionEntry shells. T-06-02-02: a corrupt/malformed persisted value never
- * throws at mount — it falls back to minting one fresh real session.
- */
-function loadRealSessions(): SessionEntry[] {
-  try {
-    const raw = localStorage.getItem(SESSION_IDS_KEY);
-    if (raw) {
-      const parsed: unknown = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0 && parsed.every((id) => typeof id === "string")) {
-        return (parsed as string[]).map((id) => ({
-          id,
-          label: "Session",
-          kind: "real",
-          turns: [],
-        }));
-      }
-    }
-  } catch {
-    // T-06-02-02: fall through to minting a fresh real session below.
-  }
-  return [newRealSession()];
-}
 
 /**
  * WR-04: shared last-assistant-turn proposal attachment — used by BOTH the
@@ -120,9 +89,19 @@ export function AssistantPanel() {
   const [composerText, setComposerText] = useState("");
   const [sending, setSending] = useState(false);
   const [researchMode, setResearchMode] = useState(false);
-  const [realSessions, setRealSessions] = useState<SessionEntry[]>(() => loadRealSessions());
+  // WR-09: the persisted real-session id list lives on the plugin store
+  // (async read) — start with one freshly-minted real session so first paint
+  // is never blank, then the hydration effect below swaps in the restored
+  // list once the disk read resolves.
+  const [realSessions, setRealSessions] = useState<SessionEntry[]>(() => [newRealSession()]);
   const [closedIds, setClosedIds] = useState<Set<string>>(() => new Set());
   const [activeSessionId, setActiveSessionId] = useState<string>(() => realSessions[0].id);
+  // Gates the persist effect until the disk read settles (a mount-time write
+  // of the placeholder fresh id must never clobber the stored list), and
+  // guards the restore against a user mutation that landed first (mirrors
+  // Home.tsx's dirtyRef, Rule 1).
+  const [sessionsHydrated, setSessionsHydrated] = useState(false);
+  const sessionsDirtyRef = useRef(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   // ASST-02: id of the message whose proposal currently responds to y/d/n.
   // Auto-focused whenever a new proposal is attached (session load or a
@@ -134,12 +113,39 @@ export function AssistantPanel() {
   const activeSession = allSessions.find((s) => s.id === activeSessionId) ?? allSessions[0];
   const activeKind = activeSession.kind;
 
-  // Persist the real-session id list whenever it grows (new session minted)
-  // or shrinks (real session closed, WR-03). T-06-02-02: reading this back
-  // at mount is wrapped in try/catch above.
+  // WR-09 hydration: restore the persisted real-session id list (plugin
+  // store, applets.json) as locally-empty SessionEntry shells — history is
+  // reloaded per-session via `host.loadSession`. T-06-02-02: loadSessionIds
+  // never throws; a corrupt/absent value resolves null and the mount-time
+  // fresh session stands.
   useEffect(() => {
-    localStorage.setItem(SESSION_IDS_KEY, JSON.stringify(realSessions.map((s) => s.id)));
-  }, [realSessions]);
+    let stale = false;
+    void loadSessionIds().then((ids) => {
+      if (!stale && !sessionsDirtyRef.current && ids && ids.length > 0) {
+        const restored: SessionEntry[] = ids.map((id) => ({
+          id,
+          label: "Session",
+          kind: "real",
+          turns: [],
+        }));
+        setRealSessions(restored);
+        setActiveSessionId(restored[0].id);
+      }
+      if (!stale) setSessionsHydrated(true);
+    });
+    return () => {
+      stale = true;
+    };
+  }, []);
+
+  // Persist the real-session id list whenever it grows (new session minted)
+  // or shrinks (real session closed, WR-03) — but only after hydration, so
+  // the placeholder fresh session can never overwrite the stored list before
+  // the disk read resolves.
+  useEffect(() => {
+    if (!sessionsHydrated) return;
+    void saveSessionIds(realSessions.map((s) => s.id));
+  }, [sessionsHydrated, realSessions]);
 
   function updateMessage(id: string, patch: Partial<ChatMessage>) {
     setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m)));
@@ -208,6 +214,7 @@ export function AssistantPanel() {
   }, [activeSessionId]);
 
   function startNewSession() {
+    sessionsDirtyRef.current = true;
     const created = newRealSession();
     setRealSessions((prev) => [...prev, created]);
     setActiveSessionId(created.id);
@@ -215,6 +222,7 @@ export function AssistantPanel() {
   }
 
   function closeSession(id: string) {
+    sessionsDirtyRef.current = true;
     // WR-03: real sessions are REMOVED from realSessions (letting the
     // persistence effect shrink the stored id list) — otherwise every closed
     // real session resurrects on the next launch and the persisted array
