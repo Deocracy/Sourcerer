@@ -28,3 +28,11 @@
 .toggle:hover {
   background: var(--color-panel);
 }
+
+.toggleDim {
+  color: var(--color-faint);
+}
+
+.toggleLit {
+  color: var(--color-fg);
+}
