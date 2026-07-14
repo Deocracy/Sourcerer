@@ -1,15 +1,16 @@
+import { shellStore } from "../store/shellStore";
 import styles from "./LogoCluster.module.css";
 
 /**
  * LogoCluster — logo mark (ring + dot) + "Sourcerer" wordmark + "·" + "Home" crumb.
  * The primary focal point of the title bar (UI-SPEC Color section). Clicking the
- * cluster fires an openHome handler — a console-stub in Phase 1 (no workspace exists
- * yet to toggle Home <-> last applet view; that wiring belongs to later phases).
+ * cluster opens the Home overlay (Phase 6, HOME-01/D-04) — replaces the Phase 1
+ * console-stub with the same `shellStore` action `DiviChip`'s toggle uses, so both
+ * entry points drive the one `homeOpen` boolean (RESEARCH.md Pitfall 4).
  * Does NOT carry data-tauri-drag-region — TitleBar puts that on the spacer only (T-01-03).
  */
 function openHome() {
-  // eslint-disable-next-line no-console
-  console.log("openHome: no-op stub in Phase 1 (no workspace to toggle yet)");
+  shellStore.getState().setHomeOpen(true);
 }
 
 export function LogoCluster() {

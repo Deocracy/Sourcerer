@@ -1,0 +1,100 @@
+/*
+ * Home.module.css — the metro dashboard overlay (HOME-01). Mounted as an
+ * absolute-positioned sibling over the still-mounted dockview (`.main` in
+ * AppShell.module.css already carries `position:relative` for this),
+ * per 06-UI-SPEC.md: `position:absolute; inset:0; z-index:55`.
+ */
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 55;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--color-bg);
+  padding: 20px 24px;
+  font-family: var(--font-sans);
+}
+
+.section {
+  margin-bottom: 18px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: 0 0 var(--space-sm);
+}
+
+.sectionLabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.sectionRule {
+  height: 1px;
+  flex: 1;
+  background: linear-gradient(to right, #3a3b40, #1e1f22);
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 176px);
+  grid-auto-rows: minmax(82px, auto);
+  gap: 4px;
+  align-content: flex-start;
+  justify-content: start;
+  min-height: 36px;
+}
+
+.listGrid {
+  min-height: 36px;
+}
+
+.archiveToggle {
+  display: flex;
+  align-items: stretch;
+  border: var(--border-w) solid var(--color-line-2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+}
+
+.archiveToggleBtn,
+.archiveToggleActive {
+  padding: 4px 10px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+}
+
+.archiveToggleActive {
+  background: #1e1f22;
+  color: var(--color-fg);
+}
+
+.empty {
+  padding: var(--space-lg) 0;
+}
+
+.emptyHeading {
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  color: var(--color-fg);
+  margin-bottom: var(--space-xs);
+}
+
+.emptyBody {
+  font-family: var(--font-sans);
+  font-size: var(--fs-label);
+  color: var(--color-muted);
+  max-width: 420px;
+}
