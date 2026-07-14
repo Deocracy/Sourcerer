@@ -7,6 +7,7 @@ import {
   closestCenter,
   useSensor,
   useSensors,
+  useDroppable,
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
@@ -60,6 +61,16 @@ function EmptySection() {
       </div>
     </div>
   );
+}
+
+/** WR-02: registers the section body as a dnd-kit droppable under its own
+ *  section key — rendered even when the section is EMPTY, so `over.id` can
+ *  resolve to a section id and `moveBetweenSections`' section-id branch is
+ *  reachable. Without this, dragging the only card out of a section left it
+ *  permanently unreachable as a drop target (no droppable node at all). */
+function SectionDroppable({ sec, children }: { sec: SectionKey; children: React.ReactNode }) {
+  const { setNodeRef } = useDroppable({ id: sec });
+  return <div ref={setNodeRef}>{children}</div>;
 }
 
 export function Home() {
@@ -137,17 +148,22 @@ export function Home() {
   const grid = (sec: SectionKey) => {
     const ids = sections[sec] || [];
     const listMode = sec === "living" || (sec === "archive" && archiveView !== "cards");
-    if (ids.length === 0) return <EmptySection />;
     return (
-      <SortableContext items={ids} strategy={rectSortingStrategy}>
-        <div className={listMode ? styles.listGrid : styles.cardGrid}>
-          {ids.map((id) =>
-            cardDefs[id] ? (
-              <SortableCard key={id} id={id} sec={sec} listView={archiveView !== "cards"} onOpen={onOpen} />
-            ) : null,
-          )}
-        </div>
-      </SortableContext>
+      <SectionDroppable sec={sec}>
+        {ids.length === 0 ? (
+          <EmptySection />
+        ) : (
+          <SortableContext items={ids} strategy={rectSortingStrategy}>
+            <div className={listMode ? styles.listGrid : styles.cardGrid}>
+              {ids.map((id) =>
+                cardDefs[id] ? (
+                  <SortableCard key={id} id={id} sec={sec} listView={archiveView !== "cards"} onOpen={onOpen} />
+                ) : null,
+              )}
+            </div>
+          </SortableContext>
+        )}
+      </SectionDroppable>
     );
   };
 
