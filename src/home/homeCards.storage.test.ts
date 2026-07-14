@@ -12,6 +12,9 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 // Injected per-test: what the mocked LazyStore.get resolves (or throws).
 let storedValue: unknown;
 let getThrows = false;
+// WR-07: records every mocked set(key, value) so the close-flush test can
+// assert the pending debounced write actually reached the store.
+const setCalls: Array<[string, unknown]> = [];
 
 vi.mock("@tauri-apps/plugin-store", () => ({
   LazyStore: class {
@@ -20,18 +23,23 @@ vi.mock("@tauri-apps/plugin-store", () => ({
       return storedValue as T | undefined;
     }
 
-    async set(): Promise<void> {}
+    async set(key: string, value: unknown): Promise<void> {
+      setCalls.push([key, value]);
+    }
 
     async save(): Promise<void> {}
   },
 }));
 
-const { loadSections } = await import("./homeCards.storage");
+const { loadSections, scheduleSaveSections, flushPendingSectionsSave } = await import(
+  "./homeCards.storage"
+);
 const { DEFAULT_SECTIONS } = await import("./cardDefs");
 
 beforeEach(() => {
   storedValue = undefined;
   getThrows = false;
+  setCalls.length = 0;
 });
 
 describe("loadSections (CR-02: corrupt persisted values fall back to DEFAULT_SECTIONS)", () => {
@@ -93,5 +101,22 @@ describe("loadSections (CR-02: corrupt persisted values fall back to DEFAULT_SEC
     };
     storedValue = valid;
     expect(await loadSections()).toEqual(valid);
+  });
+});
+
+describe("flushPendingSectionsSave (WR-07: close-flush drains the debounce window)", () => {
+  it("writes a still-debounced section map immediately, without waiting 300ms", async () => {
+    const map = { pins: ["corpus"], fresh: [], living: [], archive: [] };
+    scheduleSaveSections(map); // starts the 300ms debounce
+    expect(setCalls.length).toBe(0); // not yet written
+
+    await flushPendingSectionsSave();
+
+    expect(setCalls[setCalls.length - 1]).toEqual(["sourcerer:home:home-cards-v1", map]);
+  });
+
+  it("is a safe no-op with nothing pending", async () => {
+    await flushPendingSectionsSave();
+    expect(setCalls.length).toBe(0);
   });
 });

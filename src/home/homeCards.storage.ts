@@ -1,5 +1,6 @@
 import { LazyStore } from "@tauri-apps/plugin-store";
 import { DEFAULT_SECTIONS, SECTION_ORDER, cardDefs } from "./cardDefs";
+import { registerCloseFlusher } from "../persistence/workspaceStore";
 import type { SectionMap } from "./homeCardsReducer";
 
 /*
@@ -64,19 +65,45 @@ export async function loadSections(): Promise<SectionMap> {
   return pruned;
 }
 
+// WR-07: all disk writes serialize through ONE promise chain (mirrors
+// workspaceStore's enqueueWrite) so two flushes can never interleave their
+// set/save pairs when IPC is slow — last enqueued wins deterministically.
+let writeChain: Promise<void> = Promise.resolve();
+
 async function flush(): Promise<void> {
   saveTimer = undefined;
   const map = pending;
   pending = undefined;
   if (!map) return;
-  try {
-    await store.set(HOME_KEY, map);
-    await store.save();
-  } catch {
-    // WR-01: best-effort, never-throws — a failed IPC/disk write is dropped
-    // silently, mirroring src/host/storage.ts's set() contract.
-  }
+  const write = async () => {
+    try {
+      await store.set(HOME_KEY, map);
+      await store.save();
+    } catch {
+      // WR-01: best-effort, never-throws — a failed IPC/disk write is dropped
+      // silently, mirroring src/host/storage.ts's set() contract.
+    }
+  };
+  writeChain = writeChain.then(write, write);
+  await writeChain;
 }
+
+/** WR-07: force-flush of the pending debounced section write — registered
+ *  with workspaceStore's close-flush authority below so a Home card drag
+ *  inside the 300ms debounce window of a window close is not lost. Safe to
+ *  call with nothing pending (no-op). */
+export async function flushPendingSectionsSave(): Promise<void> {
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = undefined;
+  }
+  await flush();
+}
+
+// Hook into the established "workspace:flush-before-close" path: the ONE
+// close-flush authority (workspaceStore.flushPendingSave) drains this
+// module's pending write too.
+registerCloseFlusher(flushPendingSectionsSave);
 
 /** scheduleSaveSections — debounces a single `host.storage`-equivalent write
  *  of the SectionMap. Call after every onDragEnd; do NOT call on

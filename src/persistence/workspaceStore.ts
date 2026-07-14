@@ -432,6 +432,23 @@ export function scheduleWorkspaceSave(): void {
   }, SAVE_DEBOUNCE_MS);
 }
 
+// WR-07 (Phase 6): auxiliary close-flushers — other debounced writers (e.g.
+// homeCards.storage.ts's section-map debounce) register here so the ONE
+// close-flush authority (flushPendingSave, driven by the
+// "workspace:flush-before-close" handshake below) also drains THEIR pending
+// writes. Without this, a Home card drag inside the debounce window of a
+// window close was silently lost. Each flusher is awaited best-effort — a
+// failing auxiliary flush never blocks the workspace flush or the close.
+type CloseFlusher = () => Promise<void>;
+const closeFlushers = new Set<CloseFlusher>();
+
+/** Registers an auxiliary pending-write flusher to run during
+ *  flushPendingSave (graceful close). Returns an unregister function. */
+export function registerCloseFlusher(flusher: CloseFlusher): () => void {
+  closeFlushers.add(flusher);
+  return () => closeFlushers.delete(flusher);
+}
+
 /** PERS-04: synchronous force-flush of the pending debounced write — the
  *  single explicit flush authority for graceful window close (RESEARCH.md
  *  Pitfall 1: do not rely on plugin autoSave alone for close-safety). Clears
@@ -455,7 +472,20 @@ export async function flushPendingSave(): Promise<void> {
   if (inMemory.restoreCanary) {
     setRestoreCanary(false);
   }
-  await flushNow();
+  // WR-07: drain registered auxiliary writers alongside the workspace flush
+  // (best-effort each — one failure never blocks the others or the close).
+  // flushNow() MUST be invoked in this same synchronous tick (inside the
+  // Promise.all array, not after an await) so its buildRecordFromSources()
+  // getter reads keep their pre-WR-07 timing — an await inserted before it
+  // would let state mutate between "flush requested" and "record built".
+  await Promise.all([
+    flushNow(),
+    ...[...closeFlushers].map((flusher) =>
+      flusher().catch((err) => {
+        console.warn("workspaceStore: auxiliary close-flush failed", err);
+      }),
+    ),
+  ]);
 }
 
 // ---------------------------------------------------------------------------
