@@ -95,6 +95,14 @@
 
   /* ---- Tab bar ---- */
   --tab-bar-h: 34px;              /* dockview tab row, matches title-bar-adjacent bars */
+
+  /* ---- Assistant (Phase 6, handoff-literal — do not round to the 4pt scale) ---- */
+  --asst-header-h: 44px;          /* header row height (session chips + history/new-session icons) */
+  --asst-width-default: 280px;    /* default panel width, mirrors --rail-expanded-default */
+  --asst-resize-handle-w: 6px;    /* left-edge resize grip width, matches --rail-resize-handle-w */
+  --asst-closed-w: 6px;           /* collapsed/closed strip width, matches --rail-hidden-w */
+  --asst-thread-pad: 18px;        /* message thread padding, both axes */
+  --asst-session-chip: 26px;      /* session chip square size (roman-numeral tile) */
 }
 
 /* Minimal global reset so the app-shell grid fills the frameless window. */
