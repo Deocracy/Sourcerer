@@ -19,4 +19,4 @@ used sparingly (~10%), 1px lines, 0 border-radius everywhere except the outer wi
 |---|------|----------------|--------|------|
 | 001 | multi-corpus-launcher | How do you see and resume your corpora from Home? | B — rail list + resume panel | launcher, corpus, home |
 | 002 | side-by-side-corpora | What does two corpora open at once look like? | A — dockview split panes, one window | layout, multi-instance, dockview |
-| 003 | wiki-reading-experience | How does the canonical article read inside Sourcerer? | — | wiki, provenance, reading |
+| 003 | wiki-reading-experience | How does the canonical article read inside the Databasise applet? | Synthesis — serif reading column + persistent claim-inspector rail + `## Unresolved` block | wiki, provenance, reading |

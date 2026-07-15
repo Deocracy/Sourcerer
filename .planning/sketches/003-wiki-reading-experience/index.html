@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sketch 003 — Wiki Reading Experience</title>
+<link rel="stylesheet" href="../themes/default.css">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #060607; }
+  body { font-family: var(--font-sans); font-size: var(--fs-body); line-height: var(--lh-body); color: var(--color-fg); padding-top: 44px; }
+
+  #variant-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 9998; background: #060607; border-bottom: 1px solid var(--color-line); padding: 8px 16px; display: flex; gap: 8px; }
+  .variant-tab { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; background: transparent; color: var(--color-dim); border: 1px solid var(--color-line); padding: 6px 14px; cursor: pointer; transition: all .15s ease; }
+  .variant-tab:hover { color: var(--color-fg); border-color: var(--color-dim-hover); }
+  .variant-tab.active { color: var(--color-accent); border-color: var(--color-accent); }
+  .variant { display: none; } .variant.active { display: block; }
+
+  .window { max-width: 1240px; margin: 20px auto; background: var(--color-bg); border: var(--window-border); border-radius: var(--window-radius); overflow: hidden; min-height: 700px; display: flex; flex-direction: column; }
+  .titlebar { height: var(--titlebar-h); border-bottom: 1px solid var(--color-line); display: flex; align-items: center; padding-left: var(--titlebar-inset); gap: var(--cluster-gap); flex: 0 0 auto; }
+  .logo { width: var(--logo-circle); height: var(--logo-circle); border: var(--logo-stroke) solid var(--color-fg); border-radius: 50%; position: relative; flex: 0 0 auto; }
+  .logo::after { content: ""; width: var(--logo-dot); height: var(--logo-dot); background: var(--color-fg); border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+  .wordmark { font-family: var(--font-mono); font-size: var(--fs-display); letter-spacing: var(--ls-wordmark); }
+  .crumb-dot { color: var(--color-dim); }
+  .crumb { font-family: var(--font-mono); font-size: var(--fs-label); color: var(--color-dim); }
+  .winctl { margin-left: auto; display: flex; }
+  .winctl span { width: 46px; height: 40px; display: flex; align-items: center; justify-content: center; color: var(--color-dim); font-family: var(--font-mono); font-size: 12px; }
+
+  .seclabel { font-family: var(--font-mono); font-size: var(--fs-label); letter-spacing: var(--ls-label-wide); text-transform: uppercase; color: var(--color-faint); }
+  .chip { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; border: 1px solid var(--color-line-2); color: var(--color-muted); padding: 2px 7px; }
+  .chip.accent { color: var(--color-accent); border-color: rgba(134,163,140,.45); }
+  .chip.warn { color: #C9A227; border-color: rgba(201,162,39,.4); }
+
+  .arthead { display: flex; align-items: baseline; gap: var(--space-md); margin-bottom: var(--space-xs); }
+  h1.art { font-family: var(--font-serif); font-size: 30px; font-weight: var(--fw-regular); line-height: var(--lh-heading); }
+  .artmeta { font-family: var(--font-mono); font-size: 10px; color: var(--color-faint); letter-spacing: .06em; margin-bottom: var(--space-xl); }
+
+  /* claim spans (A + C prose) */
+  .cl { border-bottom: 1px dotted var(--color-dim); cursor: pointer; transition: all .12s ease; }
+  .cl:hover { border-bottom-color: var(--color-accent); color: #fff; background: rgba(134,163,140,.07); }
+  .cl.disp { border-bottom: 1px dashed #C9A227; color: #d9c98a; }
+  .cl.disp:hover { background: rgba(201,162,39,.08); }
+  .cl.sel { background: rgba(134,163,140,.12); border-bottom-color: var(--color-accent); }
+
+  /* provenance popover */
+  #pop { position: absolute; z-index: 100; width: 340px; background: var(--color-panel-2); border: 1px solid var(--color-line-2); box-shadow: 0 18px 44px rgba(0,0,0,.6); padding: 14px; display: none; }
+  #pop .seclabel { margin-bottom: 8px; }
+  #pop blockquote { font-family: var(--font-serif); font-style: italic; font-size: 13px; color: var(--color-fg-secondary); border-left: 2px solid var(--color-accent); padding-left: 10px; margin: 8px 0; }
+  #pop .srcline { font-family: var(--font-mono); font-size: 10px; color: var(--color-faint); display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+  #pop .actions { margin-top: 12px; display: flex; gap: 8px; }
+  #pop button, .unres button, .qbtn { font-family: var(--font-mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; background: transparent; border: 1px solid var(--color-line-2); color: var(--color-fg-secondary); padding: 5px 10px; cursor: pointer; transition: all .15s ease; }
+  #pop button:hover, .unres button:hover, .qbtn:hover { border-color: var(--color-dim-hover); color: var(--color-fg); }
+
+  /* unresolved section */
+  .unres { border: 1px solid rgba(201,162,39,.4); background: rgba(201,162,39,.04); padding: var(--space-md); margin-top: var(--space-xl); }
+  .unres .seclabel { color: #C9A227; margin-bottom: 10px; }
+  .unres-row { display: grid; grid-template-columns: 130px 1fr 1fr auto; gap: 12px; padding: 8px 0; border-top: 1px solid rgba(201,162,39,.2); font-size: 12.5px; align-items: center; }
+  .unres-row .attr { font-weight: var(--fw-medium); color: var(--color-fg); font-size: 12px; }
+  .unres-row .val { color: var(--color-fg-secondary); }
+  .unres-row .val em { display: block; font-style: normal; font-family: var(--font-mono); font-size: 9.5px; color: var(--color-faint); margin-top: 2px; }
+
+  /* ============ A: serif reading column ============ */
+  .a-stage { flex: 1; overflow: auto; padding: var(--space-2xl) 0; }
+  .a-col { max-width: 660px; margin: 0 auto; padding: 0 var(--space-lg); }
+  .a-col p { font-family: var(--font-serif); font-size: 16px; line-height: 1.75; color: var(--color-fg-secondary); margin-bottom: var(--space-md); }
+
+  /* ============ B: attribute-group cards ============ */
+  .b-stage { flex: 1; overflow: auto; padding: var(--space-xl) var(--space-2xl); }
+  .b-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); }
+  .b-card { border: 1px solid var(--color-line); background: var(--color-panel-2); }
+  .b-card > .hd { padding: 10px 14px; border-bottom: 1px solid var(--color-line); display: flex; align-items: center; gap: 8px; }
+  .b-card > .hd .seclabel { color: var(--color-fg-mid); }
+  .b-row { display: flex; gap: 10px; padding: 9px 14px; border-top: 1px solid var(--color-line); font-size: 12.5px; align-items: baseline; cursor: pointer; transition: background .12s ease; }
+  .b-row:first-of-type { border-top: none; }
+  .b-row:hover { background: var(--color-panel); }
+  .b-row b { min-width: 128px; font-weight: var(--fw-medium); font-size: 12px; color: var(--color-fg); flex: 0 0 auto; }
+  .b-row span { color: var(--color-fg-secondary); }
+  .b-row .prov { margin-left: auto; font-family: var(--font-mono); font-size: 9.5px; color: var(--color-faint); white-space: nowrap; }
+  .b-row:hover .prov { color: var(--color-accent); }
+  .b-row.disp b { color: #C9A227; }
+
+  /* ============ C: article + provenance rail ============ */
+  .c-body { flex: 1; display: flex; min-height: 0; }
+  .c-art { flex: 1; overflow: auto; padding: var(--space-2xl); }
+  .c-art p { font-family: var(--font-serif); font-size: 15.5px; line-height: 1.75; color: var(--color-fg-secondary); margin-bottom: var(--space-md); max-width: 620px; }
+  .c-rail { width: 320px; border-left: 1px solid var(--color-line); background: var(--color-panel-2); padding: var(--space-lg); overflow: auto; flex: 0 0 auto; }
+  .c-rail .empty { color: var(--color-dim); font-size: 12px; margin-top: var(--space-md); }
+  .c-rail blockquote { font-family: var(--font-serif); font-style: italic; font-size: 13px; color: var(--color-fg-secondary); border-left: 2px solid var(--color-accent); padding-left: 10px; margin: 10px 0; }
+  .c-rail .srcline { font-family: var(--font-mono); font-size: 10px; color: var(--color-faint); display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+  .c-rail .actions { margin-top: 14px; display: flex; gap: 8px; }
+  .c-rail h3 { font-family: var(--font-sans); font-size: 13px; font-weight: var(--fw-medium); margin: 14px 0 4px; }
+
+  #toast { position: fixed; bottom: 56px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--color-panel); border: 1px solid var(--color-accent); color: var(--color-fg); font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; padding: 10px 20px; opacity: 0; transition: all .2s ease; z-index: 10000; pointer-events: none; }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div id="variant-nav">
+  <button class="variant-tab active" onclick="showVariant('a', this)">A: Serif Reading Column</button>
+  <button class="variant-tab" onclick="showVariant('b', this)">B: Attribute-Group Cards</button>
+  <button class="variant-tab" onclick="showVariant('c', this)">C: Article + Provenance Rail</button>
+  <button class="variant-tab" onclick="showVariant('synth', this)">Synthesis: C's rail + A's reading column ★ Selected</button>
+</div>
+
+<!-- ============ VARIANT A ============ -->
+<div id="variant-a" class="variant active">
+  <div class="window">
+    <div class="titlebar"><div class="logo"></div><span class="wordmark">Databasise</span><span class="crumb-dot">·</span><span class="crumb">Titanic / Wiki / RMS Titanic</span><div class="winctl"><span>—</span><span>□</span><span>×</span></div></div>
+    <div class="a-stage">
+      <div class="a-col">
+        <div class="arthead"><h1 class="art">RMS Titanic</h1><span class="chip accent">curated</span></div>
+        <div class="artmeta">318 canonical claims · head v14 · composed on demand · every claim traceable</div>
+        <p>RMS Titanic was a British ocean liner operated by the <span class="cl" data-k="wsl">White Star Line</span>. She departed Southampton on her maiden voyage on <span class="cl" data-k="dep">10 April 1912</span>, bound for New York with <span class="cl" data-k="cap">2,435 passengers and 892 crew</span> aboard.</p>
+        <p>The ship carried <span class="cl disp" data-k="boats">20 lifeboats with a total capacity of 1,178 people</span> — fewer than half of those aboard. Her exact departure time is <span class="cl disp" data-k="time">disputed between noon and 12:15 pm</span> across ingested sources.</p>
+        <p>The wreck lies at a depth of <span class="cl" data-k="depth">3,784 metres</span> and was located in <span class="cl" data-k="found">1985 by a Franco-American expedition</span>.</p>
+
+        <div class="unres">
+          <div class="seclabel">## Unresolved — 2 genuine conflicts, never silently collapsed</div>
+          <div class="unres-row">
+            <span class="attr">Departure time</span>
+            <span class="val">“shortly after noon”<em>Inquiry transcript · library</em></span>
+            <span class="val">“12:15 pm”<em>Harland &amp; Wolff log · library</em></span>
+            <button onclick="toast('Opens the contradiction review queue for this pair')">Review</button>
+          </div>
+          <div class="unres-row">
+            <span class="attr">Lifeboat capacity</span>
+            <span class="val">1,178 people<em>Board of Trade report · curated</em></span>
+            <span class="val">1,167 people<em>Wreck commissioner notes · library</em></span>
+            <button onclick="toast('Opens the contradiction review queue for this pair')">Review</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ VARIANT B ============ -->
+<div id="variant-b" class="variant">
+  <div class="window">
+    <div class="titlebar"><div class="logo"></div><span class="wordmark">Databasise</span><span class="crumb-dot">·</span><span class="crumb">Titanic / Wiki / RMS Titanic</span><div class="winctl"><span>—</span><span>□</span><span>×</span></div></div>
+    <div class="b-stage">
+      <div class="arthead"><h1 class="art">RMS Titanic</h1><span class="chip accent">curated</span><span class="chip warn">2 unresolved</span></div>
+      <div class="artmeta">318 canonical claims · head v14 · grouped by attribute</div>
+      <div class="b-grid">
+        <div class="b-card">
+          <div class="hd"><span class="seclabel">Identity</span></div>
+          <div class="b-row" onclick="toast('Provenance: verbatim spans from 3 sources')"><b>Operator</b><span>White Star Line</span><span class="prov">3 src</span></div>
+          <div class="b-row" onclick="toast('Provenance: verbatim spans from 2 sources')"><b>Builder</b><span>Harland &amp; Wolff, Belfast</span><span class="prov">2 src</span></div>
+          <div class="b-row" onclick="toast('Provenance: verbatim spans from 2 sources')"><b>Class</b><span>Olympic-class ocean liner</span><span class="prov">2 src</span></div>
+        </div>
+        <div class="b-card">
+          <div class="hd"><span class="seclabel">Maiden voyage</span></div>
+          <div class="b-row" onclick="toast('Provenance: verbatim spans from 3 sources')"><b>Departed</b><span>Southampton, 10 April 1912</span><span class="prov">3 src</span></div>
+          <div class="b-row disp" onclick="toast('Disputed — opens both values + sources')"><b>Departure time</b><span>noon vs 12:15 pm</span><span class="prov">DISPUTED</span></div>
+          <div class="b-row" onclick="toast('Provenance: verbatim spans from 2 sources')"><b>Aboard</b><span>2,435 passengers + 892 crew</span><span class="prov">2 src</span></div>
+        </div>
+        <div class="b-card">
+          <div class="hd"><span class="seclabel">Safety</span></div>
+          <div class="b-row" onclick="toast('Provenance: verbatim spans from 4 sources')"><b>Lifeboats</b><span>20 boats</span><span class="prov">4 src</span></div>
+          <div class="b-row disp" onclick="toast('Disputed — opens both values + sources')"><b>Boat capacity</b><span>1,178 vs 1,167</span><span class="prov">DISPUTED</span></div>
+        </div>
+        <div class="b-card">
+          <div class="hd"><span class="seclabel">Wreck</span></div>
+          <div class="b-row" onclick="toast('Provenance: verbatim spans from 2 sources')"><b>Depth</b><span>3,784 m</span><span class="prov">2 src</span></div>
+          <div class="b-row" onclick="toast('Provenance: verbatim spans from 2 sources')"><b>Located</b><span>1985, Franco-American expedition</span><span class="prov">2 src</span></div>
+        </div>
+      </div>
+      <div class="unres" style="margin-top: var(--space-md);">
+        <div class="seclabel">## Unresolved</div>
+        <div class="unres-row"><span class="attr">Departure time</span><span class="val">“shortly after noon”<em>Inquiry transcript</em></span><span class="val">“12:15 pm”<em>H&amp;W log</em></span><button onclick="toast('Opens the contradiction review queue')">Review</button></div>
+        <div class="unres-row"><span class="attr">Boat capacity</span><span class="val">1,178<em>Board of Trade</em></span><span class="val">1,167<em>Commissioner notes</em></span><button onclick="toast('Opens the contradiction review queue')">Review</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ VARIANT C ============ -->
+<div id="variant-c" class="variant">
+  <div class="window">
+    <div class="titlebar"><div class="logo"></div><span class="wordmark">Databasise</span><span class="crumb-dot">·</span><span class="crumb">Titanic / Wiki / RMS Titanic</span><div class="winctl"><span>—</span><span>□</span><span>×</span></div></div>
+    <div class="c-body">
+      <div class="c-art">
+        <div class="arthead"><h1 class="art">RMS Titanic</h1><span class="chip accent">curated</span></div>
+        <div class="artmeta">318 canonical claims · head v14 · click any claim to inspect it</div>
+        <p>RMS Titanic was a British ocean liner operated by the <span class="cl" data-k="wsl" data-rail="1">White Star Line</span>. She departed Southampton on her maiden voyage on <span class="cl" data-k="dep" data-rail="1">10 April 1912</span>, with <span class="cl" data-k="cap" data-rail="1">2,435 passengers and 892 crew</span> aboard.</p>
+        <p>She carried <span class="cl disp" data-k="boats" data-rail="1">20 lifeboats — capacity 1,178</span>, and her <span class="cl disp" data-k="time" data-rail="1">departure time is disputed</span>.</p>
+        <p>The wreck lies at <span class="cl" data-k="depth" data-rail="1">3,784 metres</span>, located in <span class="cl" data-k="found" data-rail="1">1985</span>.</p>
+      </div>
+      <div class="c-rail">
+        <div class="seclabel">Claim inspector</div>
+        <div id="rail-body"><div class="empty">Click a claim in the article to see its provenance, trust level, and history here.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SYNTHESIS: C's rail + A's reading column ============ -->
+<div id="variant-synth" class="variant">
+  <div class="window">
+    <div class="titlebar"><div class="logo"></div><span class="wordmark">Databasise</span><span class="crumb-dot">·</span><span class="crumb">Titanic / Wiki / RMS Titanic</span><div class="winctl"><span>—</span><span>□</span><span>×</span></div></div>
+    <div class="c-body">
+      <div class="c-art" style="padding: var(--space-2xl) 0;">
+        <div class="a-col">
+          <div class="arthead"><h1 class="art">RMS Titanic</h1><span class="chip accent">curated</span></div>
+          <div class="artmeta">318 canonical claims · head v14 · composed on demand · click any claim to inspect it</div>
+          <p>RMS Titanic was a British ocean liner operated by the <span class="cl" data-k="wsl" data-rail="s">White Star Line</span>. She departed Southampton on her maiden voyage on <span class="cl" data-k="dep" data-rail="s">10 April 1912</span>, bound for New York with <span class="cl" data-k="cap" data-rail="s">2,435 passengers and 892 crew</span> aboard.</p>
+          <p>The ship carried <span class="cl disp" data-k="boats" data-rail="s">20 lifeboats with a total capacity of 1,178 people</span> — fewer than half of those aboard. Her exact departure time is <span class="cl disp" data-k="time" data-rail="s">disputed between noon and 12:15 pm</span> across ingested sources.</p>
+          <p>The wreck lies at a depth of <span class="cl" data-k="depth" data-rail="s">3,784 metres</span> and was located in <span class="cl" data-k="found" data-rail="s">1985 by a Franco-American expedition</span>.</p>
+
+          <div class="unres">
+            <div class="seclabel">## Unresolved — 2 genuine conflicts, never silently collapsed</div>
+            <div class="unres-row">
+              <span class="attr">Departure time</span>
+              <span class="val">“shortly after noon”<em>Inquiry transcript · library</em></span>
+              <span class="val">“12:15 pm”<em>Harland &amp; Wolff log · library</em></span>
+              <button onclick="toast('Opens the contradiction review queue for this pair')">Review</button>
+            </div>
+            <div class="unres-row">
+              <span class="attr">Lifeboat capacity</span>
+              <span class="val">1,178 people<em>Board of Trade report · curated</em></span>
+              <span class="val">1,167 people<em>Wreck commissioner notes · library</em></span>
+              <button onclick="toast('Opens the contradiction review queue for this pair')">Review</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="c-rail">
+        <div class="seclabel">Claim inspector</div>
+        <div id="rail-body-s"><div class="empty">Click a claim in the article to see its provenance, trust level, and history here.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="pop"></div>
+<div id="toast"></div>
+
+<div id="sketch-tools" style="position:fixed;bottom:12px;right:12px;z-index:9999;font-family:system-ui;font-size:12px;background:rgba(0,0,0,0.7);color:white;padding:8px 12px;border-radius:8px;opacity:0.4;transition:opacity 0.2s;display:flex;gap:8px;align-items:center;" onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0.4'">
+  <span>003 wiki reading</span>
+  <select onchange="document.querySelector('link[href*=themes]').href='../themes/'+this.value+'.css'" style="background:#222;color:#fff;border:1px solid #444;font-size:11px;"><option value="default">default</option></select>
+</div>
+
+<script>
+function showVariant(id, btn) {
+  document.querySelectorAll('.variant').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.variant-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('variant-' + id).classList.add('active');
+  btn.classList.add('active');
+  hidePop();
+}
+let toastT;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+const PROV = {
+  wsl:   { q: '“…operated by the White Star Line under charter…”', src: 'Board of Trade report, p.12', trust: 'curated', n: '3 sources agree', disp: false },
+  dep:   { q: '“Titanic left Southampton at the start of her maiden voyage on 10 April 1912.”', src: 'Inquiry transcript, Day 1', trust: 'library', n: '3 sources agree', disp: false },
+  cap:   { q: '“…carrying 2,435 passengers and a crew of 892.”', src: 'Passenger manifest summary', trust: 'curated', n: '2 sources agree', disp: false },
+  boats: { q: '“Twenty boats in all, with capacity for 1,178 persons.”', src: 'Board of Trade report, p.44', trust: 'curated', n: 'DISPUTED — 1,167 in Commissioner notes', disp: true },
+  time:  { q: '“shortly after noon” vs “12:15 pm”', src: 'Inquiry transcript · H&W log', trust: 'library', n: 'DISPUTED — 2 sources disagree', disp: true },
+  depth: { q: '“…resting at a depth of about 3,784 metres.”', src: 'Expedition survey, 1986', trust: 'library', n: '2 sources agree', disp: false },
+  found: { q: '“The wreck was located on 1 September 1985.”', src: 'Expedition survey, 1986', trust: 'library', n: '2 sources agree', disp: false },
+};
+const pop = document.getElementById('pop');
+function hidePop() { pop.style.display = 'none'; document.querySelectorAll('.cl.sel').forEach(x => x.classList.remove('sel')); }
+function popHtml(p) {
+  return `<div class="seclabel">Provenance — verbatim</div>
+    <blockquote>${p.q}</blockquote>
+    <div class="srcline"><span class="chip ${p.trust === 'curated' ? 'accent' : ''}">${p.trust}</span><span>${p.src}</span></div>
+    <div class="srcline">${p.n}</div>
+    <div class="actions">
+      <button onclick="toast('Opens source chunk, span highlighted')">Open source</button>
+      <button onclick="toast('Edit → dry-run back-prop preview → apply')">Edit claim</button>
+      ${p.disp ? '<button onclick="toast(\'Opens contradiction review queue\')">Review</button>' : ''}
+    </div>`;
+}
+document.addEventListener('click', e => {
+  const cl = e.target.closest('.cl');
+  if (!cl) { if (!e.target.closest('#pop')) hidePop(); return; }
+  const p = PROV[cl.dataset.k]; if (!p) return;
+  document.querySelectorAll('.cl.sel').forEach(x => x.classList.remove('sel'));
+  cl.classList.add('sel');
+  if (cl.dataset.rail) {
+    const railId = cl.dataset.rail === 's' ? 'rail-body-s' : 'rail-body';
+    document.getElementById(railId).innerHTML =
+      `<h3>${cl.textContent}</h3>` + popHtml(p);
+    return;
+  }
+  pop.innerHTML = popHtml(p);
+  pop.style.display = 'block';
+  const r = cl.getBoundingClientRect();
+  pop.style.left = Math.min(window.innerWidth - 360, r.left) + 'px';
+  pop.style.top = (r.bottom + window.scrollY + 8) + 'px';
+});
+</script>
+</body>
+</html>
