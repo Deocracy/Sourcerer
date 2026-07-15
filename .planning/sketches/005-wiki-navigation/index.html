@@ -112,6 +112,7 @@
     <div class="content" style="padding: var(--space-xl);">
       <div class="b-layout">
         <div class="b-tree">
+          <div style="padding: 0 14px 10px;"><input class="search" style="max-width:none;margin:0;padding:8px 10px;font-size:12px;" placeholder="Search subjects…" oninput="searchB(this.value)"></div>
           <div class="seclabel" style="padding: 0 14px 8px;">Subjects</div>
           <div class="t-group open">
             <div class="t-head" onclick="this.parentNode.classList.toggle('open')"><span class="tw">▶</span>Vessels — 2</div>
@@ -141,7 +142,11 @@
             </div>
           </div>
         </div>
-        <div class="b-preview">
+        <div class="b-preview" id="b-results" style="display:none;">
+          <div class="seclabel">Search results — detailed</div>
+          <div id="b-reslist" style="margin-top:12px;"></div>
+        </div>
+        <div class="b-preview" id="b-prevpane">
           <div class="seclabel">Preview</div>
           <h2 id="b-nm" style="margin-top:8px;">RMS Titanic</h2>
           <div class="meta" id="b-meta">318 claims · 2 unresolved · head v14</div>
@@ -236,6 +241,25 @@ const BDATA = {
   'Thomas Andrews': ['18 claims · head v14', 'Naval architect and chief designer; aboard for the maiden voyage.'],
   'Southampton': ['19 claims · head v14', 'English port city; departure point of the maiden voyage.'],
 };
+function searchB(q) {
+  q = q.toLowerCase().trim();
+  const res = document.getElementById('b-results'), prev = document.getElementById('b-prevpane');
+  if (!q) { res.style.display = 'none'; prev.style.display = 'block'; return; }
+  const hits = ARTS.filter(a => (a.nm + ' ' + a.sum).toLowerCase().includes(q));
+  document.getElementById('b-reslist').innerHTML = hits.length ? hits.map(a => `
+    <div style="border:1px solid var(--color-line);background:var(--color-panel-2);padding:12px 14px;margin-bottom:8px;cursor:pointer;display:flex;gap:14px;align-items:baseline;transition:all .15s ease;"
+         onmouseenter="this.style.borderColor='var(--color-dim-hover)'" onmouseleave="this.style.borderColor='var(--color-line)'"
+         onclick="toast('Opens ${a.nm} (sketch 003 layout)')">
+      <div style="min-width:150px;font-family:var(--font-serif);font-size:16px;">${a.nm}</div>
+      <div style="flex:1;font-size:12px;color:var(--color-muted);">${a.sum}</div>
+      <div style="display:flex;gap:6px;align-items:center;white-space:nowrap;">
+        <span class="chip ${a.trust === 'curated' ? 'accent' : ''}">${a.trust}</span>
+        ${a.unres ? `<span class="chip warn">${a.unres} unresolved</span>` : ''}
+        <span style="font-family:var(--font-mono);font-size:9.5px;color:var(--color-faint);">${a.claims} claims</span>
+      </div>
+    </div>`).join('') : '<div style="color:var(--color-dim);font-size:12px;">No subjects match.</div>';
+  res.style.display = 'block'; prev.style.display = 'none';
+}
 function selB(el, nm) {
   el.closest('.b-tree').querySelectorAll('.t-item').forEach(i => i.classList.remove('on'));
   el.classList.add('on');

@@ -27,6 +27,7 @@ open .planning/sketches/005-wiki-navigation/index.html
 - **Winner: B — subject tree + preview.** "For the wiki some type of subject tree is needed."
 - **C rejected:** the wiki and the graph are two different things — they stay separate rail sections; the graph never becomes the wiki's navigation.
 - **Graph section = copy LightRAG's graph viewer** (the existing `lightrag_webui` sigma.js/graphology component) — port it as-is, reskin tokens only.
+- **Search added to B (user, mid-review):** a search box above the subject tree; results render with the grid variant's detail level (summary, trust chip, unresolved badge, claim count) but **as a detailed list**, replacing the preview pane while a query is active.
 
 ## What to Look For
 
