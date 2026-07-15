@@ -2,7 +2,7 @@
 sketch: 006
 name: settings
 question: "Corpus settings vs app settings — one place or two?"
-winner: null
+winner: "A"
 tags: [settings, providers, tiers]
 ---
 
