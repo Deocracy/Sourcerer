@@ -1,0 +1,267 @@
+SPIKE 010 RUN — 2026-08-02T18:25:47-07:00
+
+=== [18:25:47] 0. preexisting state
+$ wsl.exe -l -v
+  NAME              STATE           VERSION
+* Ubuntu            Stopped         2
+  docker-desktop    Stopped         2
+
+=== [18:25:48] 1. IMPORT (timed)
+$ wsl.exe --import SourcererSpike D:\WSL\SourcererSpike D:\Vibe Coding\Sourcerer\.planning\spikes\010-nixos-wsl-substrate\dist\nixos.wsl --version 2
+The operation completed successfully. 
+import_seconds=41
+
+=== [18:26:29] 2. FIRST BOOT (timed)
+$ wsl.exe -d SourcererSpike -- echo boot-ok
+boot-ok
+first_boot_seconds=4
+
+=== [18:26:33] 3. IDENTITY + default config (logged for the trail)
+$ wsl.exe -d SourcererSpike -- sh -c head -2 /etc/os-release; echo "user=$(whoami)"
+ANSI_COLOR="0;38;2;126;186;228"
+BUG_REPORT_URL="https://github.com/NixOS/nixpkgs/issues"
+user=nixos
+$ wsl.exe -d SourcererSpike -u root -- cat /etc/nixos/configuration.nix
+cat: 'C:/Program Files/Git/etc/nixos/configuration.nix': No such file or directory
+
+=== [18:26:35] 4. BASELINE: hello must be absent
+$ wsl.exe -d SourcererSpike -- sh -c command -v hello || echo HELLO_ABSENT
+HELLO_ABSENT
+
+=== [18:26:36] 5. CONFIG CHANGE: add pkgs.hello (sed-insert before final brace)
+$ wsl.exe -d SourcererSpike -u root -- sh -c sed -i 's|^}$|  environment.systemPackages = [ pkgs.hello ];\n}|' /etc/nixos/configuration.nix && tail -5 /etc/nixos/configuration.nix
+  # Before changing this value read the documentation for this option
+  # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
+  system.stateVersion = "26.05"; # Did you read the comment?
+  environment.systemPackages = [ pkgs.hello ];
+}
+
+=== [18:26:36] 6. nixos-rebuild switch (timed, driven externally)
+$ wsl.exe -d SourcererSpike -u root -- nixos-rebuild switch
+building the system configuration...
+these 23 derivations will be built:
+  /nix/store/64k3r78d2i8hzff50s6ln9xj3i8kma59-nixos-version.drv
+  /nix/store/d5l4p9kymz439zns5a9izap4fmj2pmv9-builder.pl.drv
+  /nix/store/krd5k9l98j6pkks5shf4kqq7zbh7amrx-system-path.drv
+  /nix/store/bwc5m3zsay3y45dc3zx5n8cd9kw828q1-dbus-1.drv
+  /nix/store/p6gyws0g7hcq1cb8a215igr2p8cncn4v-X-Restart-Triggers-dbus-broker.drv
+  /nix/store/6p71i4q35mzdfk06zk3wmq8g0r2xz2ll-unit-dbus-broker.service.drv
+  /nix/store/2da99wr5h2k8dflb4bmr5wrgs4infqkv-user-units.drv
+  /nix/store/5djqlc4mcn1z9fxcg696viqxcscj9lih-etc-profile.drv
+  /nix/store/72vil32fcfp9794syhim0ifxsw5wnakc-stage-2-init.sh.drv
+  /nix/store/f2j0ign9539004cahf2apqd111la70ng-etc-os-release.drv
+  /nix/store/d4jffnq1ink91yz430nhmjwsc8ak6yg9-nixos-tmpfiles.d.drv
+  /nix/store/h26pz06wcmddm9jp5l334ksni9ji5f6x-tmpfiles.d.drv
+  /nix/store/qrl7796j8p85xn6i0bn2sx6ycdk50r52-shutdown-ramfs-contents.json.drv
+  /nix/store/gi0vq0jrsrxpj7n66dqkn0d6kwvfq4fd-unit-generate-shutdown-ramfs.service.drv
+  /nix/store/a80av86bc9cim9vimkb335088b67jw0g-X-Restart-Triggers-systemd-tmpfiles-resetup.drv
+  /nix/store/h4xcidm4c9pak46sibkl3rb9sngwhv46-unit-systemd-tmpfiles-resetup.service.drv
+  /nix/store/vrip3m2x17c01jsp3zdsswz5wwy3nrrk-unit-dbus-broker.service.drv
+  /nix/store/z68p9rp80car7x3qpxhrwd51x0rwgv5r-system-units.drv
+  /nix/store/dcvmyymarbchn5y1wlyjbf6cmfjrrr3c-etc.drv
+  /nix/store/hl5vv0aj3qsjsg24rc2gl8x6bn35vqh7-activate.drv
+  /nix/store/lk1mj2qpr913jbpya58hnc6jcv69bk5r-dry-activate.drv
+  /nix/store/lvw3x5mx8ighpwdryk0n19lpmrcxvvk3-perl-5.42.0-env.drv
+  /nix/store/6zb42as63yyqkkyamxlvaxd13gb0n3rk-nixos-system-nixos-26.05pre-git.drv
+these 33 paths will be fetched (103.2 MiB download, 343.0 MiB unpacked):
+  /nix/store/s2946bl9ciwzhafd66jhansrmxq9xhqm-binutils-2.46
+  /nix/store/6h5x436gsbc92ahp2bmxfl8h7h318p17-binutils-2.46-lib
+  /nix/store/mbyy19mdwnfvfwmdi0gqgggx0njvpl1w-binutils-wrapper-2.46
+  /nix/store/rfxvyxw9rksbhc2ppypqwv2lm0xz9drd-desktop-file-utils-0.28
+  /nix/store/5y1v5mjsrlz3i2pwg43hdc6ghjjylbpq-die-hook
+  /nix/store/vca8h0pif2zlvlbsq8kpl0yb32wfc80a-ensure-all-wrappers-paths-exist
+  /nix/store/hi0fdcqdkmzwxhzlx7y6z2yf6d5lw8ix-expand-response-params
+  /nix/store/kyz3mm5snbb8998kbkm28jps1phk9509-file-5.47
+  /nix/store/mydal8vplvhws5w9x2lp8jf6i3jn4aan-find-xml-catalogs-hook
+  /nix/store/qxaq7jz61a6zkr2mq49i0zvqip2m2jj8-gcc-15.2.0
+  /nix/store/788mx070y81zjlg5ipcl0cra3afviw9k-gcc-wrapper-15.2.0
+  /nix/store/74gap24knhy6dl59xnd7cksag4hns2vc-getconf-glibc-2.42-61
+  /nix/store/15h9askp4k1lx44d9871wid23j2a8ijp-glibc-2.42-61-dev
+  /nix/store/r50gpjb5pcl01c7nvhrn31rnwsnhzplg-gmp-6.3.0
+  /nix/store/zmvllxxx62iys7vpyg020rni3v29bcxi-gnu-config-2024-01-01
+  /nix/store/vlq7nnw39j7rwk0pp68w1fcwzpxahm9h-gnumake-4.4.1
+  /nix/store/k5akwnrn9x2afaj2va7g4a2zpdim8l43-gnutar-1.35
+  /nix/store/zi2bj2hlavv8q743li2s9diqbcpmrf9b-hello-2.12.3
+  /nix/store/vm5m8wplj5qv8gkmwav2jyyy7k1hv5gw-install-shell-files
+  /nix/store/17rqw7p3j0vvvwja05l6bq2im8qpxcl7-isl-0.20
+  /nix/store/0j6jil4xc4ndp0kcqzjwbfywxvifl160-libmpc-1.4.0
+  /nix/store/xpgdpmr7rzzbv8nag6s4d9swwhwvh79k-libxslt-1.1.45
+  /nix/store/mgylqh12fhg9959fqx0r93hwpbww7x8g-libxslt-1.1.45-bin
+  /nix/store/s52vdyj97g3adv6qb431v8m2kccs0bzz-linux-headers-6.18.7
+  /nix/store/sn4y9m3yg3qgxi14h9cl51l333zi40xq-lndir-1.0.5
+  /nix/store/scadi7kx5gq7yvy8kkgxsflypfbycblb-make-binary-wrapper-hook
+  /nix/store/qw8rpqmndqzyc3fzzla754v5hlpm10i4-make-shell-wrapper-hook
+  /nix/store/drmzcl1j9wwwgz4q87dvz2p2zfwnp4w3-mpfr-4.2.2
+  /nix/store/ilblcn1dkvzghcr2yk3av6jxn5rk1iqw-patchelf-0.15.2
+  /nix/store/81ff57hcs8gjlnaqqhbilzxsvb5pfzaa-stdenv-linux
+  /nix/store/fdd5nyk4dm59y6rfa55nvcqqnlygg01g-systemd-default-tmpfiles
+  /nix/store/mwqffnbv8lx555chi53xavn2x95j9v72-texinfo-7.2
+  /nix/store/xknj6c33cc197s60ry0i69vdkmaizrs1-update-autotools-gnu-config-scripts-hook
+copying path '/nix/store/vca8h0pif2zlvlbsq8kpl0yb32wfc80a-ensure-all-wrappers-paths-exist' from 'https://cache.nixos.org'...
+copying path '/nix/store/5y1v5mjsrlz3i2pwg43hdc6ghjjylbpq-die-hook' from 'https://cache.nixos.org'...
+copying path '/nix/store/zmvllxxx62iys7vpyg020rni3v29bcxi-gnu-config-2024-01-01' from 'https://cache.nixos.org'...
+copying path '/nix/store/kyz3mm5snbb8998kbkm28jps1phk9509-file-5.47' from 'https://cache.nixos.org'...
+copying path '/nix/store/vlq7nnw39j7rwk0pp68w1fcwzpxahm9h-gnumake-4.4.1' from 'https://cache.nixos.org'...
+copying path '/nix/store/k5akwnrn9x2afaj2va7g4a2zpdim8l43-gnutar-1.35' from 'https://cache.nixos.org'...
+copying path '/nix/store/ilblcn1dkvzghcr2yk3av6jxn5rk1iqw-patchelf-0.15.2' from 'https://cache.nixos.org'...
+copying path '/nix/store/rfxvyxw9rksbhc2ppypqwv2lm0xz9drd-desktop-file-utils-0.28' from 'https://cache.nixos.org'...
+copying path '/nix/store/hi0fdcqdkmzwxhzlx7y6z2yf6d5lw8ix-expand-response-params' from 'https://cache.nixos.org'...
+copying path '/nix/store/74gap24knhy6dl59xnd7cksag4hns2vc-getconf-glibc-2.42-61' from 'https://cache.nixos.org'...
+copying path '/nix/store/zi2bj2hlavv8q743li2s9diqbcpmrf9b-hello-2.12.3' from 'https://cache.nixos.org'...
+copying path '/nix/store/s52vdyj97g3adv6qb431v8m2kccs0bzz-linux-headers-6.18.7' from 'https://cache.nixos.org'...
+copying path '/nix/store/mwqffnbv8lx555chi53xavn2x95j9v72-texinfo-7.2' from 'https://cache.nixos.org'...
+copying path '/nix/store/mydal8vplvhws5w9x2lp8jf6i3jn4aan-find-xml-catalogs-hook' from 'https://cache.nixos.org'...
+copying path '/nix/store/vm5m8wplj5qv8gkmwav2jyyy7k1hv5gw-install-shell-files' from 'https://cache.nixos.org'...
+copying path '/nix/store/r50gpjb5pcl01c7nvhrn31rnwsnhzplg-gmp-6.3.0' from 'https://cache.nixos.org'...
+copying path '/nix/store/6h5x436gsbc92ahp2bmxfl8h7h318p17-binutils-2.46-lib' from 'https://cache.nixos.org'...
+copying path '/nix/store/xpgdpmr7rzzbv8nag6s4d9swwhwvh79k-libxslt-1.1.45' from 'https://cache.nixos.org'...
+copying path '/nix/store/sn4y9m3yg3qgxi14h9cl51l333zi40xq-lndir-1.0.5' from 'https://cache.nixos.org'...
+copying path '/nix/store/qw8rpqmndqzyc3fzzla754v5hlpm10i4-make-shell-wrapper-hook' from 'https://cache.nixos.org'...
+copying path '/nix/store/fdd5nyk4dm59y6rfa55nvcqqnlygg01g-systemd-default-tmpfiles' from 'https://cache.nixos.org'...
+copying path '/nix/store/xknj6c33cc197s60ry0i69vdkmaizrs1-update-autotools-gnu-config-scripts-hook' from 'https://cache.nixos.org'...
+copying path '/nix/store/mgylqh12fhg9959fqx0r93hwpbww7x8g-libxslt-1.1.45-bin' from 'https://cache.nixos.org'...
+copying path '/nix/store/17rqw7p3j0vvvwja05l6bq2im8qpxcl7-isl-0.20' from 'https://cache.nixos.org'...
+copying path '/nix/store/drmzcl1j9wwwgz4q87dvz2p2zfwnp4w3-mpfr-4.2.2' from 'https://cache.nixos.org'...
+copying path '/nix/store/81ff57hcs8gjlnaqqhbilzxsvb5pfzaa-stdenv-linux' from 'https://cache.nixos.org'...
+copying path '/nix/store/s2946bl9ciwzhafd66jhansrmxq9xhqm-binutils-2.46' from 'https://cache.nixos.org'...
+copying path '/nix/store/0j6jil4xc4ndp0kcqzjwbfywxvifl160-libmpc-1.4.0' from 'https://cache.nixos.org'...
+building '/nix/store/d5l4p9kymz439zns5a9izap4fmj2pmv9-builder.pl.drv'...
+building '/nix/store/lk1mj2qpr913jbpya58hnc6jcv69bk5r-dry-activate.drv'...
+building '/nix/store/f2j0ign9539004cahf2apqd111la70ng-etc-os-release.drv'...
+building '/nix/store/5djqlc4mcn1z9fxcg696viqxcscj9lih-etc-profile.drv'...
+building '/nix/store/d4jffnq1ink91yz430nhmjwsc8ak6yg9-nixos-tmpfiles.d.drv'...
+building '/nix/store/64k3r78d2i8hzff50s6ln9xj3i8kma59-nixos-version.drv'...
+building '/nix/store/72vil32fcfp9794syhim0ifxsw5wnakc-stage-2-init.sh.drv'...
+Running phase: patchPhase
+Running phase: updateAutotoolsGnuConfigScriptsPhase
+Running phase: configurePhase
+no configure script, doing nothing
+Running phase: buildPhase
+Running phase: checkPhase
+Running phase: installPhase
+no Makefile or custom installPhase, doing nothing
+Running phase: fixupPhase
+shrinking RPATHs of ELF executables and libraries in /nix/store/pai2wycnlspqn7x9a7kc45rp3kbf0mr0-builder.pl
+checking for references to /build/ in /nix/store/pai2wycnlspqn7x9a7kc45rp3kbf0mr0-builder.pl...
+patching script interpreter paths in /nix/store/pai2wycnlspqn7x9a7kc45rp3kbf0mr0-builder.pl
+Running phase: patchPhase
+Running phase: updateAutotoolsGnuConfigScriptsPhase
+Running phase: configurePhase
+no configure script, doing nothing
+Running phase: buildPhase
+Running phase: checkPhase
+Running phase: installPhase
+copying path '/nix/store/15h9askp4k1lx44d9871wid23j2a8ijp-glibc-2.42-61-dev' from 'https://cache.nixos.org'...
+building '/nix/store/qrl7796j8p85xn6i0bn2sx6ycdk50r52-shutdown-ramfs-contents.json.drv'...
+building '/nix/store/h26pz06wcmddm9jp5l334ksni9ji5f6x-tmpfiles.d.drv'...
+no Makefile or custom installPhase, doing nothing
+Running phase: fixupPhase
+shrinking RPATHs of ELF executables and libraries in /nix/store/ianmb2qnig58ai1h7d0rjky59431ypmr-nixos-version
+checking for references to /build/ in /nix/store/ianmb2qnig58ai1h7d0rjky59431ypmr-nixos-version...
+gzipping man pages under /nix/store/ianmb2qnig58ai1h7d0rjky59431ypmr-nixos-version/share/man/
+patching script interpreter paths in /nix/store/ianmb2qnig58ai1h7d0rjky59431ypmr-nixos-version
+Running phase: patchPhase
+Running phase: updateAutotoolsGnuConfigScriptsPhase
+Running phase: configurePhase
+no configure script, doing nothing
+Running phase: buildPhase
+Running phase: checkPhase
+Running phase: installPhase
+no Makefile or custom installPhase, doing nothing
+Running phase: fixupPhase
+shrinking RPATHs of ELF executables and libraries in /nix/store/bn43a29a0bn92cp9fs4y7fyzapnxy2vk-stage-2-init.sh
+checking for references to /build/ in /nix/store/bn43a29a0bn92cp9fs4y7fyzapnxy2vk-stage-2-init.sh...
+patching script interpreter paths in /nix/store/bn43a29a0bn92cp9fs4y7fyzapnxy2vk-stage-2-init.sh
+copying path '/nix/store/mbyy19mdwnfvfwmdi0gqgggx0njvpl1w-binutils-wrapper-2.46' from 'https://cache.nixos.org'...
+copying path '/nix/store/qxaq7jz61a6zkr2mq49i0zvqip2m2jj8-gcc-15.2.0' from 'https://cache.nixos.org'...
+building '/nix/store/gi0vq0jrsrxpj7n66dqkn0d6kwvfq4fd-unit-generate-shutdown-ramfs.service.drv'...
+building '/nix/store/a80av86bc9cim9vimkb335088b67jw0g-X-Restart-Triggers-systemd-tmpfiles-resetup.drv'...
+building '/nix/store/krd5k9l98j6pkks5shf4kqq7zbh7amrx-system-path.drv'...
+building '/nix/store/h4xcidm4c9pak46sibkl3rb9sngwhv46-unit-systemd-tmpfiles-resetup.service.drv'...
+structuredAttrs is enabled
+created 6531 symlinks in user environment
+install-info: warning: no info dir entry in `/nix/store/68yah9ark9ab2ada4n2igcp7arvwzx0b-system-path/share/info/notes.info'
+building '/nix/store/bwc5m3zsay3y45dc3zx5n8cd9kw828q1-dbus-1.drv'...
+building '/nix/store/p6gyws0g7hcq1cb8a215igr2p8cncn4v-X-Restart-Triggers-dbus-broker.drv'...
+building '/nix/store/6p71i4q35mzdfk06zk3wmq8g0r2xz2ll-unit-dbus-broker.service.drv'...
+building '/nix/store/vrip3m2x17c01jsp3zdsswz5wwy3nrrk-unit-dbus-broker.service.drv'...
+building '/nix/store/2da99wr5h2k8dflb4bmr5wrgs4infqkv-user-units.drv'...
+building '/nix/store/z68p9rp80car7x3qpxhrwd51x0rwgv5r-system-units.drv'...
+building '/nix/store/dcvmyymarbchn5y1wlyjbf6cmfjrrr3c-etc.drv'...
+building '/nix/store/hl5vv0aj3qsjsg24rc2gl8x6bn35vqh7-activate.drv'...
+copying path '/nix/store/788mx070y81zjlg5ipcl0cra3afviw9k-gcc-wrapper-15.2.0' from 'https://cache.nixos.org'...
+copying path '/nix/store/scadi7kx5gq7yvy8kkgxsflypfbycblb-make-binary-wrapper-hook' from 'https://cache.nixos.org'...
+building '/nix/store/lvw3x5mx8ighpwdryk0n19lpmrcxvvk3-perl-5.42.0-env.drv'...
+structuredAttrs is enabled
+created 184 symlinks in user environment
+building '/nix/store/6zb42as63yyqkkyamxlvaxd13gb0n3rk-nixos-system-nixos-26.05pre-git.drv'...
+structuredAttrs is enabled
+Checking switch inhibitors... done
+activating the configuration...
+setting up /run/booted-system...
+setting up /bin...
+setting up /sbin...
+setting up /etc...
+setting up /sbin/init shim...
+reloading user units for nixos...
+restarting the following user units: nixos-activation.service
+reloading user units for root...
+restarting the following user units: nixos-activation.service
+restarting sysinit-reactivation.target
+reloading the following units: dbus-broker.service
+the following new units were started: sysinit-reactivation.target, systemd-tmpfiles-resetup.service
+Done. The new configuration is /nix/store/sa3glvca6xs1mjj5yjm8nrwyhxh1lwnq-nixos-system-nixos-26.05pre-git
+rebuild_seconds=109 rc=0
+
+=== [18:28:25] 7. VERIFY: hello present
+$ wsl.exe -d SourcererSpike -- hello
+Hello, world!
+
+=== [18:28:26] 8. GENERATIONS (the rollback list a UI would show)
+$ wsl.exe -d SourcererSpike -u root -- nix-env --list-generations -p /nix/var/nix/profiles/system
+error: opening lock file "/mnt/d/Vibe Coding/Sourcerer/.planning/spikes/010-nixos-wsl-substrate/C:/Program Files/Git/nix/var/nix/profiles/system.lock": No such file or directory
+
+=== [18:28:26] 9. ROLLBACK (timed — the 'Revert last update' button)
+$ wsl.exe -d SourcererSpike -u root -- nixos-rebuild switch --rollback
+building the system configuration...
+switching profile from version 2 to 1
+Checking switch inhibitors... done
+stopping the following units: systemd-tmpfiles-resetup.service
+activating the configuration...
+setting up /run/booted-system...
+setting up /bin...
+setting up /sbin...
+setting up /etc...
+setting up /sbin/init shim...
+reloading user units for nixos...
+restarting the following user units: nixos-activation.service
+reloading user units for root...
+restarting the following user units: nixos-activation.service
+restarting sysinit-reactivation.target
+reloading the following units: dbus-broker.service
+starting the following units: systemd-tmpfiles-resetup.service
+Done. The new configuration is /nix/var/nix/profiles/system
+rollback_seconds=6
+
+=== [18:28:32] 10. VERIFY: hello absent again
+$ wsl.exe -d SourcererSpike -- sh -c command -v hello || echo HELLO_ABSENT_AGAIN
+HELLO_ABSENT_AGAIN
+
+=== [18:28:33] 11. TERMINATE + AUTO-RESTART (kill-switch / on-demand model, timed)
+$ wsl.exe --terminate SourcererSpike
+The operation completed successfully. 
+$ wsl.exe -d SourcererSpike -- echo restarted-ok
+restarted-ok
+restart_seconds=3
+
+=== [18:28:37] 12. FOOTPRINT
+$ ls -la /d/WSL/SourcererSpike
+total 3354776
+drwxr-xr-x 1 somed 197609          0 Aug  2 18:26 .
+drwxr-xr-x 1 somed 197609          0 Aug  2 18:25 ..
+-rw-r--r-- 1 somed 197609 3435134976 Aug  2 18:28 ext4.vhdx
+-rw-r--r-- 1 somed 197609     153229 Aug  2 18:26 shortcut.ico
+
+=== [18:28:38] DONE — distro left registered for follow-up legs; cleanup: wsl --unregister SourcererSpike
+   1   1970-01-01 00:00:01   (current)
+   2   2026-08-03 01:28:22   
