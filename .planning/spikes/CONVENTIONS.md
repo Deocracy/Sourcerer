@@ -39,6 +39,18 @@ New spikes follow these unless the question requires otherwise.
 - **Control `cwd`:** Pi injects `CLAUDE.md`/`AGENTS.md` found by walking up from `cwd`. Run
   measurement/isolated work from a dir outside the repo to avoid the project-context token tax.
 
+## System-level spikes (Windows host, established in 010/011)
+
+- Drive WSL only via `wsl.exe` with `WSL_UTF8=1` exported (raw output is UTF-16 in Git Bash).
+- Wrap absolute Linux paths in `sh -c '...'` when invoking through Git Bash — MSYS path
+  conversion silently rewrites direct `/etc/...`-style args into `C:/Program Files/Git/...`.
+- Never trust `cmd | tail`'s exit code — check `PIPESTATUS[0]`.
+- Timed, tee-logged driver scripts (`run.sh` → `run.log`) are the forensic layer for
+  host-mutating spikes; log every attempt, keep failed-attempt logs in the README trail.
+- Tauri scratch apps: own crate inside the spike dir (never the main app tree), `icons/icon.ico`
+  copied from src-tauri (tauri-build hard-requires it on Windows even with bundling off),
+  detached launch + PowerShell `CopyFromScreen` screenshots as visual evidence.
+
 ## Tools & Libraries
 
 - `@earendil-works/pi-coding-agent@^0.74.2`, `@earendil-works/pi-ai@^0.74.2` — Pi core + models.
