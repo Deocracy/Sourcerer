@@ -1,5 +1,13 @@
 # Container Platform — Full Milestone Plan (v2, verifier-revised)
 
+> **RESUME HERE (recorded 2026-08-02 for a future session).** Planning is COMPLETE except two steps:
+> 1. **User answers the five decisions D-P1…D-P5** (Prerequisites below). Only D-P1 licensing needs real thought; D-P2/D-P3/D-P4 have recommendations to bless; D-P5 "later" is a valid answer.
+> 2. **Run `/gsd-new-milestone`** feeding THIS file + `CONTAINER-PLATFORM.md` — converts the plan into the v2.0 roadmap. v1.0 Desktop Shell MVP already SHIPPED 2026-07-14, so nothing blocks this.
+>
+> Everything else is execution, not planning: **spike K** (1 day; engine-less Collabora unit — the `SourcererSpike` distro is still registered at D:\WSL, 3.4 GB, warm); spike J before P2c; per-phase PLAN.md files are written one at a time by `/gsd-plan-phase` when each phase starts (standing rule — do NOT pre-plan).
+> Housekeeping owed: `.planning/phases/05-notes-applet/.review-fix-recovery-pending.json` looks like a stale orphan (phase 5 completed 2026-07-13 same day) — verify + delete; v1.0 debt: `/gsd-secure-phase 3` never run; confirm whether `/gsd-audit-milestone` ran for v1.0.
+> Spike status: 010 (substrate) + 011 (multiwebview) VALIDATED & committed; G/H retired by the Podman-drop delta; F/J/D/B guessed with recorded fallbacks; K pending.
+
 **Date:** 2026-08-02 · **Status:** DRAFT for `/gsd-new-milestone` ingestion — NOT active; current milestone (shell + applet framework) continues unchanged · **Architecture source of truth:** `CONTAINER-PLATFORM.md` (§ references) · **Verification:** goal-backward dependency check + solo-maintainer scope/risk check, both run 2026-08-02; all blockers/majors incorporated (v1 draft's ghost deliverables, phase splits, spike reordering) · **Planning rule:** milestone-level roadmap only; per-phase PLAN.md written one phase at a time when each starts.
 
 ## End state (what "done" means — every claim traces to a phase)
