@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>spike011 shell</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #1e211f; color: #E6E4DE;
+    font-family: system-ui, sans-serif; overflow: hidden; }
+  .titlebar { height: 40px; background: #262a28; border-bottom: 1px solid #3a3f3c;
+    display: flex; align-items: center; padding: 0 12px; font-size: 13px; letter-spacing: .04em; }
+  .accent { color: #86A38C; font-weight: 600; }
+  /* Pane rects — child webviews are positioned by Rust at EXACTLY these logical coords.
+     If the dashed outline peeks out unevenly around a pane, DOM px != logical px (DPI drift). */
+  .pane { position: absolute; border: 2px dashed #86A38C; box-sizing: border-box; }
+  #paneA { left: 16px;  top: 56px; width: 560px; height: 600px; }
+  #paneB { left: 608px; top: 56px; width: 560px; height: 600px; }
+  .label { position: absolute; font-size: 12px; color: #86A38C; }
+  #labelA { left: 16px;  top: 660px; }
+  #labelB { left: 608px; top: 660px; }
+  .status { position: absolute; left: 16px; bottom: 12px; font-size: 12px; color: #9aa39d; }
+</style>
+</head>
+<body>
+  <div class="titlebar"><span class="accent">SOURCERER&nbsp;</span> spike011 — shell chrome webview (full-size, bottom layer)</div>
+  <div class="pane" id="paneA"></div>
+  <div class="pane" id="paneB"></div>
+  <div class="label" id="labelA">PANE A target rect (example.com) — will orbit + resize-pulse after ~6s</div>
+  <div class="label" id="labelB">PANE B target rect (wikipedia.org) — static</div>
+  <div class="status" id="status">shell webview alive — if you can read this, the shell layer rendered. devicePixelRatio: <span id="dpr"></span></div>
+  <script>
+    document.getElementById('dpr').textContent = window.devicePixelRatio;
+    // Heartbeat proves the shell webview's JS loop stays healthy while children animate.
+    let n = 0;
+    setInterval(() => {
+      n++;
+      document.getElementById('status').firstChild.textContent =
+        `shell webview alive (heartbeat ${n}) — devicePixelRatio: `;
+    }, 1000);
+  </script>
+</body>
+</html>
