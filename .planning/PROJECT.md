@@ -28,6 +28,29 @@ A pixel-perfect, fully interactive desktop shell where the applet framework demo
 - Persistence: `tauri-plugin-store` (workspace.json + applets.json) mapping onto `host.storage`; graduate to SQLite when applets need real data
 - `host.ai()` → Rust Tauri command → Node Pi sidecar (`@earendil-works/pi-coding-agent`), NDJSON streaming over a Channel; model zai-glm-4.7
 
+## Current Milestone: v2.0 Container Platform
+
+**Goal:** A non-technical scholar on a clean Windows 11 machine installs Sourcerer from the Microsoft Store (or signed site installer), gets a working NixOS-WSL substrate after at most one reboot, sees engine-backed functionality live (Notes, assistant, first Databasise wiki read-view served from the substrate), installs catalog apps (Collabora, Jupyter) as hardened engine-less OCI units with visible security scores, reverts a bad update with one button, and migrates their whole environment to a second PC via manifest + data export.
+
+**Target features:**
+- Flake foundation + CI + binary cache (assurance chain: nothing publishes that CI didn't prove)
+- Custom NixOS-WSL substrate: Store/signed-site install flow, ≤1 reboot, kill switch, secrets plumbing, substrate-connection seam (auth surface stubbed)
+- Update channel with one-button revert; real `security.csp` (the v1.0 null-CSP acceptance expires here)
+- Engine services in substrate (Databasise + LightRAG + OCR) and harness relocation; first engine-backed wiki read-view
+- App layer: manifest→NixOS-module compiler, panes via multiwebview, security scores, engine-less OCI units
+- Community store pipeline (cosign-signed, CVE-gated, privileged auto-reject) — not publicly opened until P8 passes
+- Tools tier + environment export/import ("Move to another PC")
+- Permission grants UI + portal file access; hardening close + milestone audit
+
+**Key context:** Two-host milestone — NixOS is the dev host; every WSL-dependent leg executes and UATs on the Windows box; every phase states its execution host. Plan source: `.planning/research/CONTAINER-PLATFORM-PLAN.md` + `CONTAINER-PLATFORM.md` (verifier-revised, spikes 010/011 validated). Wall-clock roughly doubles vs v1.0 (wait-dominated).
+
+**Setup options (delivery channels):**
+1. Windows 11 — Microsoft Store install (v2.0)
+2. Windows 11 — signed site installer (v2.0)
+3. macOS — site DMG (later)
+4. Linux — tarball/AppImage + `nix run` (later)
+5. Hosted cloud — browser client, per-tenant substrate (committed, own milestone)
+
 ## Requirements
 
 ### Validated
@@ -73,6 +96,13 @@ Known debt at close (STATE.md Deferred Items): Phase 5 Notes has 3 never-run hum
 | Adopt `bespoke_rails_shell` handoff wholesale | Working prototype around the locked libraries | ✓ Good — Phase 2 reworked Phase 1 chrome to match |
 | Cut the 20px floating-stage inset | Halo/grip/click-eating on a real desktop window | ✓ Good — card fills window, 10px radius at true edge |
 | Debug exe must build with `--features tauri/custom-protocol` | Plain `cargo build` loads devUrl → "refused to connect" | ✓ Good — documented launch landmine |
+| D-P1: AGPL license | Strong copyleft before any public repo / Store submission | — Decided 2026-08-03 |
+| D-P2: privileged/docker-api-class store submissions auto-rejected, no appeal in v1 | Minimize triage burden and attack surface | — Decided 2026-08-03 |
+| D-P3: Axis-3 blessed (system-flake + profile-tier split) | As recorded in CONTAINER-PLATFORM.md | — Decided 2026-08-03 |
+| D-P4: Determinate Nix pin | Installer reliability, flakes default | — Decided 2026-08-03 |
+| D-P5: hosted/cloud committed as its own milestone after Platform v1 | Auth-surface interface lands in P2 (stubbed); business track confirmed | — Decided 2026-08-03 |
+| Two-host milestone: NixOS dev host + Windows box for WSL legs/UAT | Dev moved to NixOS; WSL substrate premise stands | — Decided 2026-08-03 |
+| Phase numbering continues from 8 | GSD default; globally unique across milestones | — Decided 2026-08-03 |
 
 ## Constraints
 
@@ -99,4 +129,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-14 after v1.0 Desktop Shell MVP milestone*
+*Last updated: 2026-08-03 — milestone v2.0 Container Platform started*
