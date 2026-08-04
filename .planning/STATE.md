@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Container Platform
-status: Phase 8 planned then DEFERRED — Phase 9 (Flake Foundation) is next
-stopped_at: Phase 8 deferred with plans intact; ready for `/gsd-discuss-phase 9`
-last_updated: "2026-08-05T00:00:00.000Z"
-last_activity: 2026-08-05 — Phase 8 researched, planned (5 plans, checker-passed), then deferred as spike-shaped work; re-decide at Phase 15
+status: Ready for `/gsd-discuss-phase 9` on the **NixOS dev host**
+stopped_at: Phase 9 context gathered
+last_updated: "2026-08-04T17:29:39.752Z"
+last_activity: 2026-08-05 — Phase 8 researched, planned (5 plans, checker-passed), then deferred as spike-shaped work
 progress:
   total_phases: 12
   completed_phases: 0
@@ -213,9 +213,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-04T04:19:37.387Z
-Stopped at: Phase 8 context gathered; Nix-native rule adopted milestone-wide
-Resume file: .planning/phases/08-spike-k-nix-native-substrate-service/08-CONTEXT.md
+Last session: 2026-08-04T17:29:39.748Z
+Stopped at: Phase 9 context gathered
+Resume file: .planning/phases/09-flake-foundation-assurance-chain/09-CONTEXT.md
 
 ## Operator Next Steps
 
