@@ -130,7 +130,7 @@ Plans:
 **Wave 1**
 
 - [x] 09-01-PLAN.md — License (PolyForm NC 1.0.0) + manifest license fields + Nix/direnv gitignore [wave 1]
-- [ ] 09-02-PLAN.md — Version pins (rust-toolchain.toml, .nvmrc) + repo-root flake: dev shell, lib/overlay surface, lock [wave 1]
+- [x] 09-02-PLAN.md — Version pins (rust-toolchain.toml, .nvmrc) + repo-root flake: dev shell, lib/overlay surface, lock [wave 1]
 
 **Wave 2** *(blocked on Wave 1 completion)*
 

@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Container Platform
 status: executing
-stopped_at: Completed 09-01-PLAN.md
-last_updated: "2026-08-04T18:27:30.109Z"
-last_activity: 2026-08-04 -- Phase 9 execution started
+stopped_at: Completed 09-02-PLAN.md
+last_updated: "2026-08-04T18:47:51.000Z"
+last_activity: 2026-08-04 -- Completed 09-02-PLAN.md
 progress:
   total_phases: 12
   completed_phases: 0
   total_plans: 12
-  completed_plans: 1
-  percent: 0
+  completed_plans: 2
+  percent: 17
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 ## Current Position
 
 Phase: 9 (Flake Foundation & Assurance Chain) — EXECUTING
-Plan: 2 of 7
+Plan: 3 of 7
 Status: Ready to execute
-Last activity: 2026-08-04 -- Phase 9 execution started
+Last activity: 2026-08-04 -- Completed 09-02-PLAN.md
 
 **Phase 8 is DEFERRED, not abandoned (2026-08-05).** It ships no application code; its only
 output is evidence for Phase 15's compiler and Phase 19's audit, so it was mis-slotted as a
@@ -96,6 +96,7 @@ Progress: [------------] 0/12 phases
 | Phase 06 P07 | 5min | 3 tasks | 8 files |
 | Phase 06 P08 | 8min | 3 tasks | 2 files |
 | Phase 09 P01 | 8min | 3 tasks | 4 files |
+| Phase 09 P02 | 20min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -171,6 +172,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 06-08: railSnap.ts thresholds confirmed matching the prototype 1:1 (no changes) - jank was entirely missing live-relayout during drag
 - [Phase ?]: 06-08: reused useAssistantResize's shared teardown() + window resize-dispatch pattern verbatim for useRailDrag (WR-06 parity), keeping the two bespoke-pointer resize hooks structurally identical
 - [Phase 09-01]: PolyForm NC 1.0.0 has no bracket placeholder tokens; licensor/software identified via the license's own Required Notice: line instead
+- [Phase 09-02]: flake.nix `description` must be a literal string, not a computed/concatenated one — Nix's flake-metadata parse forces it before full evaluation
+- [Phase 09-02]: devShell shellHook strips mkShell's fabricated `$out="$PWD/outputs/out"` rpath entry from NIX_LDFLAGS — this repo's checkout path contains a space, which breaks the cc-wrapper's word-splitting of that rpath flag and fails every cargo build-script link step
 
 ### Roadmap Evolution
 
@@ -215,10 +218,10 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-04T18:27:22.480Z
-Stopped at: Completed 09-01-PLAN.md
+Last session: 2026-08-04T18:47:51.000Z
+Stopped at: Completed 09-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
 
-- Plan the first v2.0 phase with `/gsd-plan-phase 8` (runs on the Windows box — re-import the NixOS-WSL image first)
+- Continue Phase 9 execution with 09-03-PLAN.md (Wave 2 — substrate core module + WSL/VM variants + seed nixosTest in flake checks)
