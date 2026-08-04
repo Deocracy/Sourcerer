@@ -34,6 +34,8 @@ authored this phase); the store registry mechanics (Phase 16); the hosted embedd
   dependence for a production-critical path; the Garnix shutdown is the standing lesson) and
   over Hetzner (Deocracy's **nonprofit status** gets AWS credits/discounts, beating the
   Hetzner math). The cache stays a plain substituter URL — swappable by construction.
+  **Sizing note (user, 2026-08-04): start small** — smallest viable instance to begin
+  (upgrade path in the runbook); the cache only becomes production-critical at Phase 11.
 - **D-02: Runbook + GC automation.** FOUND-03's runbook is written (nixpkgs bump cadence,
   red-channel response, retention policy, restore-from-scratch) AND Attic's GC/retention is
   configured so the cache does not grow unbounded by default. Phase 11 inherits a

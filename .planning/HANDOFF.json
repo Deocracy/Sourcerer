@@ -1,0 +1,39 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-08-04T21:24:32.692Z",
+  "phase": "9",
+  "phase_name": "Flake Foundation & Assurance Chain",
+  "phase_dir": ".planning/phases/09-flake-foundation-assurance-chain",
+  "plan": 5,
+  "task": 1,
+  "total_tasks": 3,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": "09-01", "name": "PolyForm NC LICENSE + manifest fields + Nix gitignore", "status": "done", "commit": "bafbdeb"},
+    {"id": "09-02", "name": "rust-toolchain.toml + .nvmrc + repo-root flake (dev shell proven: npm ci/build + cargo build inside nix develop)", "status": "done", "commit": "59e02da"},
+    {"id": "09-03", "name": "Substrate core module + WSL/VM variants + seed nixosTest (QEMU boot + loopback service asserted, nix flake check green)", "status": "done", "commit": "f0583b6"},
+    {"id": "09-04", "name": "Repo public under Deocracy (master default, placeholders deleted) + CI green (nix-checks + windows-tauri + drift gate) + host/ai.ts Channel guard fix", "status": "done", "commit": "11ed673"}
+  ],
+  "remaining_tasks": [
+    {"id": "09-05", "name": "Attic cache on AWS (EC2 t3.micro + S3, atticd, nonzero retention, scoped CI push token)", "status": "blocked_at_checkpoint_task_1"},
+    {"id": "09-06", "name": "Cache substituter in flake + publish job gated on green + channel-maintenance runbook", "status": "not_started"},
+    {"id": "09-07", "name": "Cold-build CI gate (--max-jobs 0) + red-blocks-publish evidence", "status": "not_started"}
+  ],
+  "blockers": [
+    {"description": "No AWS credentials on this host (~/.aws does not exist). User must run `aws configure` with keys that can create S3/IAM/EC2 resources — keys live on the user's other PC, handover in progress.", "type": "human_action", "workaround": "none"}
+  ],
+  "human_actions_pending": [
+    {"action": "Run `aws configure` on this NixOS host with Deocracy AWS access keys (from other PC)", "context": "Plan 09-05 Task 2 provisions S3+EC2 via awscli2 in the dev shell", "blocking": true},
+    {"action": "Add A record for cache.deocracy.org in CLOUDFLARE (NOT Route 53 — user was explicit) once the instance has its Elastic IP", "context": "Cache public hostname; deocracy.org DNS is on Cloudflare; cloudflare-api MCP unauthenticated, so user adds it manually or authenticates /mcp", "blocking": false},
+    {"action": "Review 30 open Dependabot alerts (13 high, 17 medium) surfaced when repo went public", "context": "Flagged in 09-04; not acted on during phase execution", "blocking": false}
+  ],
+  "decisions": [
+    {"decision": "AWS provisioning proceeds but starts SMALL (t3.micro); brief user detour to 'local VM instead' was reversed same session", "rationale": "Cheap start; cache only becomes production-critical at Phase 11; upgrade path goes in the runbook", "phase": "9"},
+    {"decision": "Defaults accepted for 09-05 unless overridden: region us-east-1, bucket deocracy-sourcerer-cache, hostname cache.deocracy.org, dedicated SSH deploy key generated on this host, nonprofit-credits status recorded as unconfirmed", "rationale": "User asked to minimize their manual steps to just aws configure", "phase": "9"},
+    {"decision": "DNS for deocracy.org is on Cloudflare — never use Route 53", "rationale": "User's explicit instruction about their existing setup", "phase": "9"},
+    {"decision": "Permission mode switched to manual by user mid-phase", "rationale": "Auto-mode classifier hard-blocked git remote add / gh repo edit; publish sequence was then run in the main session with user approval", "phase": "9"}
+  ],
+  "uncommitted_files": [".planning/phases/09-flake-foundation-assurance-chain/09-CONTEXT.md"],
+  "next_action": "Confirm `aws configure` is done (aws sts get-caller-identity succeeds), then resume executor agent a3af438c1ffcd5224 (or spawn a fresh gsd-executor continuation for plan 09-05 Task 2) with the checkpoint answers: region us-east-1, bucket deocracy-sourcerer-cache, hostname cache.deocracy.org, t3.micro, generate deploy key, credits unconfirmed. After 09-05: Wave 4 (09-06), Wave 5 (09-07), then code_review_gate -> verify_phase_goal -> update_roadmap.",
+  "context_notes": "Mid-execute-phase 9 under /gsd-execute-phase 9 --auto --no-transition (spawned by plan-phase auto-advance; --no-transition means return status, do not chain to next phase). Worktrees disabled (workflow.use_worktrees=false) — all executors sequential on main tree, updating STATE/ROADMAP themselves. Executor model sonnet. Wave 3 is half done: 09-04 complete, 09-05 parked at its Task-1 human-action checkpoint awaiting AWS credentials. CI is fully green on real runners. The 09-02 SUMMARY documents a nixpkgs mkShell rpath landmine caused by the space in this checkout path ('Vibe Coding') — any new shellHook work must preserve that fix."
+}
