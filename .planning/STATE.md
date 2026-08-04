@@ -2,9 +2,10 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Container Platform
-status: roadmapped
-last_updated: "2026-08-04T00:00:00.000Z"
-last_activity: 2026-08-04
+status: Context gathered — ready for `/gsd-plan-phase 8`
+stopped_at: Phase 8 context gathered; Nix-native rule adopted milestone-wide
+last_updated: "2026-08-04T04:19:37.398Z"
+last_activity: 2026-08-04 — Phase 8 discussed and rescoped; Nix-native decision adopted milestone-wide
 progress:
   total_phases: 12
   completed_phases: 0
@@ -201,9 +202,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-14T22:15:06.636Z
-Stopped at: Completed 06-08-PLAN.md (GAP-2 gap closure)
-Resume file: None
+Last session: 2026-08-04T04:19:37.387Z
+Stopped at: Phase 8 context gathered; Nix-native rule adopted milestone-wide
+Resume file: .planning/phases/08-spike-k-nix-native-substrate-service/08-CONTEXT.md
 
 ## Operator Next Steps
 
