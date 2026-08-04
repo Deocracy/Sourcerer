@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  nix-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # Installs Determinate Nix (the upstream-Nix install path was removed
+      # 2026-01-01 — this action no longer offers it). KVM is auto-enabled
+      # because this repo is public, which is what lets the seed nixosTest
+      # leg below boot a real VM on a standard runner (D-13).
+      - uses: DeterminateSystems/nix-installer-action@v22
+      # -L streams the nixosTest VM's console output; without it a failing
+      # boot test is just "exit 1" with no way to diagnose it.
+      - run: nix flake check -L
+      - run: nix develop --command node scripts/drift-gate.mjs
+
+  windows-tauri:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+      # No Rust setup action — the common toolchain-setup actions do not read
+      # the repo's toolchain pin file and would silently install a different
+      # version (the exact failure mode the drift gate exists to catch). Bare
+      # rustup, preinstalled on windows-latest, auto-resolves the pin on
+      # first invocation.
+      - run: rustup show
+      - run: npm ci
+      # Positioned after both toolchains resolve, before the expensive
+      # build, so drift fails fast.
+      - run: node scripts/drift-gate.mjs
+      - run: npx vitest run
+      - run: npm run verify:fonts
+      - run: npm run tauri build
