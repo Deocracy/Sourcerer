@@ -106,6 +106,14 @@
           self.nixosConfigurations.substrate-wsl.config.system.build.tarballBuilder;
       };
 
+      # D-12/FOUND-02: nixosTest boots the plain-VM variant only. Placing it under
+      # `checks` is what makes `nix flake check` build and run it automatically —
+      # the mechanism Plan 04's CI job depends on.
+      checks.${system}.seed-boot-test = import ./nix/checks/seed-boot-test.nix {
+        inherit pkgs;
+        vmModule = ./nix/substrate/vm-variant.nix;
+      };
+
       # D-09: the public surface downstream repos (Phase 13 Databasise, Phase 16 store, all
       # app repos) consume as a pinned flake input.
       lib = import ./nix/lib.nix { inherit nixpkgs; };
