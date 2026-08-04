@@ -73,6 +73,28 @@ Browser client is the *unprivileged* client: no VM lifecycle, no kill switch, no
 
 ## 5. Community app layer — ENGINE-LESS OCI (Podman dropped, delta 2026-08-02)
 
+> **⚠ SUPERSEDED IN PART — 2026-08-04 (Nix-native decision).** This section's premise, that the
+> community app layer is built on digest-pinned OCI images, **no longer holds as the default
+> path**. The rule is now: if a component is not in nixpkgs, it gets packaged. The community
+> catalog is Nix-native by construction and an OCI image is never a valid submission format;
+> the app-layer compiler has no OCI branch. What forced it: `collabora-online` — the app this
+> whole section was written around — is already in nixpkgs (25.04.9-4, MPL-2.0) with a full
+> `services.collabora-online` module, cached at 13.8 MB download / 42 MB unpacked against
+> ~1.5–2 GB for the CODE image. `services.jupyter` likewise.
+>
+> **Sole surviving OCI path:** a time-boxed escape hatch for *first-party* components that
+> genuinely resist packaging — in v2.0 that is Phase 13's uv2nix descope trigger only, recorded
+> with a written reason and tracked as debt.
+>
+> **Rationale of record:** provenance, and store page-sharing at commercial scale (per-tenant
+> microVMs share library pages only via virtio-fs/DAX over one read-only host store, which
+> requires identical store paths). Explicitly **not** permissions — since the Podman drop,
+> native and OCI compile to the same systemd unit and the §7 vocabulary applies identically to
+> both. Do not re-derive this decision from a permissions argument.
+>
+> §7's hardening baseline below is unaffected and remains the reference.
+> Full reasoning: `.planning/phases/08-spike-k-nix-native-substrate-service/08-CONTEXT.md`.
+
 **No container engine ships in the substrate.** OCI apps run engine-less: `dockerTools.pullImage`/skopeo pulls the **digest-pinned** image into the Nix store **at build time** → an unpacked-rootfs derivation → executed by systemd itself, either as a `RootDirectory=` unit or via `systemd-nspawn --oci-bundle`, under the **same systemd hardening vocabulary as native services (§7)**. One isolation mechanism for native and OCI apps alike — no daemon, no image-store state outside Nix, no second enforcement dialect, and the app's rootfs is part of the system closure (generations now include app *content*, not just app *references*).
 
 **Package format:** a community app = small manifest (icon, description, UI port, permissions §7) + a digest-pinned image reference (or a Nix expression for power apps). The store pipeline **normalizes image semantics at submission time** — entrypoint/cmd/env/healthcheck are read from the image config and compiled into the unit (ExecStart, Environment, systemd watchdog/health probe) — so runtime never interprets OCI metadata. **Caveat recorded:** runtime `docker pull` UX is intentionally gone — installing/updating an app is a (cached, CI-prebuilt) rebuild, consistent with the declared model; the binary cache makes this a download, not a build.

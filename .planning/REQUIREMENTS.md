@@ -6,7 +6,7 @@ Source: `.planning/research/CONTAINER-PLATFORM-PLAN.md` (verifier-revised) + `CO
 
 ### Spike remainder (P0)
 
-- [ ] **SPIKE-01**: Spike K validated on the Windows box — a digest-pinned Collabora image runs as an engine-less systemd unit (`RootDirectory=`/nspawn) inside the substrate distro, web UI reachable on 127.0.0.1 (re-import NixOS-WSL 2605.7.2 image first; local copy deleted 2026-08-03, sha256 recorded in spike 010 README)
+- [ ] **SPIKE-01** *(rescoped 2026-08-04 — see Nix-native decision below)*: Spike K validated on the Windows box — `services.collabora-online` (nixpkgs, cached) runs inside the substrate distro under the §7 hardening baseline, with every relaxed directive and its reason recorded, and the web UI reachable on 127.0.0.1 from the Windows host (re-import NixOS-WSL 2605.7.2 image first; local copy deleted 2026-08-03, sha256 recorded in spike 010 README)
 
 ### Foundation & assurance chain (FOUND)
 
@@ -36,22 +36,22 @@ Source: `.planning/research/CONTAINER-PLATFORM-PLAN.md` (verifier-revised) + `CO
 
 ### Engine in substrate (ENG)
 
-- [ ] **ENG-01**: Databasise engine runs inside the substrate; REST + MCP answer on loopback with a substrate-integration nixosTest gate green. (LightRAG is no longer a live dependency — it was disassembled into Databasise's own code; only vendored remnants remain, nothing to package separately. OCR is NOT part of the engine closure — it ships later as an installable applet through the app layer.)
+- [ ] **ENG-01**: Databasise engine runs inside the substrate; REST + MCP answer on loopback with a substrate-integration nixosTest gate green. **This is the one place the Nix-native rule's escape hatch applies** — if a Python/ML component fights uv2nix beyond the mandatory 3-day descope trigger, it may ship as a digest-pinned OCI unit, recorded with a written reason and tracked as debt to be replaced. Nowhere else in v2.0. (LightRAG is no longer a live dependency — it was disassembled into Databasise's own code; only vendored remnants remain, nothing to package separately. OCR is NOT part of the engine closure — it ships later as an installable applet through the app layer.)
 - [ ] **ENG-02**: Assistant harness runs substrate-side with the `host.ai()` seam unchanged applet-side; Windows-side Python sidecar retired
 - [ ] **ENG-03**: A wiki read-view applet renders live Databasise data through the seam (first engine-backed applet slice)
 - [ ] **ENG-04**: User can see a substrate status panel (services, versions, current generation)
 
 ### App layer (APP)
 
-- [ ] **APP-01**: Manifest schema v1 + manifest→NixOS-module compiler produce one hardened systemd unit per app, native and OCI alike (OCI via `dockerTools.pullImage` rootfs + `RootDirectory=`/nspawn per spike K); headless CLI install path exists
+- [ ] **APP-01** *(revised 2026-08-04 — Nix-native)*: Manifest schema v1 + manifest→NixOS-module compiler produce one hardened systemd unit per app, from **nixpkgs-packaged services only** (no OCI branch in v1 — see the Nix-native decision below); the hardening baseline and its exemption set come from spike K's recorded evidence; headless CLI install path exists
 - [ ] **APP-02**: User can install Collabora from the catalog, edit a document in a pane (multiwebview per spike 011), uninstall, and a generation rollback restores the prior app set
 - [ ] **APP-03**: A `network:none` app demonstrably cannot reach the internet (asserted via the unit's netns) and a unit's `MemoryMax` demonstrably binds
 - [ ] **APP-04**: User sees a computed security score at install time that honestly reflects nspawn/systemd depth
 
 ### Community store (STORE)
 
-- [ ] **STORE-01**: A package authored by a pinned-model + fixed-prompt fixture passes the submission pipeline end-to-end unattended (validate → OCI-unit normalize → build module → boot nixosTest → score → cosign-sign)
-- [ ] **STORE-02**: Unsigned, score-floored, tag-pinned, or privileged/docker-api-class submissions auto-reject (D-P2, no appeal in v1); substrate verifies signatures before ingesting images
+- [ ] **STORE-01** *(revised 2026-08-04 — Nix-native)*: A package authored by a pinned-model + fixed-prompt fixture passes the submission pipeline end-to-end unattended (validate → build module → boot nixosTest → score → cosign-sign). The OCI-unit normalization stage is removed — submissions are Nix expressions against the pinned flake, never image references
+- [ ] **STORE-02** *(revised 2026-08-04)*: Unsigned, score-floored, or privileged submissions auto-reject (D-P2, no appeal in v1); **any submission carrying an OCI image reference auto-rejects by construction** — the format has no field for one
 - [ ] **STORE-03**: Store ops runbook + automation exists (CVE re-scans of approved images, digest re-pin cadence, submission triage)
 - [ ] **STORE-04**: The store format ships but is not publicly opened until the P8 hardening gate passes
 
@@ -68,7 +68,7 @@ Source: `.planning/research/CONTAINER-PLATFORM-PLAN.md` (verifier-revised) + `CO
 
 ### Hardening close (HARD)
 
-- [ ] **HARD-01**: An exposure-score threshold runs as a CI gate on all compiled units; `systemd-analyze security` audit of the OCI-unit fleet passes with the documented exemption set
+- [ ] **HARD-01**: An exposure-score threshold runs as a CI gate on all compiled units; `systemd-analyze security` audit of the **app-unit fleet** passes with the documented exemption set (seeded by spike K's recorded concessions)
 - [ ] **HARD-02**: The store-opening decision is made on audit evidence and `/gsd-audit-milestone` runs for v2.0
 
 ## Future Requirements (deferred to Platform v2 / Cloud)
@@ -80,9 +80,32 @@ Source: `.planning/research/CONTAINER-PLATFORM-PLAN.md` (verifier-revised) + `CO
 - GPU/compute routing (`gpu` manifest key, DeviceAllow, Metal/remote) — P14, consumes spike B
 - Hosted cloud (auth impl, browser client, per-tenant substrate, billing) — Cloud milestone, committed (D-P5)
 
+## Nix-native decision (2026-08-04)
+
+**If a component is not in nixpkgs, it gets packaged.** The community catalog is Nix-native by
+construction — an OCI image is never a valid submission format (STORE-01/02), and the app-layer
+compiler has no OCI branch (APP-01).
+
+**Sole exception:** first-party components that genuinely resist packaging may ship as
+digest-pinned OCI units, time-boxed and tracked as debt to be replaced. In v2.0 that is
+Phase 13's uv2nix descope trigger only (ENG-01).
+
+**Rationale of record:** provenance (a derivation is built from source with an auditable chain;
+an image is an opaque publisher blob), and store page-sharing at commercial scale (per-tenant
+microVMs share library pages only via virtio-fs/DAX over one read-only host store, which
+requires identical store paths — distinct image userlands never share).
+
+**Explicitly NOT the rationale:** permissions (identical either way since the engine was
+dropped — both compile to one systemd unit), disk footprint (amortizes per-image, not
+per-tenant), or runtime speed (no difference). Do not re-derive this decision from those.
+
+Full reasoning and the evidence that forced it:
+`.planning/phases/08-spike-k-nix-native-substrate-service/08-CONTEXT.md`.
+
 ## Out of Scope
 
-- Any container engine in the substrate (Podman/Docker dropped 2026-08-02 — engine-less OCI units only)
+- Any container engine in the substrate (Podman/Docker dropped 2026-08-02; the engine-less OCI-unit path that replaced it was then narrowed to a first-party escape hatch 2026-08-04)
+- OCI images as a community submission format or as an app-layer compile target (2026-08-04 — see the Nix-native decision above)
 - gVisor runtime tier (deferred with Podman; revisit on threat-model change)
 - Multi-container compose apps (deferred or curated Nix-native); compose = deferred single-container compat tier
 - Nested Hyper-V hostile-agent tier; generic environments-platform productization

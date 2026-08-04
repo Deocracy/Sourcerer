@@ -30,14 +30,14 @@ A pixel-perfect, fully interactive desktop shell where the applet framework demo
 
 ## Current Milestone: v2.0 Container Platform
 
-**Goal:** A non-technical scholar on a clean Windows 11 machine installs Sourcerer from the Microsoft Store (or signed site installer), gets a working NixOS-WSL substrate after at most one reboot, sees engine-backed functionality live (Notes, assistant, first Databasise wiki read-view served from the substrate), installs catalog apps (Collabora, Jupyter) as hardened engine-less OCI units with visible security scores, reverts a bad update with one button, and migrates their whole environment to a second PC via manifest + data export.
+**Goal:** A non-technical scholar on a clean Windows 11 machine installs Sourcerer from the Microsoft Store (or signed site installer), gets a working NixOS-WSL substrate after at most one reboot, sees engine-backed functionality live (Notes, assistant, first Databasise wiki read-view served from the substrate), installs catalog apps (Collabora, Jupyter) as hardened Nix-native systemd units with visible security scores, reverts a bad update with one button, and migrates their whole environment to a second PC via manifest + data export.
 
 **Target features:**
 - Flake foundation + CI + binary cache (assurance chain: nothing publishes that CI didn't prove)
 - Custom NixOS-WSL substrate: Store/signed-site install flow, ≤1 reboot, kill switch, secrets plumbing, substrate-connection seam (auth surface stubbed)
 - Update channel with one-button revert; real `security.csp` (the v1.0 null-CSP acceptance expires here)
 - Engine services in substrate (Databasise — LightRAG disassembled into it, no separate dep; OCR deferred to an installable applet) and harness relocation; first engine-backed wiki read-view
-- App layer: manifest→NixOS-module compiler, panes via multiwebview, security scores, engine-less OCI units
+- App layer: manifest→NixOS-module compiler, panes via multiwebview, security scores — Nix-native units only, no OCI branch
 - Community store pipeline (cosign-signed, CVE-gated, privileged auto-reject) — not publicly opened until P8 passes
 - Tools tier + environment export/import ("Move to another PC")
 - Permission grants UI + portal file access; hardening close + milestone audit
@@ -103,6 +103,8 @@ Known debt at close (STATE.md Deferred Items): Phase 5 Notes has 3 never-run hum
 | D-P5: hosted/cloud committed as its own milestone after Platform v1 | Auth-surface interface lands in P2 (stubbed); business track confirmed | — Decided 2026-08-03 |
 | Two-host milestone: NixOS dev host + Windows box for WSL legs/UAT | Dev moved to NixOS; WSL substrate premise stands | — Decided 2026-08-03 |
 | Phase numbering continues from 8 | GSD default; globally unique across milestones | — Decided 2026-08-03 |
+| **Nix-native rule: if it's not in nixpkgs, we package it** | Provenance (auditable source chain vs opaque publisher blob) + store page-sharing at commercial scale (per-tenant microVMs share pages via virtio-fs/DAX only across identical store paths; distinct image userlands never share). NOT permissions (identical either way since the engine drop), NOT disk (amortizes per-image), NOT speed (no difference). | — Decided 2026-08-04. Community catalog is Nix-native by construction; OCI is never a submission format. Sole exception: time-boxed first-party escape hatch (Phase 13 uv2nix), tracked as debt. |
+| Phase 8 rescoped: engine-less OCI unit → Nix-native substrate service | `collabora-online` turned out to be in nixpkgs with a full module and cached at 13.8 MB (vs ~1.5–2 GB image), obsoleting the original kill-question | — Decided 2026-08-04. New kill-question: does a self-sandboxing service (coolwsd) survive the §7 baseline under WSL2's kernel? |
 
 ## Constraints
 

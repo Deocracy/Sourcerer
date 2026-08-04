@@ -30,9 +30,9 @@ Full phase details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 
 ### 🚧 v2.0 Container Platform (In Progress)
 
-**Milestone Goal:** A non-technical scholar on a clean Windows 11 machine installs Sourcerer from the Microsoft Store (or signed site installer), gets a working NixOS-WSL substrate after at most one reboot, sees engine-backed functionality live, installs catalog apps as hardened engine-less OCI units with visible security scores, reverts a bad update with one button, and migrates their whole environment to a second PC via manifest + data export.
+**Milestone Goal:** A non-technical scholar on a clean Windows 11 machine installs Sourcerer from the Microsoft Store (or signed site installer), gets a working NixOS-WSL substrate after at most one reboot, sees engine-backed functionality live, installs catalog apps as hardened Nix-native systemd units with visible security scores, reverts a bad update with one button, and migrates their whole environment to a second PC via manifest + data export.
 
-- [ ] **Phase 8: Spike K — Engine-less OCI Unit** *(P0 remainder)* - Digest-pinned Collabora runs as a systemd `RootDirectory=`/nspawn unit inside the substrate distro
+- [ ] **Phase 8: Spike K — Nix-Native Substrate Service** *(P0 remainder)* - A real nixpkgs service (Collabora) runs hardened inside the substrate distro, UI reachable from Windows
 - [ ] **Phase 9: Flake Foundation & Assurance Chain** *(P1)* - Repo-root flake, CI, binary cache — nothing publishes that CI didn't prove
 - [ ] **Phase 10: Substrate Provisioning & Warden Seam** *(P2)* - Clean Windows machine → working substrate in ≤1 reboot, behind a transport seam, with a real CSP
 - [ ] **Phase 11: Update Channel & Revert** *(P2b)* - CI-gated channel publishes, one-button rollback, bounded generations
@@ -43,22 +43,22 @@ Full phase details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 - [ ] **Phase 16: Community Store Pipeline** *(P5 — Track 2, store repo)* - Signed, CVE-gated, unattended submission pipeline (not publicly opened until Phase 19)
 - [ ] **Phase 17: Tools Tier & Environment Portability** *(P6)* - `nix profile` tool tier and a "Move to another PC" export/import wizard
 - [ ] **Phase 18: Permission Grants UI & Portal File Access** *(P7)* - View/revoke per-app grants; runtime folder grants scoped to the picked path
-- [ ] **Phase 19: Hardening Close & Milestone Audit** *(P8)* - Exposure-score CI gate, OCI-fleet security audit, store-opening decision, milestone audit
+- [ ] **Phase 19: Hardening Close & Milestone Audit** *(P8)* - Exposure-score CI gate, app-unit fleet security audit, store-opening decision, milestone audit
 
 ## Phase Details
 
-### Phase 8: Spike K — Engine-less OCI Unit
+### Phase 8: Spike K — Nix-Native Substrate Service
 **Original plan label**: P0 (spike battery remainder — the last pending spike)
-**Goal**: Prove that a real-world OCI image runs under plain systemd confinement without a container engine's compatibility shims, before Phase 15 commits to that mechanic
+**Goal**: Prove that a real nixpkgs service survives the §7 hardening baseline inside WSL2 and serves a UI reachable from Windows, before Phase 15 commits to the manifest→unit compiler
 **Depends on**: Nothing (v1.0 complete; spikes 010/011 already validated)
 **Execution host**: **Windows box** — the substrate distro lives in WSL2. Re-import NixOS-WSL 2605.7.2 first (local image deleted 2026-08-03; verify sha256 `e7180ad555fdcb8e1e057e2ef056de467603a5e502ff8531053738371be3f6b9` recorded in `spikes/010-nixos-wsl-substrate/README.md`); re-verify the `SourcererSpike` distro is registered and warm, otherwise budget the re-import leg.
 **Requirements**: SPIKE-01
 **Success Criteria** (what must be TRUE):
-  1. A digest-pinned Collabora CODE image is ingested into the Nix store via `dockerTools.pullImage` and unpacked as a rootfs derivation
-  2. That rootfs runs as a systemd unit inside the substrate distro (`RootDirectory=` first, `systemd-nspawn --oci-bundle` as the internal fallback)
+  1. `services.collabora-online` runs inside the substrate distro from the binary cache, with no compiling and no OCI image
+  2. The full §7 hardening baseline is applied first, then relaxed one directive at a time, with every concession and its reason recorded
   3. The Collabora web UI is reachable on 127.0.0.1 from the Windows host
-  4. The findings (users, /proc, tmpfs, entrypoint env handling) are recorded so Phase 15's compiler can be written against evidence, not guesswork
-**Notes**: Fallback ladder is internal — `RootDirectory=` → nspawn `--oci-bundle`. Only if both fail for real-world images does the (currently closed) engine decision reopen, and only with evidence.
+  4. The resulting exemption set is written down so Phase 15's compiler and Phase 19's audit are built on evidence, not guesswork
+**Notes**: **Rescoped 2026-08-04** — the original "engine-less OCI unit" framing was obsoleted by the Nix-native decision (see PROJECT.md Key Decisions). `collabora-online` 25.04.9-4 is in nixpkgs with a full `services.collabora-online` module and is cached (13.8 MB download / 42 MB unpacked, vs ~1.5–2 GB for the CODE image), so no image is involved. The real remaining risk moved: `coolwsd` sandboxes itself, forking jailed LibreOffice kernels via its own chroot + namespaces, which collides with `DynamicUser`/`ProtectSystem=strict`/`CapabilityBoundingSet`/`SystemCallFilter` — and WSL2's kernel is not a normal kernel. That collision is this spike's kill-question. Collabora only; Jupyter and the multiwebview pane leg belong to Phase 15.
 **Plans**: TBD
 
 ### Phase 9: Flake Foundation & Assurance Chain
@@ -133,7 +133,7 @@ Full phase details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
   2. REST and MCP answer on loopback inside the substrate
   3. A substrate-integration nixosTest asserts the engine endpoints and goes green; endpoint-contract breakage fails CI
 **Notes**: **LightRAG is NOT a separate dependency** — it was disassembled into Databasise's own code; only vendored remnants remain, nothing to package separately. **OCR is NOT part of the engine closure** — it ships later as an installable applet through the Phase 15 app layer. Track 2 lives in the Databasise repo, so the no-worktrees rule (which binds only the shell tree) does not serialize it.
-**Descope trigger** (mandatory): any component fighting uv2nix > 3 days → run it as a digest-pinned engine-less OCI unit, no appeal.
+**Descope trigger** (mandatory): any component fighting uv2nix > 3 days → run it as a digest-pinned engine-less OCI unit, no appeal. **This is the sole surviving OCI path in v2.0** under the 2026-08-04 Nix-native decision — first-party only, requires a written reason, and is tracked as debt to be replaced.
 **Plans**: TBD
 
 ### Phase 14: Harness Relocation & First Engine-Backed Applet
@@ -159,12 +159,12 @@ Full phase details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 **Execution host**: **NixOS dev host** for the manifest schema, compiler, and enforcement tests (nixosTest asserts netns and `MemoryMax`); **Windows box** for the pane UAT — including spike 011's still-open fractional-DPI retest (its `spike011-multiwebview.exe` was preserved for exactly this).
 **Requirements**: APP-01, APP-02, APP-03, APP-04
 **Success Criteria** (what must be TRUE):
-  1. A manifest (identity, UI port, permissions, resources, autostart) compiles to one hardened systemd unit for native and OCI apps alike, with OCI apps as `dockerTools.pullImage` rootfs run via `RootDirectory=`/nspawn per Phase 8; a headless CLI install path exists
+  1. A manifest (identity, UI port, permissions, resources, autostart) compiles to one hardened systemd unit from a **nixpkgs-packaged service** — no OCI branch (Nix-native decision 2026-08-04); the baseline and its exemption set come from Phase 8's recorded evidence; a headless CLI install path exists
   2. The user installs Collabora from the catalog, edits a document in a pane, uninstalls, and a generation rollback restores the prior app set
   3. A `network:none` app demonstrably cannot reach the internet (asserted via the unit's netns) and a unit's `MemoryMax` demonstrably binds
   4. The user sees a computed security score at install time that honestly reflects nspawn/systemd depth (not gVisor)
-**Notes**: Structurally pre-ordered — **compiler and enforcement waves complete and are testable BEFORE any UI wave**. `gpu` is EXCLUDED from the v1 manifest schema (deferred to Platform v2's P14). Collabora's WOPI host is a real plan item, not a parenthetical. Runtime `docker pull` UX is intentionally gone: app install/update is a cached rebuild — a download, given Phase 9's cache.
-**Descope trigger**: an important real-world image resists `RootDirectory=` confinement → nspawn `--oci-bundle` per app; if a whole class resists both, that class waits for the deferred compat tier rather than reintroducing an engine ad hoc.
+**Notes**: Structurally pre-ordered — **compiler and enforcement waves complete and are testable BEFORE any UI wave**. `gpu` is EXCLUDED from the v1 manifest schema (deferred to Platform v2's P14). Collabora's WOPI host is a real plan item, not a parenthetical. App install/update is a cached rebuild — a download, given Phase 9's cache. **Nix-native (2026-08-04):** both catalog apps are already packaged (`services.collabora-online` 25.04.9-4 cached at 13.8 MB; `services.jupyter`), so the compiler has one branch and no image path. Jupyter and spike 011's still-open fractional-DPI pane retest were both deferred here from Phase 8.
+**Descope trigger**: a catalog service resists the hardening baseline → widen its documented exemption set for that app class and record why (per Phase 8's method), rather than dropping the baseline globally. An app that is not in nixpkgs waits until it is packaged — it does not get an ad-hoc image path.
 **Plans**: TBD
 **UI hint**: yes
 
@@ -175,11 +175,11 @@ Full phase details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 **Execution host**: **NixOS dev host** — store repo, submission CI, nixosTest, cosign signing.
 **Requirements**: STORE-01, STORE-02, STORE-03, STORE-04
 **Success Criteria** (what must be TRUE):
-  1. A package authored by a pinned-model + fixed-prompt fixture passes the pipeline end-to-end unattended: validate → OCI-unit normalize → build module → boot nixosTest → score → cosign-sign
-  2. Unsigned, score-floored, tag-pinned, and privileged/docker-api-class submissions auto-reject, and the substrate verifies signatures before ingesting an image
+  1. A package authored by a pinned-model + fixed-prompt fixture passes the pipeline end-to-end unattended: validate → build module → boot nixosTest → score → cosign-sign (the OCI-unit normalization stage is removed — Nix-native decision 2026-08-04)
+  2. Unsigned, score-floored, and privileged submissions auto-reject; a submission carrying an OCI image reference auto-rejects by construction, since the format has no field for one
   3. A store ops runbook plus automation exists for CVE re-scans of approved images, digest re-pin cadence, and submission triage
   4. The store format ships but is **not publicly opened** — opening waits on Phase 19's audit
-**Notes**: D-P2 stands — privileged/docker-api-class submissions are auto-rejected with no appeal in v1. Single cosign key, no rotation in v1 (explicit). OCI-unit normalization fixes entrypoint/cmd/env/healthcheck semantics **at submission time**, never interpreted at runtime. Compose is a deferred single-container compatibility tier; multi-container compose apps are deferred or arrive curated Nix-native.
+**Notes**: D-P2 stands — privileged submissions are auto-rejected with no appeal in v1. Single cosign key, no rotation in v1 (explicit). **Nix-native (2026-08-04):** the OCI-unit normalization stage is gone with the image path — a submission is a Nix expression against the pinned flake plus a manifest, so entrypoint/env/healthcheck semantics are declared, never inferred from image config. Compose is likewise gone as a compatibility tier. This narrows what a community author can submit, which raises the authoring bar — expect the catalog to stay first-party-curated longer than the original plan assumed, and treat that as the design, not a descope.
 **Descope trigger** (mandatory): pipeline can't pass the LLM fixture unattended → v1 descopes to a first-party-curated catalog only; community store moves to Platform v2.
 **Plans**: TBD
 
@@ -217,11 +217,11 @@ Full phase details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 **Original plan label**: P8 · size M
 **Goal**: Every unit that ships is proved hardened, and the decision to open the community store is made on audit evidence rather than optimism
 **Depends on**: Phase 18 (shell track) + Phase 16 (store format must exist to decide on opening it)
-**Execution host**: **Windows box** for the hardening UAT and `systemd-analyze security` sweep of the live OCI-unit fleet inside the real substrate; **NixOS dev host** for the CI gate and audit artifacts.
+**Execution host**: **Windows box** for the hardening UAT and `systemd-analyze security` sweep of the live app-unit fleet inside the real substrate; **NixOS dev host** for the CI gate and audit artifacts.
 **Requirements**: HARD-01, HARD-02
 **Success Criteria** (what must be TRUE):
   1. An exposure-score threshold runs as a CI gate on all compiled units, and no unit ships above it
-  2. A `systemd-analyze security` audit of the OCI-unit fleet passes with a documented exemption set (agent harness, nspawn-launcher units)
+  2. A `systemd-analyze security` audit of the app-unit fleet passes with a documented exemption set (agent harness, self-sandboxing services per Phase 8's recorded concessions)
   3. The store-opening decision is made on that evidence — open publicly, or hold — and the WSL2 shared-kernel caveat appears in user-facing security notes
   4. `/gsd-audit-milestone` runs for v2.0 and produces an artifact
 **Notes**: This phase IS the descope checkpoint — no descope trigger of its own. The security score must honestly reflect nspawn/systemd + VM-boundary depth; gVisor's syscall-interception tier is deferred, revisited only on threat-model change. Carried debt worth settling before this gate: `/gsd-secure-phase` never ran for Phases 02-07 (only `01-SECURITY.md` exists), and `workflow.security_enforcement` is currently `false` in config.json.
@@ -243,7 +243,7 @@ Join points: 14 needs 10 + 13 · 19 needs 18 + 16
 | 5. Notes Applet | v1.0 | 2/2 | Complete | 2026-07-13 |
 | 6. Dashboard Assistant & Home | v1.0 | 8/8 | Complete | 2026-07-14 |
 | 7. Assistant Harness Core | v1.0 | 6/6 | Complete | 2026-07-08 |
-| 8. Spike K — Engine-less OCI Unit | v2.0 | 0/TBD | Not started | - |
+| 8. Spike K — Nix-Native Substrate Service | v2.0 | 0/TBD | Not started | - |
 | 9. Flake Foundation & Assurance Chain | v2.0 | 0/TBD | Not started | - |
 | 10. Substrate Provisioning & Warden Seam | v2.0 | 0/TBD | Not started | - |
 | 11. Update Channel & Revert | v2.0 | 0/TBD | Not started | - |

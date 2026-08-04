@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-03)
 
 **Core value:** A pixel-perfect, fully interactive desktop shell where the applet framework demonstrably works end-to-end — Notes proves the loop, every other applet is a believable stub.
-**Current focus:** v2.0 Container Platform — Phase 8 (Spike K, engine-less OCI unit) is next, on the Windows box.
+**Current focus:** v2.0 Container Platform — Phase 8 (Spike K, Nix-native substrate service) is next, on the Windows box.
 
 ## Current Position
 
-Phase: 8 — Spike K: Engine-less OCI Unit (not started)
+Phase: 8 — Spike K: Nix-Native Substrate Service (not started)
 Plan: —
-Status: Roadmap complete — ready for `/gsd-plan-phase 8`
-Last activity: 2026-08-04 — v2.0 roadmap created (12 phases, 8-19)
+Status: Context gathered — ready for `/gsd-plan-phase 8`
+Last activity: 2026-08-04 — Phase 8 discussed and rescoped; Nix-native decision adopted milestone-wide
 Progress: [------------] 0/12 phases
 
 **Two-host reminder:** every v2.0 phase states its execution host in ROADMAP.md. NixOS is the dev host; the Windows box runs Phases 8, 10, 12, 14, 17 and the UAT legs of 11, 15, 18, 19. A phase whose UAT silently assumes the dev host will strand.
@@ -173,6 +173,7 @@ None yet.
 
 - [v2.0 Phase 10]: `security.csp = null` acceptance from v1.0 Phase 1 EXPIRES here by construction (multiwebview panes + container-served UIs). `src-tauri/tauri.conf.json` still reads `"csp": null`. Real CSP is a Phase 10 deliverable, not a nice-to-have.
 - [v2.0 Phase 8]: the local `nixos.wsl` image was deleted 2026-08-03 — re-download NixOS-WSL 2605.7.2 and verify sha256 `e7180ad555fdcb8e1e057e2ef056de467603a5e502ff8531053738371be3f6b9`; re-verify the `SourcererSpike` distro is still registered on the Windows box (the "1 day of pure work" budget assumed it was warm).
+- [v2.0 Nix-native, 2026-08-04]: the OCI-image app layer is **retired as the default path** milestone-wide. Stale OCI language may still linger in `.planning/research/CONTAINER-PLATFORM-PLAN.md` (P0 spike-K row, P4/P5 bodies) — that file was NOT rewritten, only `CONTAINER-PLATFORM.md` §5 carries a supersession banner. Treat ROADMAP.md + REQUIREMENTS.md as authoritative where they disagree with the plan file.
 - [v2.0 Phase 19]: security baseline is thinner than this file implied — `01-SECURITY.md` is the only SECURITY.md in the repo (Phases 02-07 have none, including the Phase 07 Pi sidecar's real trust boundary), and `workflow.security_enforcement` is `false` so `/gsd-secure-phase` no-ops until flipped back. Worth settling before Phase 15/16 threat-modelling, not after.
 - [v2.0 calendar]: this milestone is wait-dominated (30-90 min closure builds, physical reboot UAT, clean-machine tests, Store certification queues in days). Plan counts hold; wall-clock roughly doubles vs v1.0.
 
