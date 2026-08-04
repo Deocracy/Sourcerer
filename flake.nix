@@ -5,9 +5,13 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05"; # D-08
     rust-overlay.url = "github:oxalica/rust-overlay";
     rust-overlay.inputs.nixpkgs.follows = "nixpkgs";
+    # Pinned to the exact tag spike 010 validated end-to-end, not `main` — D-08's
+    # calm channel rhythm depends on the WSL line tracking the nixpkgs pin.
+    nixos-wsl.url = "github:nix-community/NixOS-WSL/2605.7.2";
+    nixos-wsl.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, rust-overlay }:
+  outputs = { self, nixpkgs, rust-overlay, nixos-wsl }:
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs {
@@ -61,6 +65,45 @@
           export PKG_CONFIG_PATH="${pkgs.openssl.dev}/lib/pkgconfig:${pkgs.libsoup_3.dev}/lib/pkgconfig:${pkgs.webkitgtk_4_1.dev}/lib/pkgconfig:''${PKG_CONFIG_PATH:-}"
           echo "sourcerer dev shell: rustc $(rustc --version | awk '{print $2}'), node $(node --version)"
         '';
+      };
+
+      # D-15: one shared substrate core (nix/substrate/core.nix), two thin adapter
+      # variants. substrate-wsl is the real image target; substrate-vm is what the
+      # seed nixosTest boots — it proves the substrate's contents, never the WSL
+      # adapter layer (nix/substrate/vm-variant.nix's own header comment says so).
+      nixosConfigurations.substrate-wsl = nixpkgs.lib.nixosSystem {
+        inherit system;
+        specialArgs = { inherit nixos-wsl; };
+        modules = [ ./nix/substrate/wsl-variant.nix ];
+      };
+
+      nixosConfigurations.substrate-vm = nixpkgs.lib.nixosSystem {
+        inherit system;
+        modules = [
+          ./nix/substrate/vm-variant.nix
+          # A standalone nixosSystem (unlike a nixosTest node, which supplies its
+          # own qemu-vm disk/boot plumbing automatically) requires a real root
+          # filesystem + bootloader target to satisfy NixOS's bootability
+          # assertions before system.build.toplevel will evaluate. This is
+          # eval-only scaffolding for FOUND-01's "buildable closure" proof, not
+          # substrate content — it stays out of vm-variant.nix itself so that
+          # file's imports remain exactly [ ./core.nix ] as D-15 requires.
+          {
+            fileSystems."/" = { device = "/dev/disk/by-label/nixos"; fsType = "ext4"; };
+            boot.loader.grub.device = "/dev/sda";
+          }
+        ];
+      };
+
+      packages.${system} = {
+        substrate-system =
+          self.nixosConfigurations.substrate-wsl.config.system.build.toplevel;
+
+        # A runnable script requiring root to actually emit the .wsl file; running
+        # it to produce a distributable image is Phase 10's job. Phase 9 only needs
+        # the derivation to build so the closure is cacheable (FOUND-01's target).
+        substrate-image-builder =
+          self.nixosConfigurations.substrate-wsl.config.system.build.tarballBuilder;
       };
 
       # D-09: the public surface downstream repos (Phase 13 Databasise, Phase 16 store, all
