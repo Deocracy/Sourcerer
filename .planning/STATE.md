@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Container Platform
-status: Ready to execute — Phase 8 planned (5 plans, 5 waves)
-stopped_at: Phase 8 planned; awaiting execution on the Windows box
+status: Phase 8 planned then DEFERRED — Phase 9 (Flake Foundation) is next
+stopped_at: Phase 8 deferred with plans intact; ready for `/gsd-discuss-phase 9`
 last_updated: "2026-08-05T00:00:00.000Z"
-last_activity: 2026-08-05 — Phase 8 researched, pattern-mapped and planned; 5 plans passed the checker first pass
+last_activity: 2026-08-05 — Phase 8 researched, planned (5 plans, checker-passed), then deferred as spike-shaped work; re-decide at Phase 15
 progress:
   total_phases: 12
   completed_phases: 0
@@ -25,10 +25,20 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 
 ## Current Position
 
-Phase: 8 — Spike K: Nix-Native Substrate Service (planned, not started)
-Plan: 5 plans in 5 sequential waves (08-01 driver+preflight · 08-02 stock service+control · 08-03 hardening ladder · 08-04 declarative proof+reachability · 08-05 findings)
-Status: Ready to execute — run `/gsd-execute-phase 8` **on the Windows box**
-Last activity: 2026-08-05 — Phase 8 researched, pattern-mapped and planned; 5 plans passed the checker first pass
+Phase: 9 — Flake Foundation & Assurance Chain (not started) · **Phase 8 deferred, see below**
+Plan: —
+Status: Ready for `/gsd-discuss-phase 9` on the **NixOS dev host**
+Last activity: 2026-08-05 — Phase 8 researched, planned (5 plans, checker-passed), then deferred as spike-shaped work
+
+**Phase 8 is DEFERRED, not abandoned (2026-08-05).** It ships no application code; its only
+output is evidence for Phase 15's compiler and Phase 19's audit, so it was mis-slotted as a
+phase. All planning artifacts are committed and checker-passed in
+`.planning/phases/08-spike-k-nix-native-substrate-service/` — whenever it runs it starts at
+execute, not discuss. Phases 9–19 are **not renumbered**; the gap is intentional. Re-decide at
+Phase 15: run the spike, or derive the hardening directives inside the compiler's own design.
+Research already overturned its D-09 (the nixpkgs `--disable-setcap` build makes
+`RestrictNamespaces`/`SystemCallFilter` the likely blocker, not `CapabilityBoundingSet`) — do
+not re-derive that.
 Progress: [------------] 0/12 phases
 
 **Two-host reminder:** every v2.0 phase states its execution host in ROADMAP.md. NixOS is the dev host; the Windows box runs Phases 8, 10, 12, 14, 17 and the UAT legs of 11, 15, 18, 19. A phase whose UAT silently assumes the dev host will strand.

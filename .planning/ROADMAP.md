@@ -33,7 +33,7 @@ Full phase details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 
 **Milestone Goal:** A non-technical scholar on a clean Windows 11 machine installs Sourcerer from the Microsoft Store (or signed site installer), gets a working NixOS-WSL substrate after at most one reboot, sees engine-backed functionality live, installs catalog apps as hardened Nix-native systemd units with visible security scores, reverts a bad update with one button, and migrates their whole environment to a second PC via manifest + data export.
 
-- [ ] **Phase 8: Spike K — Nix-Native Substrate Service** *(P0 remainder)* - A real nixpkgs service (Collabora) runs hardened inside the substrate distro, UI reachable from Windows
+- [~] **Phase 8: Spike K — Nix-Native Substrate Service** *(P0 remainder)* — **DEFERRED 2026-08-05** (planned, not executed). Spike-shaped work that was mis-slotted as a phase; parked with its plans intact. Re-decide at Phase 15: run it then, or absorb the hardening question into the compiler's own design.
 - [ ] **Phase 9: Flake Foundation & Assurance Chain** *(P1)* - Repo-root flake, CI, binary cache — nothing publishes that CI didn't prove
 - [ ] **Phase 10: Substrate Provisioning & Warden Seam** *(P2)* - Clean Windows machine → working substrate in ≤1 reboot, behind a transport seam, with a real CSP
 - [ ] **Phase 11: Update Channel & Revert** *(P2b)* - CI-gated channel publishes, one-button rollback, bounded generations
@@ -48,7 +48,32 @@ Full phase details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 
 ## Phase Details
 
-### Phase 8: Spike K — Nix-Native Substrate Service
+### Phase 8: Spike K — Nix-Native Substrate Service *(DEFERRED)*
+
+> **DEFERRED 2026-08-05 — planned but not executed.** This is spike-shaped work that was
+> mis-slotted as a roadmap phase: it ships no application code, and its only output is evidence
+> for Phase 15's compiler and Phase 19's audit. Rather than spend a Windows-box day on it now,
+> it is parked **with all planning artifacts intact** — 5 plans, RESEARCH, PATTERNS, VALIDATION
+> and CONTEXT are committed and checker-passed, so whenever it runs it starts at execute, not at
+> discuss.
+>
+> **Deliberately no downstream edits.** Phase 15 and Phase 19 keep their existing wording. This
+> deferred entry plus SPIKE-01's `Deferred` status in REQUIREMENTS.md are the breadcrumb —
+> Phase 15's discuss-phase must re-open the question and decide explicitly: run the spike first,
+> or derive the hardening directives as part of building the compiler.
+>
+> **Not renumbered.** Phases 9–19 keep their numbers; the gap is intentional. Those numbers are
+> referenced throughout PROJECT.md, the CONTAINER-PLATFORM research docs, and phase CONTEXT
+> files ("Phase 9 owns the flake", "Phase 15 owns the compiler", "Phase 19's audit").
+>
+> When it does run, it becomes spike `012-nix-native-substrate-service` under
+> `.planning/spikes/` — no MANIFEST row is added until there is a verdict to record.
+>
+> **One correction already banked, for free:** research overturned this phase's own D-09. The
+> nixpkgs build passes `--disable-setcap`, forcing `coolwsd` onto its unprivileged
+> user+mount-namespace jailing path, so `CapabilityBoundingSet` is probably *not* the blocker —
+> `RestrictNamespaces` and `SystemCallFilter` are. Whoever picks this up should not re-derive
+> that from scratch.
 
 **Original plan label**: P0 (spike battery remainder — the last pending spike)
 **Goal**: Prove that a real nixpkgs service survives the §7 hardening baseline inside WSL2 and serves a UI reachable from Windows, before Phase 15 commits to the manifest→unit compiler
@@ -63,7 +88,7 @@ Full phase details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
   4. The resulting exemption set is written down so Phase 15's compiler and Phase 19's audit are built on evidence, not guesswork
 
 **Notes**: **Rescoped 2026-08-04** — the original "engine-less OCI unit" framing was obsoleted by the Nix-native decision (see PROJECT.md Key Decisions). `collabora-online` 25.04.9-4 is in nixpkgs with a full `services.collabora-online` module and is cached (13.8 MB download / 42 MB unpacked, vs ~1.5–2 GB for the CODE image), so no image is involved. The real remaining risk moved: `coolwsd` sandboxes itself, forking jailed LibreOffice kernels via its own chroot + namespaces, which collides with `DynamicUser`/`ProtectSystem=strict`/`CapabilityBoundingSet`/`SystemCallFilter` — and WSL2's kernel is not a normal kernel. That collision is this spike's kill-question. Collabora only; Jupyter and the multiwebview pane leg belong to Phase 15.
-**Plans**: 5 plans (strictly sequential — one physical Windows host, one distro, one service; the ladder depends on the plan-02 control measurement)Plans:
+**Plans**: 5 plans, ready to execute (strictly sequential — one physical Windows host, one distro, one service; the ladder depends on the plan-02 control measurement)
 **Wave 1**
 
 - [ ] 08-01-PLAN.md — Substrate precondition + driver scaffold (WSL version gate, conditional sha256-verified re-import, unprivileged-userns pre-flight)

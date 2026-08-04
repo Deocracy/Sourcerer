@@ -6,7 +6,7 @@ Source: `.planning/research/CONTAINER-PLATFORM-PLAN.md` (verifier-revised) + `CO
 
 ### Spike remainder (P0)
 
-- [ ] **SPIKE-01** *(rescoped 2026-08-04 — see Nix-native decision below)*: Spike K validated on the Windows box — `services.collabora-online` (nixpkgs, cached) runs inside the substrate distro under the §7 hardening baseline, with every relaxed directive and its reason recorded, and the web UI reachable on 127.0.0.1 from the Windows host (re-import NixOS-WSL 2605.7.2 image first; local copy deleted 2026-08-03, sha256 recorded in spike 010 README)
+- [ ] **SPIKE-01** *(rescoped 2026-08-04; **DEFERRED 2026-08-05** — planned, not executed; re-decide at Phase 15 whether to run it or absorb it into the compiler's design)*: Spike K validated on the Windows box — `services.collabora-online` (nixpkgs, cached) runs inside the substrate distro under the §7 hardening baseline, with every relaxed directive and its reason recorded, and the web UI reachable on 127.0.0.1 from the Windows host (re-import NixOS-WSL 2605.7.2 image first; local copy deleted 2026-08-03, sha256 recorded in spike 010 README)
 
 ### Foundation & assurance chain (FOUND)
 
@@ -116,7 +116,7 @@ Full reasoning and the evidence that forced it:
 
 | Requirement | Phase | Plan label | Execution host | Status |
 |-------------|-------|------------|----------------|--------|
-| SPIKE-01 | Phase 8 | P0 | Windows box | Pending |
+| SPIKE-01 | Phase 8 *(deferred)* | P0 | Windows box | Deferred — planned, re-decide at Phase 15 |
 | FOUND-01 | Phase 9 | P1 | NixOS dev host | Pending |
 | FOUND-02 | Phase 9 | P1 | NixOS dev host | Pending |
 | FOUND-03 | Phase 9 | P1 | NixOS dev host | Pending |
