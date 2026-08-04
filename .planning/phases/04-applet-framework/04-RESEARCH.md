@@ -134,7 +134,7 @@ src/
 **When to use:** Always — FWK-01/FWK-02 require this shape; no dynamic `import()` in v1.
 **Example:**
 ```typescript
-// Source: Design sync setup guide/design_handoff_sourcerer_tauri/reference/applets/registry.js
+// Source: design-sync-setup-guide/design_handoff_sourcerer_tauri/reference/applets/registry.js
 // (adapted: ordinary import, no React-via-props — CLAUDE.md "What NOT to Use")
 import * as Wiki from "../applets/Wiki";
 import * as Library from "../applets/Library";
@@ -439,8 +439,8 @@ No new external dependencies. All required infrastructure (Tauri 2 window/IPC, N
 - `D:\Vibe Coding\Sourcerer\sidecar\src\index.ts`, `modes.ts`, `sessions.ts`, `protocol.ts` — sidecar session/mode architecture (source of Pitfalls 1-3)
 - `D:\Vibe Coding\Sourcerer\node_modules\dockview-core\dist\esm\dockview\types.d.ts`, `dockviewComponent.d.ts`, `dist\esm\api\panelApi.d.ts` — verified dockview API surface (`setActivePanel`, `panels`, `GroupPanelPartInitParameters`)
 - `D:\Vibe Coding\Sourcerer\package.json` — installed dependency versions
-- `D:\Vibe Coding\Sourcerer\Design sync setup guide\design_handoff_sourcerer_tauri\reference\applets\README.md`, `_TemplateApplet.js`, `registry.js` — the original authoritative module-contract reference
-- `D:\Vibe Coding\Sourcerer\NEW Design sync setup guide\design_handoff_bespoke_rails_shell\wiki.js`, `library.js`, `store.js` — rich demo ports to adapt
+- `D:\Vibe Coding\Sourcerer\design-sync-setup-guide\design_handoff_sourcerer_tauri\reference\applets\README.md`, `_TemplateApplet.js`, `registry.js` — the original authoritative module-contract reference
+- `D:\Vibe Coding\Sourcerer\design-sync-setup-guide\design_handoff_bespoke_rails_shell\wiki.js`, `library.js`, `store.js` — rich demo ports to adapt
 - `D:\Vibe Coding\Sourcerer\src\styles\tokens.css` — current token set (source of Pitfall 4)
 - `.claude/skills/spike-findings-sourcerer/SKILL.md` — harness constraints (lean prompt, tool-schema cost)
 - `D:\Vibe Coding\Sourcerer\.planning\phases\07-assistant-harness-core-headless-pi-sidecar-behind-the-host-a\07-CONTEXT.md` — Phase 7 decisions D-01..D-10

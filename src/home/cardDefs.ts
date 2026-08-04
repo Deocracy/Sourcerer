@@ -8,7 +8,7 @@
  * are real state, wired in Plan 06-06). No field dropped or simplified from
  * the reference; only the JS object literal became a typed TS const.
  *
- * Source: `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/home-cards.js`
+ * Source: `design-sync-setup-guide/design_handoff_bespoke_rails_shell/home-cards.js`
  * lines 22-65.
  */
 

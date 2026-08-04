@@ -40,7 +40,7 @@ blocked: 0
 status: resolved (plan 06-07, commits ebf77dc..28f23f5)
 severity: major
 symptom: Live grip drag is janky (not fluid like the prototype), and the assistant open/close toggle interactions don't work.
-expected: Behavior of the right assistant rail in the demo prototype at `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/` — fluid pointer-driven resize with snap cues, working toggle to open/close the panel.
+expected: Behavior of the right assistant rail in the demo prototype at `design-sync-setup-guide/design_handoff_bespoke_rails_shell/` — fluid pointer-driven resize with snap cues, working toggle to open/close the panel.
 suspects: `src/assistant/useAssistantResize.ts` (CR-01 fix changed hostWidth source to `window.innerWidth` — snap thresholds/clamps may now disagree with the actual host geometry), `src/assistant/assistantSnap.ts` thresholds vs the prototype's `startRightResize`/`startRightPull` logic, missing rAF/transition suppression during drag, closed-strip reopen affordance.
 
 ### GAP-2: Left rail resize/toggle also janky vs UX demo

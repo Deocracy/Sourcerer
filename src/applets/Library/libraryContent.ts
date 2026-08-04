@@ -1,6 +1,6 @@
 /**
  * libraryContent.ts — the demo corpora / documents / stats data ported from
- * `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/library.js`
+ * `design-sync-setup-guide/design_handoff_bespoke_rails_shell/library.js`
  * (CORPUS_STATS/DOCS/RECENT, lines 17-37) plus the `store.js` `corpora` list
  * (lines 15-19). Data lives here, separated from the component
  * (src/applets/Library/index.tsx), per 04-04-PLAN.md Task 1.

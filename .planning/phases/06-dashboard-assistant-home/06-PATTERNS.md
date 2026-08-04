@@ -265,7 +265,7 @@ export function LogoCluster() {
 
 ### `src/shell/Home.tsx` (component, CRUD) + `src/home/cardDefs.ts` + `src/home/HomeCard.tsx` + `src/home/SortableCard.tsx` — NEW, direct port
 
-**Analog:** `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/home-cards.js` (338 lines, full file read — the complete, working dnd-kit reference).
+**Analog:** `design-sync-setup-guide/design_handoff_bespoke_rails_shell/home-cards.js` (338 lines, full file read — the complete, working dnd-kit reference).
 
 **Imports to convert (top of file, lines 1-13):**
 ```javascript
@@ -486,6 +486,6 @@ No React/DOM dependency; module-level constants documented against their design-
 
 ## Metadata
 
-**Analog search scope:** `src/assistant/`, `src/shell/`, `src/store/`, `src/host/`, `src/persistence/`, `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/`
+**Analog search scope:** `src/assistant/`, `src/shell/`, `src/store/`, `src/host/`, `src/persistence/`, `design-sync-setup-guide/design_handoff_bespoke_rails_shell/`
 **Files scanned:** `AssistantPanel.tsx`, `AssistantPanel.test.tsx` (existence only), `host/ai.ts`, `host/index.ts`, `host/storage.ts`, `store/shellStore.ts`, `shell/railSnap.ts`, `shell/railSnap.test.ts`, `shell/useRailDrag.ts`, `shell/DiviChip.tsx`, `shell/LogoCluster.tsx`, `app/AppShell.tsx`, `persistence/workspaceStore.ts` (targeted range), `home-cards.js` (full, design handoff)
 **Pattern extraction date:** 2026-07-14

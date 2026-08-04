@@ -214,7 +214,7 @@ values are the design's own precedent, same class as the rail's `CLOSE_AT`/`COMP
 **When to use:** ASST-03 resize implementation (`assistantSnap.ts`/`useAssistantResize.ts`).
 **Example:**
 ```typescript
-// Source: NEW Design sync setup guide/design_handoff_bespoke_rails_shell/Sourcerer Bespoke Rails.dc.html (lines 514-542)
+// Source: design-sync-setup-guide/design_handoff_bespoke_rails_shell/Sourcerer Bespoke Rails.dc.html (lines 514-542)
 // Mirrors railSnap.ts's pure-function shape but with the mirrored (right-edge) formula and
 // the assistant's own 3-state model (closed / open / full) instead of the rail's 3-state
 // (hidden/compact/expanded).
@@ -272,7 +272,7 @@ JSX per CLAUDE.md's "drop the React-via-props indirection if using a bundler" di
 `import ... from 'https://esm.sh/...'` to normal npm imports.
 **Example:**
 ```typescript
-// Source: NEW Design sync setup guide/design_handoff_bespoke_rails_shell/home-cards.js (lines 270-281)
+// Source: design-sync-setup-guide/design_handoff_bespoke_rails_shell/home-cards.js (lines 270-281)
 // BEFORE (prototype, localStorage):
 // const [cards, setCards] = React.useState(() => {
 //   try { const saved = JSON.parse(localStorage.getItem(STORE_KEY)); if (saved?.pins) return saved; } catch {}
@@ -503,7 +503,7 @@ new to probe.
 ### Primary (HIGH confidence)
 - `src/assistant/AssistantPanel.tsx`, `src/host/ai.ts`, `src/host/index.ts`, `src/host/aiComplete.ts`, `src/host/storage.ts` — direct source read, Phase 7/4 shipped code
 - `src/store/shellStore.ts`, `src/shell/railSnap.ts`, `src/shell/useRailDrag.ts`, `src/shell/DiviChip.tsx`, `src/shell/LogoCluster.tsx`, `src/App.tsx`, `src/app/AppShell.tsx` — direct source read
-- `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/home-cards.js` (full file) and `Sourcerer Bespoke Rails.dc.html` (title bar, right-rail/assistant section lines 1-100, 160-400, 419-575) — direct source read, the design source of truth
+- `design-sync-setup-guide/design_handoff_bespoke_rails_shell/home-cards.js` (full file) and `Sourcerer Bespoke Rails.dc.html` (title bar, right-rail/assistant section lines 1-100, 160-400, 419-575) — direct source read, the design source of truth
 - `.planning/phases/06-dashboard-assistant-home/06-CONTEXT.md` and `06-UI-SPEC.md` — direct source read, locked decisions
 - npm registry (`npm view @dnd-kit/core version`, `npm view @dnd-kit/sortable version`, `npm view @dnd-kit/sortable peerDependencies`, `npm view @dnd-kit/*/dependencies`, `repository.url`) — live queries, 2026-07-14
 - `slopcheck install @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities` — live run, 2026-07-14, all 3 `[OK]`

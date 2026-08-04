@@ -98,13 +98,13 @@ stub.** Replies are live-streamed from the real harness.
 **Downstream agents MUST read these before planning or implementing.**
 
 ### Design source of truth (pixel-perfect targets)
-- `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/home-cards.js` — the metro
+- `design-sync-setup-guide/design_handoff_bespoke_rails_shell/home-cards.js` — the metro
   Home reference: dnd-kit `@dnd-kit/core` + `@dnd-kit/sortable`, the `cardDefs` registry, FLIP,
   section layout. Port this for HOME-01/02.
-- `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/Sourcerer Bespoke Rails.dc.html`
+- `design-sync-setup-guide/design_handoff_bespoke_rails_shell/Sourcerer Bespoke Rails.dc.html`
   — the assistant panel reference: session list, thread, serif-italic proposal block + y/d/n,
   "LET GO TO SNAP" resize cue (line ~90), model picker, composer. Port for ASST-01/02/03.
-- `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/README.md` — handoff overview.
+- `design-sync-setup-guide/design_handoff_bespoke_rails_shell/README.md` — handoff overview.
 
 ### The real AI seam (consume unchanged — do NOT extend)
 - `src/assistant/AssistantPanel.tsx` — the minimal Phase 7 panel this phase GROWS (session

@@ -315,8 +315,8 @@ This mirrors and slightly expands the handoff's own suggested order, sequenced b
 - [tauri-apps/plugins-workspace issue #3085 — LazyStore corruption risk](https://github.com/tauri-apps/plugins-workspace/issues/3085) — MEDIUM confidence, verified GitHub issue, informs the flush-on-close anti-pattern
 - [Tauri 2 Plugin Development docs](https://v2.tauri.app/develop/plugins/) — HIGH confidence, official Tauri 2 docs, confirms capability/permission model for commands
 - [Vite `import.meta.glob` discussion (vitejs/vite #14161)](https://github.com/vitejs/vite/discussions/14161) — MEDIUM confidence, informs the static-vs-glob registry trade-off in Pattern 1
-- Design handoff: [d:\Vibe Coding\Sourcerer\Design sync setup guide\design_handoff_sourcerer_tauri\README.md](../../Design sync setup guide/design_handoff_sourcerer_tauri/README.md) — HIGH confidence, authoritative fixed contract for this project
-- Design handoff: [d:\Vibe Coding\Sourcerer\Design sync setup guide\design_handoff_sourcerer_tauri\reference\applets\README.md](../../Design sync setup guide/design_handoff_sourcerer_tauri/reference/applets/README.md) — HIGH confidence, authoritative applet framework contract
+- Design handoff: [d:\Vibe Coding\Sourcerer\design-sync-setup-guide\design_handoff_sourcerer_tauri\README.md](../../design-sync-setup-guide/design_handoff_sourcerer_tauri/README.md) — HIGH confidence, authoritative fixed contract for this project
+- Design handoff: [d:\Vibe Coding\Sourcerer\design-sync-setup-guide\design_handoff_sourcerer_tauri\reference\applets\README.md](../../design-sync-setup-guide/design_handoff_sourcerer_tauri/reference/applets/README.md) — HIGH confidence, authoritative applet framework contract
 - [d:\Vibe Coding\Sourcerer\.planning\PROJECT.md](../PROJECT.md) — HIGH confidence, project scope/constraints
 
 ---

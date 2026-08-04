@@ -8,7 +8,7 @@ import styles from "./Wiki.module.css";
 /**
  * src/applets/Wiki/index.tsx — the rich Wiki demo (FWK-03 tier-1, "the
  * moat"). Ported from
- * `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/wiki.js`
+ * `design-sync-setup-guide/design_handoff_bespoke_rails_shell/wiki.js`
  * as ordinary JSX (04-03-PLAN.md Task 1), replacing the Plan-02 templated
  * shell. Faithful port: article view, provenance inspector, the first-class
  * Unresolved block, the edit → dry-run preview → apply → undo flow, review

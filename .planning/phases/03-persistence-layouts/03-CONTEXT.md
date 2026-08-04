@@ -149,7 +149,7 @@ founder-defined surface; `/gsd-ui-phase 3` pixel-specs it later.
   D-04 (dockview owns tabs/splits/resizers natively — its layout is captured via `toJSON`).
 
 ### Design contract (for the /gsd-ui-phase 3 pass, not the persistence logic)
-- `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/` (folder — name has spaces, link the
+- `design-sync-setup-guide/design_handoff_bespoke_rails_shell/` (folder — name has spaces, link the
   folder and name files in text): `README.md` (title-bar chrome spec — confirms NO layouts menu
   exists, so D-01 is net-new); `Sourcerer Bespoke Rails.dc.html` (the canary/debounce
   `LAYOUT_KEY` prototype logic Phase 2 ported). The handoff is the styling reference for the new

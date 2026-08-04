@@ -25,7 +25,7 @@ must_haves:
 ---
 
 <objective>
-Rewrite `RailToggleButtons.tsx`'s two title-bar SVG icons to visually match the design reference's fill-bar language and neutral (never-accent) coloring, per the confirmed diff against `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/Sourcerer Bespoke Rails.dc.html`.
+Rewrite `RailToggleButtons.tsx`'s two title-bar SVG icons to visually match the design reference's fill-bar language and neutral (never-accent) coloring, per the confirmed diff against `design-sync-setup-guide/design_handoff_bespoke_rails_shell/Sourcerer Bespoke Rails.dc.html`.
 
 Purpose: piece 1 of an incremental "match the design reference" pass — fixes the left toggle's outdated two-rect "split panel" metaphor and both toggles' incorrect accent-green fill color.
 Output: Updated `src/shell/RailToggleButtons.tsx` and `src/shell/RailToggleButtons.module.css`. No click-wiring changes; `RailToggleButtons.test.tsx` passes unmodified.

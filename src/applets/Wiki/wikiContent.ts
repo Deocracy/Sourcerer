@@ -1,7 +1,7 @@
 /**
  * wikiContent.ts — the hand-authored Ficino/Alberti corpus slice +
  * review-queue data ported from
- * `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/wiki.js`
+ * `design-sync-setup-guide/design_handoff_bespoke_rails_shell/wiki.js`
  * (ARTICLES/FALLBACK/REVIEW, lines 15-54). Data lives here, separated from
  * the component (src/applets/Wiki/index.tsx), per 04-03-PLAN.md Task 1.
  */

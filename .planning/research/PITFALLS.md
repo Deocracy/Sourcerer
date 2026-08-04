@@ -196,7 +196,7 @@ Pick one canonical dev command for this repo's `README`/scripts (likely `cargo t
 ### Pitfall 12: Windows paths with spaces break Tauri shell/command invocations and dev tooling
 
 **What goes wrong:**
-Tauri has open, confirmed issues where paths containing spaces are mishandled: `shell.open()` fails on Windows paths with spaces, and `new Command()` invocations get the path silently truncated at the first space. The repo itself already lives under `D:\Vibe Coding\Sourcerer` (a space in the parent path) and the design handoff sits under `Design sync setup guide\...` (also spaced) — any future feature that shells out (opening a file, invoking an external process, referencing the reference HTML/JS assets programmatically) is at risk if not tested against this exact path.
+Tauri has open, confirmed issues where paths containing spaces are mishandled: `shell.open()` fails on Windows paths with spaces, and `new Command()` invocations get the path silently truncated at the first space. The repo itself already lives under `D:\Vibe Coding\Sourcerer` (a space in the parent path) and the design handoff sits under `design-sync-setup-guide\...` (also spaced) — any future feature that shells out (opening a file, invoking an external process, referencing the reference HTML/JS assets programmatically) is at risk if not tested against this exact path.
 
 **Why it happens:**
 The repo/workspace path was already chosen with spaces (consistent with the rest of the user's Windows filesystem layout); this isn't something to "fix" by renaming, but every use of Tauri's `Command`/`shell` APIs (or any Rust `std::process::Command` calls) needs explicit quoting/escaping awareness rather than assuming it "just works" like it does on paths without spaces.
@@ -312,7 +312,7 @@ When adding any Tauri shell/command invocation (e.g., "open file in default app,
 - [facebook/react#24502 — useEffect double invocation in StrictMode](https://github.com/facebook/react/issues/24502)
 - [Creating drag interactions with setPointerCapture — r0b blog](https://blog.r0b.io/post/creating-drag-interactions-with-set-pointer-capture-in-java-script/)
 - [pmndrs/use-gesture#264 — disabling setPointerCapture on drag events](https://github.com/pmndrs/use-gesture/issues/264)
-- Project design handoff: `Design sync setup guide/design_handoff_sourcerer_tauri/README.md` (this repo) — authoritative spec for metrics, tokens, drag behaviors referenced throughout
+- Project design handoff: `design-sync-setup-guide/design_handoff_sourcerer_tauri/README.md` (this repo) — authoritative spec for metrics, tokens, drag behaviors referenced throughout
 - Project memory: prior Sourcerer/Databasise sibling-project notes on `cargo run` vs `cargo tauri dev` and detached-launch Windows gotchas (informs Pitfall 11, MEDIUM confidence — carried from adjacent project experience, not independently re-verified for this repo)
 
 ---

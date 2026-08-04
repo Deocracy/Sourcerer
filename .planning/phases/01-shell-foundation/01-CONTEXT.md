@@ -37,7 +37,7 @@ This is also the project's **first build**: the repo is not yet scaffolded (no `
 
 ### Design contract (LOCKED — pixel-perfect, recreate exactly)
 - `.planning/phases/01-shell-foundation/01-UI-SPEC.md` — the full Phase 1 visual/interaction contract: title-bar tokens, colors, glyphs, hover states, drag-region rule, DPI + font platform notes, and the Phase Boundary Note (which chrome to omit). **Authoritative for every visual/interaction decision in this phase.**
-- `Design sync setup guide/design_handoff_sourcerer_tauri/README.md` — the LOCKED upstream design handoff (source of truth the UI-SPEC extracts from). Note: folder name contains spaces.
+- `design-sync-setup-guide/design_handoff_sourcerer_tauri/README.md` — the LOCKED upstream design handoff (source of truth the UI-SPEC extracts from). Note: folder name contains spaces.
 - `reference/design_handoff_sourcerer_tauri/` — handoff assets referenced by UI-SPEC.
 
 ### Reference prototype (read-only — port algorithms/metrics, do NOT port its Google Fonts `<helmet>` links)

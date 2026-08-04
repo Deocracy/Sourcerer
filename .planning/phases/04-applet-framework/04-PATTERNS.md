@@ -8,11 +8,11 @@
 
 | New/Modified File | Role | Data Flow | Closest Analog | Match Quality |
 |---|---|---|---|---|
-| `src/shell/registry.ts` (NEW) | config/registry | transform (key→module map) | `Design sync setup guide/design_handoff_sourcerer_tauri/reference/applets/registry.js` | exact (adapt: drop React-via-props) |
+| `src/shell/registry.ts` (NEW) | config/registry | transform (key→module map) | `design-sync-setup-guide/design_handoff_sourcerer_tauri/reference/applets/registry.js` | exact (adapt: drop React-via-props) |
 | `src/applets/_stub/TemplatedStub.tsx` (NEW) | component | request-response (render from appletDefs) | `src/shell/PanelBody.tsx` (`PanelBody` function) | exact |
-| `src/applets/Wiki/Wiki.tsx` + subcomponents (NEW) | component | CRUD-ish (edit→dry-run→apply→undo) + store read | `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/wiki.js` | exact (port, adapt to imported React + host) |
-| `src/applets/Library/Library.tsx` (NEW) | component | CRUD-ish (corpus/doc tree) + store read | `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/library.js` | exact (port) |
-| `src/applets/<Key>.tsx` (~11 thin stub modules) (NEW) | component | request-response | `Design sync setup guide/.../_TemplateApplet.js` (manifest+App shape) + `TemplatedStub.tsx` (render body) | exact |
+| `src/applets/Wiki/Wiki.tsx` + subcomponents (NEW) | component | CRUD-ish (edit→dry-run→apply→undo) + store read | `design-sync-setup-guide/design_handoff_bespoke_rails_shell/wiki.js` | exact (port, adapt to imported React + host) |
+| `src/applets/Library/Library.tsx` (NEW) | component | CRUD-ish (corpus/doc tree) + store read | `design-sync-setup-guide/design_handoff_bespoke_rails_shell/library.js` | exact (port) |
+| `src/applets/<Key>.tsx` (~11 thin stub modules) (NEW) | component | request-response | `design-sync-setup-guide/.../_TemplateApplet.js` (manifest+App shape) + `TemplatedStub.tsx` (render body) | exact |
 | `src/host/index.ts` (NEW) | service/factory | transform (assemble host object) | `src/host/ai.ts` (module-as-seam pattern: `export const host = {...}`) | role-match |
 | `src/host/aiComplete.ts` (NEW) | service | streaming→Promise adapter | `src/host/ai.ts` (`ai()` Channel/event-listener function) | exact (compose over, don't replace) |
 | `src/host/storage.ts` (NEW) | service/persistence | CRUD (get/set/remove) | `src/persistence/workspaceStore.ts` (`LazyStore` usage, best-effort try/catch) | exact |
@@ -30,7 +30,7 @@
 
 ### `src/shell/registry.ts` (config/registry, transform)
 
-**Analog:** `Design sync setup guide/design_handoff_sourcerer_tauri/reference/applets/registry.js` (whole file, 17 lines) + `_TemplateApplet.js` (manifest/App shape)
+**Analog:** `design-sync-setup-guide/design_handoff_sourcerer_tauri/reference/applets/registry.js` (whole file, 17 lines) + `_TemplateApplet.js` (manifest/App shape)
 
 **Registry pattern** (`registry.js` lines 1-16):
 ```javascript
@@ -97,7 +97,7 @@ export function PanelBody({ appletKey }: PanelBodyProps) {
 
 ### `src/applets/Wiki/Wiki.tsx` (component, CRUD-ish + store read)
 
-**Analog:** `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/wiki.js` (full file — rich demo, port faithfully per CONTEXT.md "the moat" instruction)
+**Analog:** `design-sync-setup-guide/design_handoff_bespoke_rails_shell/wiki.js` (full file — rich demo, port faithfully per CONTEXT.md "the moat" instruction)
 
 **Imports/color-object pattern** (lines 1-12):
 ```javascript
@@ -122,7 +122,7 @@ Wiki's own selection state (which article/entity is open) is new shell-store or 
 
 ### `src/applets/Library/Library.tsx` (component, CRUD-ish + store read)
 
-**Analog:** `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/library.js` (full file — same porting discipline as Wiki above: same `T` color object, same `store.js` read pattern, same React-via-props removal).
+**Analog:** `design-sync-setup-guide/design_handoff_bespoke_rails_shell/library.js` (full file — same porting discipline as Wiki above: same `T` color object, same `store.js` read pattern, same React-via-props removal).
 
 ---
 
@@ -478,6 +478,6 @@ None — every file in Phase 4's scope has at least a partial or exact analog al
 
 ## Metadata
 
-**Analog search scope:** `src/shell/`, `src/host/`, `src/persistence/`, `src/store/`, `src/styles/tokens.css`, `Design sync setup guide/design_handoff_sourcerer_tauri/reference/applets/`, `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/`
+**Analog search scope:** `src/shell/`, `src/host/`, `src/persistence/`, `src/store/`, `src/styles/tokens.css`, `design-sync-setup-guide/design_handoff_sourcerer_tauri/reference/applets/`, `design-sync-setup-guide/design_handoff_bespoke_rails_shell/`
 **Files scanned:** `PanelBody.tsx`, `Dock.tsx`, `Rail.tsx`, `appletDefs.ts`, `LayoutsMenu.tsx`, `src/host/ai.ts`, `src/persistence/workspaceStore.ts`, `src/store/shellStore.ts`, `tokens.css`, `registry.js`, `_TemplateApplet.js`, `store.js`, `wiki.js`
 **Pattern extraction date:** 2026-07-09

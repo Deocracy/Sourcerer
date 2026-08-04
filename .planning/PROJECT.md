@@ -14,7 +14,7 @@ A pixel-perfect, fully interactive desktop shell where the applet framework demo
 
 ## Source of Truth (Design)
 
-**`NEW Design sync setup guide/design_handoff_bespoke_rails_shell/`** (adopted wholesale 2026-07-07, supersedes the original `design_handoff_sourcerer_tauri/` handoff):
+**`design-sync-setup-guide/design_handoff_bespoke_rails_shell/`** (adopted wholesale 2026-07-07, supersedes the original `design_handoff_sourcerer_tauri/` handoff):
 - `Sourcerer Bespoke Rails.dc.html` — the working prototype built around the locked libraries (dockview-core, zustand, dnd-kit); rail/assistant resize + toggle behavior is the UX reference.
 - `home-cards.js` etc. — Home dashboard card registry/renderers (ported verbatim in Phase 6).
 - Tokens: 40px title bar, green `#86A38C` accent, IBM Plex, 0 border-radius inside, 10px radius on the outer window card only.

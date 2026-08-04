@@ -99,7 +99,7 @@ Phase 1 per P1 D-02) as the single shell store.
   44px, COMPACT_AT 132px, clamp [132,520]), the Chrome Rework token table + full `tokens.css` delta,
   the `.sourcerer-dock` → dockview `--dv-*` theme map, applet order array, and the copywriting/fallback
   contract. **Read this first.**
-- `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/` (folder — name contains spaces, so
+- `design-sync-setup-guide/design_handoff_bespoke_rails_shell/` (folder — name contains spaces, so
   link the folder and name files in text) — the adopted source-of-truth handoff (supersedes the old
   `design_handoff_sourcerer_tauri`). Key files:
   - `Sourcerer Bespoke Rails.dc.html` — prototype markup + the **pointer-event algorithms to port**

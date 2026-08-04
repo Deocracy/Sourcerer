@@ -16,7 +16,7 @@
 | `src/shell/DiviChip.tsx` (NEW) | component | request-response | `src/shell/LogoCluster.tsx` (click-stub button pattern) | role-match |
 | `src/shell/RailToggleButtons.tsx` (NEW) | component | request-response | `src/shell/WindowControls.tsx` (icon-button cluster, aria-label, Tauri-guarded click) | role-match |
 | `src-tauri/tauri.conf.json` (MODIFY) | config | transform | self (Phase 1, `decorations:false`) | exact — add `transparent:true` |
-| `src/store/shellStore.ts` (NEW) | store | event-driven | `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/store.js` (porting reference, not in-repo) | role-match (design-handoff reference; no in-repo Zustand store exists yet) |
+| `src/store/shellStore.ts` (NEW) | store | event-driven | `design-sync-setup-guide/design_handoff_bespoke_rails_shell/store.js` (porting reference, not in-repo) | role-match (design-handoff reference; no in-repo Zustand store exists yet) |
 | `src/shell/Rail.tsx` (NEW) | component | event-driven | `src/shell/useMaximizedState.ts` (Tauri/native-event → React state bridging idiom) + `.dc.html` `startRailResize`/rail render (reference) | partial — no in-repo rail exists |
 | `src/shell/Rail.module.css` (NEW) | config | transform | `src/shell/TitleBar.module.css` (CSS Modules + token-var convention) | role-match |
 | `src/shell/Dock.tsx` (NEW) | component | event-driven | `.dc.html` `initDock`/`makeRenderer`/`dockRef` (reference); no in-repo analog | no analog — new integration surface |
@@ -138,7 +138,7 @@ function withWindow(fn: (appWindow: ReturnType<typeof getCurrentWindow>) => Prom
 
 ### `src/store/shellStore.ts` (store, event-driven — NEW)
 
-**Analog:** `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/store.js` (design-handoff porting reference — explicitly named in CONTEXT.md canonical_refs as "the Zustand shape porting reference"; not an in-repo file, but the closest and only concrete pattern to copy from since this is Zustand's first use in the codebase)
+**Analog:** `design-sync-setup-guide/design_handoff_bespoke_rails_shell/store.js` (design-handoff porting reference — explicitly named in CONTEXT.md canonical_refs as "the Zustand shape porting reference"; not an in-repo file, but the closest and only concrete pattern to copy from since this is Zustand's first use in the codebase)
 
 **Full reference shape** (store.js lines 1-77) — port directly, swapping the CDN import for the locked package:
 ```js
@@ -313,7 +313,7 @@ Phase 2 only needs the `else -> generic placeholder` branch (per UI-SPEC's Panel
 **Apply to:** `DiviChip.module.css`, `RailToggleButtons.module.css`, `Rail.module.css`, `Dock.module.css`, `PanelBody.module.css`
 
 ### Zustand vanilla store + persist-on-change
-**Source:** `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/store.js` (full file, 77 lines)
+**Source:** `design-sync-setup-guide/design_handoff_bespoke_rails_shell/store.js` (full file, 77 lines)
 **Apply to:** `src/store/shellStore.ts` — the `createStore` + `load()`/`persist()` localStorage round-trip + `subscribe(selector, cb)` convenience wrapper pattern applies wholesale, scoped down per D-02 (railMode/railOrder/leftRailPinned only, not full Phase-3 persistence contract)
 
 ### Panel-id scheme (DOCK-04)
@@ -329,6 +329,6 @@ Phase 2 only needs the `else -> generic placeholder` branch (per UI-SPEC's Panel
 
 ## Metadata
 
-**Analog search scope:** `src/` (full tree, 13 files), `src-tauri/tauri.conf.json`, `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/` (store.js + `.dc.html` prototype — cited by CONTEXT.md as the explicit porting reference)
+**Analog search scope:** `src/` (full tree, 13 files), `src-tauri/tauri.conf.json`, `design-sync-setup-guide/design_handoff_bespoke_rails_shell/` (store.js + `.dc.html` prototype — cited by CONTEXT.md as the explicit porting reference)
 **Files scanned:** src/App.tsx, src/app/AppShell.tsx(+css), src/shell/TitleBar.tsx(+css+test), src/shell/LogoCluster.tsx, src/shell/WindowControls.tsx(+css+test), src/shell/useMaximizedState.ts, src/styles/tokens.css, src-tauri/tauri.conf.json, package.json, store.js, Sourcerer Bespoke Rails.dc.html (targeted sections: rail geometry, dock init, panel dispatch, drag/reorder)
 **Pattern extraction date:** 2026-07-07

@@ -6,7 +6,7 @@
 
 ## Context
 
-The design handoff (`Design sync setup guide/design_handoff_sourcerer_tauri/`) is an unusually complete behavioral spec — it already nails dock tree mechanics (5-zone drag docking, splits, resizers), a 3-mode left rail, named layouts, full workspace persistence, an applet framework contract (`manifest` + `App({React, host})`), a Home card dashboard, and an assistant panel. This research does **not** re-derive that — it audits it against what dockable-shell products in the wild are expected to have, flags what's present vs. silently assumed vs. genuinely absent, and sorts what's genuinely v1-required from what's safe to defer given the stated v1 scope: **pixel-perfect shell + applet framework + one real applet (Notes) + everything else as stubs.**
+The design handoff (`design-sync-setup-guide/design_handoff_sourcerer_tauri/`) is an unusually complete behavioral spec — it already nails dock tree mechanics (5-zone drag docking, splits, resizers), a 3-mode left rail, named layouts, full workspace persistence, an applet framework contract (`manifest` + `App({React, host})`), a Home card dashboard, and an assistant panel. This research does **not** re-derive that — it audits it against what dockable-shell products in the wild are expected to have, flags what's present vs. silently assumed vs. genuinely absent, and sorts what's genuinely v1-required from what's safe to defer given the stated v1 scope: **pixel-perfect shell + applet framework + one real applet (Notes) + everything else as stubs.**
 
 ## Feature Landscape
 
@@ -168,8 +168,8 @@ Left rail (3 modes) + drag-out-to-dock
 ## Sources
 
 - VS Code Accessibility docs — [Accessibility](https://code.visualstudio.com/docs/editor/accessibility), [User Interface](https://code.visualstudio.com/docs/getstarted/userinterface) — MEDIUM confidence (official docs, general knowledge cross-check, not deeply verified against current version but focus/keyboard model has been stable for years)
-- `Design sync setup guide/design_handoff_sourcerer_tauri/README.md` — HIGH confidence (authoritative project source-of-truth, read directly)
-- `Design sync setup guide/design_handoff_sourcerer_tauri/reference/applets/README.md` — HIGH confidence (authoritative applet framework contract, read directly)
+- `design-sync-setup-guide/design_handoff_sourcerer_tauri/README.md` — HIGH confidence (authoritative project source-of-truth, read directly)
+- `design-sync-setup-guide/design_handoff_sourcerer_tauri/reference/applets/README.md` — HIGH confidence (authoritative applet framework contract, read directly)
 - `.planning/PROJECT.md` — HIGH confidence (authoritative project scope/decisions, read directly)
 - General domain knowledge of JetBrains Rider tool-window docking, Obsidian pane/plugin model, JupyterLab docking (golden-layout-derived), golden-layout/dockview libraries — MEDIUM confidence (training-data based, cross-checked for internal consistency across products, not independently re-verified this session; flag for validation if precise behavioral claims about these specific products become load-bearing for a design decision)
 

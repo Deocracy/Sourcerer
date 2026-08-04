@@ -15,7 +15,7 @@ import styles from "./Library.module.css";
 /**
  * src/applets/Library/index.tsx — the rich Library demo (FWK-03 tier-1).
  * Ported from
- * `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/library.js`
+ * `design-sync-setup-guide/design_handoff_bespoke_rails_shell/library.js`
  * as ordinary JSX (04-04-PLAN.md Task 1), replacing the Plan-02 templated
  * shell. Faithful port: corpus Dashboard, Ingest view, Document detail, and
  * the promote/delete ConfirmFlow (Preview → Confirm → Undo) — all preserved,

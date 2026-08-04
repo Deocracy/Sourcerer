@@ -118,24 +118,24 @@ unchanged). Requirements **FWK-01..04**.
 - `.planning/ROADMAP.md` §"Phase 4: Applet Framework" — goal + 3 success criteria.
 
 ### The applet contract (module signature source)
-- `Design sync setup guide/design_handoff_sourcerer_tauri/reference/applets/README.md`
+- `design-sync-setup-guide/design_handoff_sourcerer_tauri/reference/applets/README.md`
   (folder name has spaces — navigate manually) — the ORIGINAL authoritative contract:
   `manifest {key, glyph, code, title, desc}` + `App({host})`, the host API table
   (`storage`/`ai`/`open`/`instanceId`/`theme`), theme tokens, stub-replacement semantics.
   Adapt per CLAUDE.md: drop React-via-props (bundled app imports React normally).
-- `Design sync setup guide/design_handoff_sourcerer_tauri/reference/applets/_TemplateApplet.js`
+- `design-sync-setup-guide/design_handoff_sourcerer_tauri/reference/applets/_TemplateApplet.js`
   and `registry.js` — the registration pattern to mirror in typed `registry.ts`.
 - `CLAUDE.md` (project root) §Stack Patterns — static ES module imports in `registry.ts`;
   NO dynamic plugin loading; applets as ordinary `.tsx` modules.
 
 ### Rich demo sources (port these)
-- `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/wiki.js` — the rich Wiki
+- `design-sync-setup-guide/design_handoff_bespoke_rails_shell/wiki.js` — the rich Wiki
   demo (article view, provenance, Unresolved block, edit→dry-run→apply→undo, Ficino corpus).
-- `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/library.js` — the rich
+- `design-sync-setup-guide/design_handoff_bespoke_rails_shell/library.js` — the rich
   Library demo.
-- `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/store.js` — the shared
+- `design-sync-setup-guide/design_handoff_bespoke_rails_shell/store.js` — the shared
   zustand store pattern those demos read (selected entity, corpus, review count).
-- `NEW Design sync setup guide/design_handoff_bespoke_rails_shell/README.md` — tokens/metrics
+- `design-sync-setup-guide/design_handoff_bespoke_rails_shell/README.md` — tokens/metrics
   for stub chrome fidelity.
 
 ### The AI seam (backend already real)
