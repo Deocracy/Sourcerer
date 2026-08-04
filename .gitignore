@@ -41,3 +41,9 @@ src-tauri/gen/schemas
 # happening to live under dist/)
 *.wsl
 *.vhdx
+
+# Nix build outputs / direnv state
+# `result`/`result-*` are per-machine symlinks into /nix/store; .direnv/ is a local cache.
+result
+result-*
+.direnv/
