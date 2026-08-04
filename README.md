@@ -20,16 +20,14 @@ and the project has since migrated to NixOS.
 
 ## Prerequisites
 
-Verified on this host: **Node v24.18.0**, npm 11.16.0.
+`nix develop` provides the Rust toolchain pinned by `rust-toolchain.toml`, Node
+pinned by `.nvmrc`, and every Tauri Linux system dependency (webkitgtk_4_1,
+libsoup_3, gtk3, librsvg, pkg-config, and friends) — no imperative installs.
+Run `direnv allow` once (`.envrc` already wires `use flake`) for automatic
+shell entry on `cd`, or run `nix develop` directly.
 
-The Rust/Tauri half does **not** currently build on this Linux machine. It needs:
-
-- a Rust stable toolchain — `rustup default stable` (no default is configured)
-- Tauri's Linux system deps — `webkit2gtk-4.1`, `javascriptcoregtk-4.1`,
-  `gtk+-3.0`, `libsoup-3.0`, plus `pkg-config` (none are present)
-
-There is no `flake.nix` yet; a repo-root dev shell is a v2.0 P1 deliverable, which
-is the intended fix for the above rather than imperative installs.
+Verified on this host inside `nix develop`: **rustc 1.97.1**, **Node
+v24.18.0**, npm 11.16.0.
 
 ## Commands
 

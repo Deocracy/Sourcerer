@@ -51,6 +51,13 @@
         # openssl-sys and friends look here directly rather than trusting pkg-config's own
         # setup-hook propagation from buildInputs.
         shellHook = ''
+          # mkShell fabricates $out="$PWD/outputs/out" for interactive shells (there is no
+          # real derivation output). If the repo is checked out under a path containing a
+          # space, the resulting "-rpath $out/lib" entry in NIX_LDFLAGS gets word-split by
+          # the cc-wrapper and breaks every cargo build-script link step with a bogus
+          # relative path. Strip that one bad rpath entry rather than requiring a
+          # space-free checkout path.
+          export NIX_LDFLAGS="''${NIX_LDFLAGS//-rpath $PWD\/outputs\/out\/lib/}"
           export PKG_CONFIG_PATH="${pkgs.openssl.dev}/lib/pkgconfig:${pkgs.libsoup_3.dev}/lib/pkgconfig:${pkgs.webkitgtk_4_1.dev}/lib/pkgconfig:''${PKG_CONFIG_PATH:-}"
           echo "sourcerer dev shell: rustc $(rustc --version | awk '{print $2}'), node $(node --version)"
         '';
