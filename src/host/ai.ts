@@ -89,25 +89,36 @@ export type AssistantEventListener = (event: AssistantEvent) => void;
  */
 export function ai(request: HostAiRequest, onEvent: AssistantEventListener): Promise<void> {
   return new Promise((resolve) => {
-    const channel = new Channel<AssistantEvent>();
-    channel.onmessage = (event) => {
-      onEvent(event);
-      if (event.type === "done") {
-        resolve();
-      }
-    };
+    try {
+      const channel = new Channel<AssistantEvent>();
+      channel.onmessage = (event) => {
+        onEvent(event);
+        if (event.type === "done") {
+          resolve();
+        }
+      };
 
-    invoke("host_ai", {
-      message: request.message,
-      sessionId: request.sessionId,
-      modes: request.modes,
-      onEvent: channel,
-    }).catch((err: unknown) => {
+      invoke("host_ai", {
+        message: request.message,
+        sessionId: request.sessionId,
+        modes: request.modes,
+        onEvent: channel,
+      }).catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err);
+        onEvent({ type: "error", id: "invoke", message });
+        onEvent({ type: "done", id: "invoke" });
+        resolve();
+      });
+    } catch (err) {
+      // Channel construction itself can throw (e.g. no Tauri IPC bridge
+      // present) — degrade honestly instead of leaving the promise rejected,
+      // matching the invoke()-reject path above so callers never need a
+      // try/catch around host.ai().
       const message = err instanceof Error ? err.message : String(err);
       onEvent({ type: "error", id: "invoke", message });
       onEvent({ type: "done", id: "invoke" });
       resolve();
-    });
+    }
   });
 }
 
@@ -125,20 +136,28 @@ export function setModes(modes: string[]): Promise<void> {
  */
 export function loadSession(sessionId: string, onEvent: AssistantEventListener): Promise<void> {
   return new Promise((resolve) => {
-    const channel = new Channel<AssistantEvent>();
-    channel.onmessage = (event) => {
-      onEvent(event);
-      if (event.type === "done") {
-        resolve();
-      }
-    };
+    try {
+      const channel = new Channel<AssistantEvent>();
+      channel.onmessage = (event) => {
+        onEvent(event);
+        if (event.type === "done") {
+          resolve();
+        }
+      };
 
-    invoke("load_session", { sessionId, onEvent: channel }).catch((err: unknown) => {
+      invoke("load_session", { sessionId, onEvent: channel }).catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err);
+        onEvent({ type: "error", id: "invoke", message });
+        onEvent({ type: "done", id: "invoke" });
+        resolve();
+      });
+    } catch (err) {
+      // See ai()'s matching guard — Channel construction itself can throw.
       const message = err instanceof Error ? err.message : String(err);
       onEvent({ type: "error", id: "invoke", message });
       onEvent({ type: "done", id: "invoke" });
       resolve();
-    });
+    }
   });
 }
 
