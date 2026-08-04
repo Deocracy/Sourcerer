@@ -4,7 +4,7 @@ milestone: v2.0
 milestone_name: Container Platform
 status: Context gathered — ready for `/gsd-plan-phase 8`
 stopped_at: Phase 8 context gathered; Nix-native rule adopted milestone-wide
-last_updated: "2026-08-04T04:19:37.398Z"
+last_updated: "2026-08-04T05:35:17.318Z"
 last_activity: 2026-08-04 — Phase 8 discussed and rescoped; Nix-native decision adopted milestone-wide
 progress:
   total_phases: 12

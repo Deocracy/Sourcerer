@@ -66,8 +66,10 @@ the flake (Phase 9 owns it); the manifest schema or compiler (Phase 15 owns them
   / 42.0 MB unpacked, zstd. Against ~1.5–2 GB for the CODE image. (That figure is the package,
   not its full closure; the closure's deps are shared with the rest of the system, which is
   the point.)
-- **D-08:** `services.jupyter` is likewise in nixpkgs. Both Phase 15 catalog apps need no
-  image at all.
+- **D-08 [informational]:** `services.jupyter` is likewise in nixpkgs. Both Phase 15 catalog apps
+  need no image at all. *Not tracked by this phase's plans by design* — D-11 fences Jupyter out
+  of Phase 8 entirely and `<deferred>` routes it to Phase 15. It is recorded here as rescope
+  evidence, not as work.
 
 ### Spike design
 
