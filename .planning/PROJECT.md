@@ -36,7 +36,7 @@ A pixel-perfect, fully interactive desktop shell where the applet framework demo
 - Flake foundation + CI + binary cache (assurance chain: nothing publishes that CI didn't prove)
 - Custom NixOS-WSL substrate: Store/signed-site install flow, ≤1 reboot, kill switch, secrets plumbing, substrate-connection seam (auth surface stubbed)
 - Update channel with one-button revert; real `security.csp` (the v1.0 null-CSP acceptance expires here)
-- Engine services in substrate (Databasise + LightRAG + OCR) and harness relocation; first engine-backed wiki read-view
+- Engine services in substrate (Databasise — LightRAG disassembled into it, no separate dep; OCR deferred to an installable applet) and harness relocation; first engine-backed wiki read-view
 - App layer: manifest→NixOS-module compiler, panes via multiwebview, security scores, engine-less OCI units
 - Community store pipeline (cosign-signed, CVE-gated, privileged auto-reject) — not publicly opened until P8 passes
 - Tools tier + environment export/import ("Move to another PC")
