@@ -126,14 +126,27 @@ Full phase details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 **Notes**: The cache becomes a **production service** from Phase 11 on — Cachix free (5 GB) will not hold an ML-stack closure across versions; budget paid Cachix or Attic-on-VPS from the start. Keep CI trivially portable (plain GH Actions + swappable cache) — Garnix died July 2026.
 **Descope trigger**: none — assembly only; novelty found here is itself a finding.
 **Plans**: 7 plans in 5 waves
-
 Plans:
+**Wave 1**
+
 - [ ] 09-01-PLAN.md — License (PolyForm NC 1.0.0) + manifest license fields + Nix/direnv gitignore [wave 1]
 - [ ] 09-02-PLAN.md — Version pins (rust-toolchain.toml, .nvmrc) + repo-root flake: dev shell, lib/overlay surface, lock [wave 1]
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 09-03-PLAN.md — Substrate core module + WSL/VM variants + seed nixosTest in flake checks [wave 2]
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 09-04-PLAN.md — Publish repo under Deocracy org + CI (flake check, windows-latest Tauri, drift gate) [wave 3, checkpoint]
 - [ ] 09-05-PLAN.md — Attic cache on AWS EC2+S3, nonzero GC retention, scoped CI push token [wave 3, checkpoint]
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 09-06-PLAN.md — Cache substituter in flake + publish job gated on green + channel-maintenance runbook [wave 4]
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 09-07-PLAN.md — Standing cold-build gate (FOUND-01) + red-blocks-publish evidence (FOUND-02) [wave 5]
 
 ### Phase 10: Substrate Provisioning & Warden Seam

@@ -91,8 +91,8 @@ authored this phase); the store registry mechanics (Phase 16); the hosted embedd
   reached AND a trivial HTTP service inside the image answers on a loopback port. The seed
   check is a working miniature of Phase 13's real check (engine answers on loopback): the
   plumbing is proven in the exact shape it gets reused.
-- **D-13:** KVM/QEMU are CI-runner plumbing only — nothing you ship contains them. Public
-  repo means KVM is available on standard runners; no verify item remains.
+- **D-13 [informational]:** KVM/QEMU are CI-runner plumbing only — nothing you ship contains
+  them. Public repo means KVM is available on standard runners; no verify item remains.
 
 ### Substrate image skeleton
 

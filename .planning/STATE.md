@@ -4,7 +4,7 @@ milestone: v2.0
 milestone_name: Container Platform
 status: Ready for `/gsd-discuss-phase 9` on the **NixOS dev host**
 stopped_at: Phase 9 context gathered
-last_updated: "2026-08-04T17:29:39.752Z"
+last_updated: "2026-08-04T18:16:46.107Z"
 last_activity: 2026-08-05 — Phase 8 researched, planned (5 plans, checker-passed), then deferred as spike-shaped work
 progress:
   total_phases: 12
