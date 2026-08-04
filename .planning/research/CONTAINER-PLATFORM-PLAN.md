@@ -8,6 +8,15 @@
 > Housekeeping owed: `.planning/phases/05-notes-applet/.review-fix-recovery-pending.json` looks like a stale orphan (phase 5 completed 2026-07-13 same day) — verify + delete; v1.0 debt: `/gsd-secure-phase 3` never run; confirm whether `/gsd-audit-milestone` ran for v1.0.
 > Spike status: 010 (substrate) + 011 (multiwebview) VALIDATED & committed; G/H retired by the Podman-drop delta; F/J/D/B guessed with recorded fallbacks; K pending.
 
+> **⚠ HOST REALITY CHECK (recorded 2026-08-03) — READ BEFORE `/gsd-new-milestone` INGESTS THIS FILE.**
+> This plan was written on a **Windows 11 host with WSL2**. The project has since been migrated to a **NixOS Linux host**, where `wsl.exe` does not exist and `/mnt` is absent. Several plan premises are therefore stale as written:
+> - **Spike K's 1-day budget** assumes "the `SourcererSpike` distro is still registered at D:\WSL, 3.4 GB, warm". That distro is on the old machine. Budget a re-import, or re-scope the spike.
+> - **Spike J** (MSIX + elevated `wsl --install` + reboot-resume) and **P2c** (Store submission, Windows code signing) cannot be executed or UAT'd from this host at all.
+> - **P1's CI** includes a `windows-latest` job — still valid, but it becomes the *only* place Windows is exercised.
+> - `CONTAINER-PLATFORM.md` carries 16 further WSL references; this file carries 8.
+>
+> **This is an unresolved decision, not a resolved one.** Two coherent readings: **(a)** NixOS is now the dev host and Windows is purely a *distribution target* — WSL work moves to CI and/or a borrowed Windows box, J/P2c defer; or **(b)** the substrate premise flips to native `systemd-nspawn` on NixOS, with the WSL substrate becoming a later port. Resolve this **before** the roadmapper turns this file into phases, or it will generate a roadmap that cannot be executed on the only available machine.
+
 **Date:** 2026-08-02 · **Status:** DRAFT for `/gsd-new-milestone` ingestion — NOT active; current milestone (shell + applet framework) continues unchanged · **Architecture source of truth:** `CONTAINER-PLATFORM.md` (§ references) · **Verification:** goal-backward dependency check + solo-maintainer scope/risk check, both run 2026-08-02; all blockers/majors incorporated (v1 draft's ghost deliverables, phase splits, spike reordering) · **Planning rule:** milestone-level roadmap only; per-phase PLAN.md written one phase at a time when each starts.
 
 ## End state (what "done" means — every claim traces to a phase)
@@ -130,3 +139,8 @@ GPU/compute routing in v1 (→P14) · **any container engine in the substrate (P
 ## Sequencing rationale (goal-backward, verifier-revised)
 
 Trust chain: P8←P5←P4←P2b←P1 — no community code before enforcement (P4), no enforcement before an updatable/revertible substrate (P2/P2b), nothing published a CI didn't prove (P1). P3a/P3b put the first "app" (trusted: our engine) through every seam before untrusted code arrives. The two-track split exists because the engine and store live in separate repos — the no-worktrees rule binds only the shell tree. Spikes front-load the ways the plan could be wrong (image mechanics, MSIX provisioning, Python packaging, updater mechanics, engine-less OCI units, pane mechanism, portability) before any phase commits; the updater late-validation → spike-A leg was a verifier-forced move, and the Podman-drop delta (2026-08-02) retired spikes G/H while adding K — one enforcement dialect means fewer distinct ways to be wrong.
+
+## Carried forward from v1.0 (do not lose in the milestone rollover)
+
+- **`security.csp = null` acceptance EXPIRES with this milestone.** Phase 1 accepted it (`01-SECURITY.md`, T-01-14) on an explicit written condition: *"Remains acceptable ONLY while the webview loads no remote/untrusted content. The first phase that introduces remote URLs, external iframes, or user-supplied HTML MUST set a real `security.csp` before shipping."* v2.0 breaks that condition **by construction** — multiwebview panes rendering container-served UIs, and `CONTAINER-PLATFORM.md` already assumes `connect-src 'self'`. `src-tauri/tauri.conf.json:25` still reads `"csp": null`. Setting a real CSP is a **P2 deliverable**, not a nice-to-have.
+- **The security baseline is thinner than STATE.md implies.** `01-SECURITY.md` is the **only** SECURITY.md in the repo. Phases 02–07 have none — including Phase 07, the Pi sidecar, which is the one component with a real trust boundary. STATE.md's Deferred Items row says only "phase 3 outstanding", understating it by five phases. Note `workflow.security_enforcement` is now `false` in `.planning/config.json`, so `/gsd-secure-phase` no-ops until it is flipped back. v2.0 is explicitly about running **untrusted community OCI images**, so this baseline is worth settling before P4/P5 threat-modelling rather than after.
