@@ -134,7 +134,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 09-03-PLAN.md — Substrate core module + WSL/VM variants + seed nixosTest in flake checks [wave 2]
+- [x] 09-03-PLAN.md — Substrate core module + WSL/VM variants + seed nixosTest in flake checks [wave 2]
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -348,7 +348,7 @@ Join points: 14 needs 10 + 13 · 19 needs 18 + 16
 | 6. Dashboard Assistant & Home | v1.0 | 8/8 | Complete | 2026-07-14 |
 | 7. Assistant Harness Core | v1.0 | 6/6 | Complete | 2026-07-08 |
 | 8. Spike K — Nix-Native Substrate Service | v2.0 | 0/TBD | Not started | - |
-| 9. Flake Foundation & Assurance Chain | v2.0 | 1/7 | In Progress|  |
+| 9. Flake Foundation & Assurance Chain | v2.0 | 3/7 | In Progress|  |
 | 10. Substrate Provisioning & Warden Seam | v2.0 | 0/TBD | Not started | - |
 | 11. Update Channel & Revert | v2.0 | 0/TBD | Not started | - |
 | 12. Distribution Packaging | v2.0 | 0/TBD | Not started | - |

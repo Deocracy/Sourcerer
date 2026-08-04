@@ -11,7 +11,7 @@ Source: `.planning/research/CONTAINER-PLATFORM-PLAN.md` (verifier-revised) + `CO
 ### Foundation & assurance chain (FOUND)
 
 - [x] **FOUND-01**: Developer can clone the repo on a second machine, enter the dev shell, and build the substrate image from the binary cache without compiling
-- [ ] **FOUND-02**: A red CI run (flake check, seed nixosTest, `windows-latest` Tauri job) blocks any publish
+- [x] **FOUND-02**: A red CI run (flake check, seed nixosTest, `windows-latest` Tauri job) blocks any publish
 - [ ] **FOUND-03**: Binary-cache hosting is decided, costed, and documented with a channel-maintenance runbook (cache is a production service from P2b on)
 
 ### Substrate provisioning (SUB)

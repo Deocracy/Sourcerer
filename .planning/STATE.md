@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Container Platform
 status: executing
-stopped_at: Completed 09-02-PLAN.md
-last_updated: "2026-08-04T18:47:51.000Z"
+stopped_at: Completed 09-03-PLAN.md
+last_updated: "2026-08-04T19:13:47.787Z"
 last_activity: 2026-08-04 -- Completed 09-02-PLAN.md
 progress:
   total_phases: 12
   completed_phases: 0
   total_plans: 12
-  completed_plans: 2
-  percent: 17
+  completed_plans: 3
+  percent: 0
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 ## Current Position
 
 Phase: 9 (Flake Foundation & Assurance Chain) — EXECUTING
-Plan: 3 of 7
+Plan: 4 of 7
 Status: Ready to execute
 Last activity: 2026-08-04 -- Completed 09-02-PLAN.md
 
@@ -97,6 +97,7 @@ Progress: [------------] 0/12 phases
 | Phase 06 P08 | 8min | 3 tasks | 2 files |
 | Phase 09 P01 | 8min | 3 tasks | 4 files |
 | Phase 09 P02 | 20min | 3 tasks | 7 files |
+| Phase 09 P03 | 35min | 3 tasks tasks | 6 files files |
 
 ## Accumulated Context
 
@@ -174,6 +175,8 @@ Recent decisions affecting current work:
 - [Phase 09-01]: PolyForm NC 1.0.0 has no bracket placeholder tokens; licensor/software identified via the license's own Required Notice: line instead
 - [Phase 09-02]: flake.nix `description` must be a literal string, not a computed/concatenated one — Nix's flake-metadata parse forces it before full evaluation
 - [Phase 09-02]: devShell shellHook strips mkShell's fabricated `$out="$PWD/outputs/out"` rpath entry from NIX_LDFLAGS — this repo's checkout path contains a space, which breaks the cc-wrapper's word-splitting of that rpath flag and fails every cargo build-script link step
+- [Phase 09-03]: Comments in core.nix/vm-variant.nix must not literally contain the plan's own forbidden-substring grep targets (e.g. 0.0.0.0, nixos-wsl) even in prose — Reworded to describe the constraint without the literal string, avoiding false-positive verification failures
+- [Phase 09-03]: Standalone nixosConfigurations.substrate-vm needs a real fileSystems/boot.loader.grub.device stanza to evaluate config.system.build.toplevel — A nixosTest node gets automatic qemu-vm scaffolding, a plain nixosSystem does not — added as an anonymous flake.nix module, not inside vm-variant.nix, preserving its D-15 imports = [ ./core.nix ]
 
 ### Roadmap Evolution
 
@@ -218,8 +221,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-04T18:47:51.000Z
-Stopped at: Completed 09-02-PLAN.md
+Last session: 2026-08-04T19:13:47.782Z
+Stopped at: Completed 09-03-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
