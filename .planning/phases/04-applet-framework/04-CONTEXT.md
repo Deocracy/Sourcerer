@@ -213,21 +213,30 @@ unchanged). Requirements **FWK-01..04**.
   nothing for it.
 - **Agentic host.ai extension** (full event stream, tool visibility, sessions) for Chat and
   Applet Builder — reserved additive seam (D-09), designed in their own phases.
-- **Power Browser engine selection** — Lightpanda (Zig, headless CDP, scraping-oriented) vs
-  ungoogled-Chromium (full rendering + Google-extension support), headless vs headful, and
-  per-tab click-to-redirect between engines. Needs its own research pass/spike at the Power
-  Browser phase — the browser landscape will have shifted by then.
-- **Power Browser tab lifecycle** — hibernate/sleep/discard for memory; prior art to survey:
-  Chromium tab discarding, Auto Tab Discard, CDP Page lifecycle APIs. One engine process
-  backing many Sourcerer tabs is applet-internal and the contract doesn't prevent it.
+- **Power Browser engine selection — RESOLVED 2026-07-09** (research pass ran early, user
+  decision): **WebView2** (Path A — the engine Tauri already borrows; no bundled second
+  engine), extensions via CRX side-load bridge, Lightpanda deferred to a future headless
+  scraping leg (no rendering engine, no native Windows binary). Full report + fallback
+  ladder + spikes: `.planning/research/POWER-BROWSER.md`. Still nothing for Phase 4 to build.
+- **Power Browser tab lifecycle — ANSWERED 2026-07-09**: copy Chromium's own two-tier
+  freeze (`TrySuspendAsync`) → discard primitives, never DOM-replacement (see
+  `.planning/research/POWER-BROWSER.md` §3). One engine process backing many Sourcerer tabs
+  is applet-internal and the contract doesn't prevent it.
 - **Assistant↔browser interplay** — assistant pre-loads tabs for a work session, observes
   browsing, pulls notes into another tab. Lands on the deferred cross-awareness design.
 - **KeyPass autofill security boundary** — assistant can *trigger* password fill but can
-  never *read* the secret (vault-process capability-handle design). KeyPass phase.
+  never *read* the secret (vault-process capability-handle design). KeyPass phase. Prior-art
+  leads captured in `.planning/research/POWER-BROWSER.md` §5 (1Password Secure Agentic
+  Autofill, KeePassXC broker protocol) — unverified, needs its dedicated pass.
 - **Pane geometry/visibility host capability** — a future ADDITIVE `host` surface telling an
   applet its pane's screen rect + visibility events, so Power Browser can position a native
   webview over its pane. Recorded so nobody freezes an "every applet body is pure DOM"
-  assumption into the contract. NOT built in Phase 4.
+  assumption into the contract. NOT built in Phase 4. (Now certain to be exercised — the
+  Power Browser engine decision is WebView2 webviews over panes.)
+- **`host.open` open-payload** — Power Browser and assistant session pre-loading will want
+  "open applet X *with this initial state*" (e.g. a URL per browser tab). An optional second
+  param added later is purely additive in TS; nothing to build in Phase 4, just don't ship
+  anything that precludes `host.open(key, params?)`.
 
 </deferred>
 
