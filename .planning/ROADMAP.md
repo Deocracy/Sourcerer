@@ -59,7 +59,13 @@ Full phase details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
   3. The Collabora web UI is reachable on 127.0.0.1 from the Windows host
   4. The resulting exemption set is written down so Phase 15's compiler and Phase 19's audit are built on evidence, not guesswork
 **Notes**: **Rescoped 2026-08-04** — the original "engine-less OCI unit" framing was obsoleted by the Nix-native decision (see PROJECT.md Key Decisions). `collabora-online` 25.04.9-4 is in nixpkgs with a full `services.collabora-online` module and is cached (13.8 MB download / 42 MB unpacked, vs ~1.5–2 GB for the CODE image), so no image is involved. The real remaining risk moved: `coolwsd` sandboxes itself, forking jailed LibreOffice kernels via its own chroot + namespaces, which collides with `DynamicUser`/`ProtectSystem=strict`/`CapabilityBoundingSet`/`SystemCallFilter` — and WSL2's kernel is not a normal kernel. That collision is this spike's kill-question. Collabora only; Jupyter and the multiwebview pane leg belong to Phase 15.
-**Plans**: TBD
+**Plans**: 5 plans (strictly sequential — one physical Windows host, one distro, one service; the ladder depends on the plan-02 control measurement)
+Plans:
+- [ ] 08-01-PLAN.md — Substrate precondition + driver scaffold (WSL version gate, conditional sha256-verified re-import, unprivileged-userns pre-flight)
+- [ ] 08-02-PLAN.md — Stock service from cache: substitution proof, unhardened control measurement, package provenance
+- [ ] 08-03-PLAN.md — The hardening ladder: full §7 baseline as rung 0, then one directive per rung, bounded and resumable with a named stop condition
+- [ ] 08-04-PLAN.md — Declarative proof pass (drop-in torn down first) + Windows-side curl/browser reachability
+- [ ] 08-05-PLAN.md — Findings: spike 012 README with the exemption set, Investigation Trail, MANIFEST row, and downstream doc updates
 
 ### Phase 9: Flake Foundation & Assurance Chain
 **Original plan label**: P1 · size M
