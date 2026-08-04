@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Container Platform
-status: planning
-last_updated: "2026-08-04T02:19:41.138Z"
+status: roadmapped
+last_updated: "2026-08-04T00:00:00.000Z"
 last_activity: 2026-08-04
 progress:
-  total_phases: 0
+  total_phases: 12
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,17 +17,20 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-06)
+See: .planning/PROJECT.md (updated 2026-08-03)
 
 **Core value:** A pixel-perfect, fully interactive desktop shell where the applet framework demonstrably works end-to-end — Notes proves the loop, every other applet is a believable stub.
-**Current focus:** Phase 07 — assistant harness core headless pi sidecar behind the host a
+**Current focus:** v2.0 Container Platform — Phase 8 (Spike K, engine-less OCI unit) is next, on the Windows box.
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 8 — Spike K: Engine-less OCI Unit (not started)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-08-04 — Milestone v2.0 started
+Status: Roadmap complete — ready for `/gsd-plan-phase 8`
+Last activity: 2026-08-04 — v2.0 roadmap created (12 phases, 8-19)
+Progress: [------------] 0/12 phases
+
+**Two-host reminder:** every v2.0 phase states its execution host in ROADMAP.md. NixOS is the dev host; the Windows box runs Phases 8, 10, 12, 14, 17 and the UAT legs of 11, 15, 18, 19. A phase whose UAT silently assumes the dev host will strand.
 
 ## Performance Metrics
 
@@ -158,6 +161,8 @@ Recent decisions affecting current work:
 
 ### Roadmap Evolution
 
+- v2.0 Container Platform roadmapped (2026-08-04): 12 phases (8-19) derived from `.planning/research/CONTAINER-PLATFORM-PLAN.md` (verifier-revised) with P-labels preserved — P0→8, P1→9, P2→10, P2b→11, P2c→12, P3a→13, P3b→14, P4→15, P5→16, P6→17, P7→18, P8→19. All 34 v2.0 requirements mapped, no orphans.
+- Two-track sequencing: Track 1 (shell tree, serial) 8→9→10→11→12→15→17→18→19; Track 2 (separate repos, parallel) Phase 13 alongside 10/11 and Phase 16 alongside 17/18; join points at 14 (needs 10+13) and 19 (needs 18+16).
 - Phase 7 added (2026-07-07): Assistant Harness Core — real headless Pi sidecar behind host.ai(). Pulls "Real backend behind host.ai()" forward from the v2 deferral. Standalone, depends on Phase 1 only, buildable in parallel with Phases 2–5. De-risked by spikes 001–005.
 
 ### Pending Todos
@@ -165,6 +170,11 @@ Recent decisions affecting current work:
 None yet.
 
 ### Blockers/Concerns
+
+- [v2.0 Phase 10]: `security.csp = null` acceptance from v1.0 Phase 1 EXPIRES here by construction (multiwebview panes + container-served UIs). `src-tauri/tauri.conf.json` still reads `"csp": null`. Real CSP is a Phase 10 deliverable, not a nice-to-have.
+- [v2.0 Phase 8]: the local `nixos.wsl` image was deleted 2026-08-03 — re-download NixOS-WSL 2605.7.2 and verify sha256 `e7180ad555fdcb8e1e057e2ef056de467603a5e502ff8531053738371be3f6b9`; re-verify the `SourcererSpike` distro is still registered on the Windows box (the "1 day of pure work" budget assumed it was warm).
+- [v2.0 Phase 19]: security baseline is thinner than this file implied — `01-SECURITY.md` is the only SECURITY.md in the repo (Phases 02-07 have none, including the Phase 07 Pi sidecar's real trust boundary), and `workflow.security_enforcement` is `false` so `/gsd-secure-phase` no-ops until flipped back. Worth settling before Phase 15/16 threat-modelling, not after.
+- [v2.0 calendar]: this milestone is wait-dominated (30-90 min closure builds, physical reboot UAT, clean-machine tests, Store certification queues in days). Plan counts hold; wall-clock roughly doubles vs v1.0.
 
 - [Phase 2 research flag]: Prototype pointer-event pattern + React 18 StrictMode-safe port strategy needs deep planning research before spec.
 - [Phase 1 verify]: Confirm PerMonitorV2 DPI awareness so 1px borders hold at 125%/150% scaling.
@@ -196,4 +206,4 @@ Resume file: None
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Plan the first v2.0 phase with `/gsd-plan-phase 8` (runs on the Windows box — re-import the NixOS-WSL image first)

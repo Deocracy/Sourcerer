@@ -91,4 +91,41 @@ Source: `.planning/research/CONTAINER-PLATFORM-PLAN.md` (verifier-revised) + `CO
 
 ## Traceability
 
-(Filled by roadmap.)
+| Requirement | Phase | Plan label | Execution host | Status |
+|-------------|-------|------------|----------------|--------|
+| SPIKE-01 | Phase 8 | P0 | Windows box | Pending |
+| FOUND-01 | Phase 9 | P1 | NixOS dev host | Pending |
+| FOUND-02 | Phase 9 | P1 | NixOS dev host | Pending |
+| FOUND-03 | Phase 9 | P1 | NixOS dev host | Pending |
+| SUB-01 | Phase 10 | P2 | Windows box | Pending |
+| SUB-02 | Phase 10 | P2 | Windows box | Pending |
+| SUB-03 | Phase 10 | P2 | Windows box | Pending |
+| SUB-04 | Phase 10 | P2 | Windows box | Pending |
+| SUB-05 | Phase 10 | P2 | Windows box | Pending |
+| SUB-06 | Phase 10 | P2 | Windows box | Pending |
+| UPD-01 | Phase 11 | P2b | NixOS dev host + Windows UAT | Pending |
+| UPD-02 | Phase 11 | P2b | NixOS dev host + Windows UAT | Pending |
+| UPD-03 | Phase 11 | P2b | NixOS dev host + Windows UAT | Pending |
+| DIST-01 | Phase 12 | P2c | Windows box | Pending |
+| DIST-02 | Phase 12 | P2c | Windows box | Pending |
+| ENG-01 | Phase 13 | P3a | NixOS dev host | Pending |
+| ENG-02 | Phase 14 | P3b | Windows box | Pending |
+| ENG-03 | Phase 14 | P3b | Windows box | Pending |
+| ENG-04 | Phase 14 | P3b | Windows box | Pending |
+| APP-01 | Phase 15 | P4 | NixOS dev host + Windows pane UAT | Pending |
+| APP-02 | Phase 15 | P4 | NixOS dev host + Windows pane UAT | Pending |
+| APP-03 | Phase 15 | P4 | NixOS dev host + Windows pane UAT | Pending |
+| APP-04 | Phase 15 | P4 | NixOS dev host + Windows pane UAT | Pending |
+| STORE-01 | Phase 16 | P5 | NixOS dev host | Pending |
+| STORE-02 | Phase 16 | P5 | NixOS dev host | Pending |
+| STORE-03 | Phase 16 | P5 | NixOS dev host | Pending |
+| STORE-04 | Phase 16 | P5 | NixOS dev host | Pending |
+| TOOLS-01 | Phase 17 | P6 | Windows box (A + clean B) | Pending |
+| TOOLS-02 | Phase 17 | P6 | Windows box (A + clean B) | Pending |
+| GRANT-01 | Phase 18 | P7 | NixOS dev host + Windows UAT | Pending |
+| GRANT-02 | Phase 18 | P7 | NixOS dev host + Windows UAT | Pending |
+| GRANT-03 | Phase 18 | P7 | NixOS dev host + Windows UAT | Pending |
+| HARD-01 | Phase 19 | P8 | Windows box + NixOS dev host | Pending |
+| HARD-02 | Phase 19 | P8 | Windows box + NixOS dev host | Pending |
+
+**Coverage:** 34/34 v2.0 requirements mapped to exactly one phase — no orphans, no duplicates.
