@@ -129,7 +129,7 @@ Full phase details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 Plans:
 **Wave 1**
 
-- [ ] 09-01-PLAN.md — License (PolyForm NC 1.0.0) + manifest license fields + Nix/direnv gitignore [wave 1]
+- [x] 09-01-PLAN.md — License (PolyForm NC 1.0.0) + manifest license fields + Nix/direnv gitignore [wave 1]
 - [ ] 09-02-PLAN.md — Version pins (rust-toolchain.toml, .nvmrc) + repo-root flake: dev shell, lib/overlay surface, lock [wave 1]
 
 **Wave 2** *(blocked on Wave 1 completion)*
@@ -348,7 +348,7 @@ Join points: 14 needs 10 + 13 · 19 needs 18 + 16
 | 6. Dashboard Assistant & Home | v1.0 | 8/8 | Complete | 2026-07-14 |
 | 7. Assistant Harness Core | v1.0 | 6/6 | Complete | 2026-07-08 |
 | 8. Spike K — Nix-Native Substrate Service | v2.0 | 0/TBD | Not started | - |
-| 9. Flake Foundation & Assurance Chain | v2.0 | 0/TBD | Not started | - |
+| 9. Flake Foundation & Assurance Chain | v2.0 | 1/7 | In Progress|  |
 | 10. Substrate Provisioning & Warden Seam | v2.0 | 0/TBD | Not started | - |
 | 11. Update Channel & Revert | v2.0 | 0/TBD | Not started | - |
 | 12. Distribution Packaging | v2.0 | 0/TBD | Not started | - |

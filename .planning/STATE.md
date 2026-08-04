@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Container Platform
-status: Ready for `/gsd-discuss-phase 9` on the **NixOS dev host**
-stopped_at: Phase 9 context gathered
-last_updated: "2026-08-04T18:16:46.107Z"
-last_activity: 2026-08-05 — Phase 8 researched, planned (5 plans, checker-passed), then deferred as spike-shaped work
+status: executing
+stopped_at: Completed 09-01-PLAN.md
+last_updated: "2026-08-04T18:27:30.109Z"
+last_activity: 2026-08-04 -- Phase 9 execution started
 progress:
   total_phases: 12
   completed_phases: 0
-  total_plans: 5
-  completed_plans: 0
+  total_plans: 12
+  completed_plans: 1
   percent: 0
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-03)
 
 **Core value:** A pixel-perfect, fully interactive desktop shell where the applet framework demonstrably works end-to-end — Notes proves the loop, every other applet is a believable stub.
-**Current focus:** v2.0 Container Platform — Phase 8 (Spike K, Nix-native substrate service) is next, on the Windows box.
+**Current focus:** Phase 9 — Flake Foundation & Assurance Chain
 
 ## Current Position
 
-Phase: 9 — Flake Foundation & Assurance Chain (not started) · **Phase 8 deferred, see below**
-Plan: —
-Status: Ready for `/gsd-discuss-phase 9` on the **NixOS dev host**
-Last activity: 2026-08-05 — Phase 8 researched, planned (5 plans, checker-passed), then deferred as spike-shaped work
+Phase: 9 (Flake Foundation & Assurance Chain) — EXECUTING
+Plan: 2 of 7
+Status: Ready to execute
+Last activity: 2026-08-04 -- Phase 9 execution started
 
 **Phase 8 is DEFERRED, not abandoned (2026-08-05).** It ships no application code; its only
 output is evidence for Phase 15's compiler and Phase 19's audit, so it was mis-slotted as a
@@ -95,6 +95,7 @@ Progress: [------------] 0/12 phases
 | Phase 06 P06 | 50min | 3 tasks | 8 files |
 | Phase 06 P07 | 5min | 3 tasks | 8 files |
 | Phase 06 P08 | 8min | 3 tasks | 2 files |
+| Phase 09 P01 | 8min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -169,6 +170,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 06-07: liveWidth is a parallel piece of hook state to liveSnap (not derived), cleared together in the existing WR-06 teardown; a window resize dispatch on each pointermove substitutes for the prototype's direct relayout() call to keep dockview in step with the drag
 - [Phase ?]: 06-08: railSnap.ts thresholds confirmed matching the prototype 1:1 (no changes) - jank was entirely missing live-relayout during drag
 - [Phase ?]: 06-08: reused useAssistantResize's shared teardown() + window resize-dispatch pattern verbatim for useRailDrag (WR-06 parity), keeping the two bespoke-pointer resize hooks structurally identical
+- [Phase 09-01]: PolyForm NC 1.0.0 has no bracket placeholder tokens; licensor/software identified via the license's own Required Notice: line instead
 
 ### Roadmap Evolution
 
@@ -213,9 +215,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-04T17:29:39.748Z
-Stopped at: Phase 9 context gathered
-Resume file: .planning/phases/09-flake-foundation-assurance-chain/09-CONTEXT.md
+Last session: 2026-08-04T18:27:22.480Z
+Stopped at: Completed 09-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
