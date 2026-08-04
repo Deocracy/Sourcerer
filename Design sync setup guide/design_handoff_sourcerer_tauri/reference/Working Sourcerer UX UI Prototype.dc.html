@@ -1,0 +1,1743 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Serif:ital,wght@0,400;1,400&amp;display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #060708; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-thumb { background: #26272B; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    input::placeholder { color: #6E6C66; }
+    @keyframes cv-pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+    @keyframes cv-shimmer { 0% { background-position: -200px 0; } 100% { background-position: 200px 0; } }
+  </style>
+</helmet>
+
+<div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 28px; font-family: 'IBM Plex Sans', sans-serif;">
+  <div ref="{{ appRef }}" style="width: 1440px; height: 900px; flex-shrink: 0; background: #0A0A0B; border: 1px solid #1E1F22; display: grid; grid-template-rows: 34px 1fr; overflow: hidden; box-shadow: 0 40px 120px rgba(0,0,0,0.6);">
+
+    <!-- ============ TITLE BAR ============ -->
+    <div style="background: #0A0A0B; border-bottom: 1px solid #1E1F22; display: flex; align-items: stretch; padding-left: 12px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #6E6C66;">
+      <div onClick="{{ openHome }}" title="Dashboard" style="display: flex; align-items: center; gap: 9px; cursor: pointer;" style-hover="opacity:0.75">
+        <div style="width: 15px; height: 15px; border: 1.5px solid #E6E4DE; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+          <div style="width: 5px; height: 5px; background: #E6E4DE; border-radius: 50%;"></div>
+        </div>
+        <span style="letter-spacing: 0.08em; color: #E6E4DE; font-size: 12px;">Sourcerer</span>
+        <span style="color: #3A3B40;">·</span>
+        <span>{{ activeApplet }}</span>
+      </div>
+      <div style="flex: 1;"></div>
+
+      <!-- layouts menu -->
+      <div style="position: relative; display: flex; align-items: center;">
+        <div onClick="{{ toggleLayoutMenu }}" title="Saved layouts" style="height: 24px; display: flex; align-items: center; gap: 6px; padding: 0 10px; color: {{ layoutIconFg }}; cursor: pointer; letter-spacing: 0.1em;" style-hover="background:#131418">◱ LAYOUTS</div>
+        <sc-if value="{{ layoutMenuOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="position: absolute; top: 26px; right: 0; z-index: 100; width: 214px; background: #0F1013; border: 1px solid #26272B; box-shadow: 0 12px 40px rgba(0,0,0,0.6); padding: 4px;">
+            <div onClick="{{ saveLayout }}" style="padding: 8px 10px; display: flex; align-items: center; gap: 8px; color: #E6E4DE; cursor: pointer; font-size: 11px;" style-hover="background:#131418"><span>＋</span><span>Save current layout</span></div>
+            <div style="height: 1px; background: #1E1F22; margin: 4px 0;"></div>
+            <sc-if value="{{ hasLayouts }}" hint-placeholder-val="{{ false }}">
+              <sc-for list="{{ savedLayouts }}" as="L" hint-placeholder-count="1">
+                <div style="padding: 7px 10px; display: flex; align-items: center; gap: 8px;" style-hover="background:#131418">
+                  <span onClick="{{ L.apply }}" style="flex: 1; color: #A5A29A; cursor: pointer; font-size: 11px;" style-hover="color:#E6E4DE">▸ {{ L.name }}</span>
+                  <span onClick="{{ L.remove }}" title="Delete" style="color: #6E6C66; cursor: pointer; font-size: 10px;" style-hover="color:#E6E4DE">✕</span>
+                </div>
+              </sc-for>
+            </sc-if>
+            <sc-if value="{{ noLayouts }}" hint-placeholder-val="{{ true }}">
+              <div style="padding: 7px 10px; color: #6E6C66; font-size: 10px;">No saved layouts yet.</div>
+            </sc-if>
+            <div style="height: 1px; background: #1E1F22; margin: 4px 0;"></div>
+            <div onClick="{{ resetLayout }}" style="padding: 8px 10px; display: flex; align-items: center; gap: 8px; color: #A5A29A; cursor: pointer; font-size: 11px;" style-hover="background:#131418"><span>↺</span><span>Reset to single pane</span></div>
+          </div>
+        </sc-if>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 2px; padding: 0 10px;">
+        <div title="Cycle left rail (⌘\)" onClick="{{ cycleRail }}" style="width: 34px; height: 24px; display: flex; align-items: center; justify-content: center; color: {{ railIconFg }}; cursor: pointer;" style-hover="background:#131418">
+          <svg viewBox="0 0 16 12" style="width: 16px; height: 12px;"><rect x="0.5" y="0.5" width="15" height="11" fill="none" stroke="currentColor"></rect><rect x="0.5" y="0.5" width="4" height="11" fill="currentColor"></rect></svg>
+        </div>
+        <div title="Toggle Dashboard Assistant" onClick="{{ toggleAssistant }}" style="width: 34px; height: 24px; display: flex; align-items: center; justify-content: center; color: {{ asstIconFg }}; cursor: pointer;" style-hover="background:#131418">
+          <svg viewBox="0 0 16 12" style="width: 16px; height: 12px;"><rect x="0.5" y="0.5" width="15" height="11" fill="none" stroke="currentColor"></rect><rect x="11.5" y="0.5" width="4" height="11" fill="currentColor"></rect></svg>
+        </div>
+      </div>
+      <div style="display: flex;">
+        <div style="width: 46px; display: flex; align-items: center; justify-content: center; color: #6E6C66; cursor: default;" style-hover="background:#131418;color:#A5A29A">—</div>
+        <div style="width: 46px; display: flex; align-items: center; justify-content: center; cursor: default;" style-hover="background:#131418"><div style="width: 10px; height: 10px; border: 1px solid #6E6C66;"></div></div>
+        <div style="width: 46px; display: flex; align-items: center; justify-content: center; color: #6E6C66; cursor: default;" style-hover="background:#7a2a24;color:#E6E4DE">✕</div>
+      </div>
+    </div>
+
+    <!-- ============ BODY ============ -->
+    <div style="position: relative; display: grid; grid-template-columns: {{ gridCols }}; overflow: hidden;">
+
+      <!-- ghost preview of the area the assistant will snap to cover -->
+      <sc-if value="{{ asstGhost }}" hint-placeholder-val="{{ false }}">
+        <div style="position: absolute; top: 0; bottom: 0; left: 0; right: {{ asstGhostRight }}; z-index: 60; background: rgba(0,0,0,0.62); border: 1px dashed rgba(230,228,222,0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; pointer-events: none;">
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 15px; color: #E6E4DE;">⛶</div>
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.12em; color: #E6E4DE; white-space: nowrap;">LET GO TO SNAP</div>
+        </div>
+      </sc-if>
+
+      <!-- ---- LEFT RAIL ---- -->
+      <nav style="position: relative; background: #0A0A0B; border-right: 1px solid #1E1F22; overflow: hidden;">
+        <sc-if value="{{ railHidden }}" hint-placeholder-val="{{ false }}">
+          <div title="Reopen rail (⌘\)" onClick="{{ cycleRail }}" style="width: 100%; height: 100%; display: flex; justify-content: center; padding-top: 14px; cursor: pointer;" style-hover="background:#0F1013">
+            <div style="width: 2px; height: 20px; background: #1E1F22;"></div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ railCompact }}" hint-placeholder-val="{{ false }}">
+          <div data-rail-list="1" style="display: flex; flex-direction: column; align-items: center; padding: 6px 0; height: 100%;">
+            <sc-for list="{{ rail }}" as="i" hint-placeholder-count="6">
+              <div data-rail-item="{{ i.index }}" title="{{ i.label }} · drag to reorder, or out to dock" onClick="{{ i.open }}" onMouseDown="{{ i.dragDown }}" style="width: 40px; height: 40px; margin: 2px 0; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: 20px; color: {{ i.fg }}; background: {{ i.bg }}; border-left: 2px solid {{ i.rail }}; margin-left: -2px; position: relative; cursor: grab; user-select: none; opacity: {{ i.dim }};">
+                <sc-if value="{{ i.dropBefore }}" hint-placeholder-val="{{ false }}">
+                  <div style="position: absolute; left: 4px; right: 4px; top: -2px; height: 2px; background: #E6E4DE;"></div>
+                </sc-if>
+                <sc-if value="{{ i.dropAfter }}" hint-placeholder-val="{{ false }}">
+                  <div style="position: absolute; left: 4px; right: 4px; bottom: -2px; height: 2px; background: #E6E4DE;"></div>
+                </sc-if>
+                {{ i.glyph }}
+                <sc-if value="{{ i.badge }}" hint-placeholder-val="{{ false }}">
+                  <div style="position: absolute; top: 5px; right: 4px; min-width: 12px; height: 12px; padding: 0 3px; background: #A5A29A; color: #0A0A0B; font-family: 'IBM Plex Sans', sans-serif; font-size: 9px; font-weight: 600; display: flex; align-items: center; justify-content: center;">{{ i.badge }}</div>
+                </sc-if>
+              </div>
+            </sc-for>
+            <div data-rail-spacer="1" style="flex: 1; align-self: stretch; min-height: 44px; margin: 8px; display: flex; align-items: center; justify-content: center; border: 1px {{ railSpacerBorderStyle }} {{ railSpacerBorder }}; background: {{ railSpacerBg }};">
+              <sc-if value="{{ railSpacerActive }}" hint-placeholder-val="{{ false }}">
+                <div style="font-family: 'IBM Plex Mono', monospace; font-size: 15px; color: #E6E4DE;">↓</div>
+              </sc-if>
+            </div>
+            <sc-for list="{{ railBottom }}" as="i" hint-placeholder-count="0">
+              <div data-rail-bottom="{{ i.index }}" title="{{ i.label }} · pinned · drag to move" onClick="{{ i.open }}" onMouseDown="{{ i.dragDown }}" style="width: 40px; height: 40px; margin: 2px 0; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: 20px; color: {{ i.fg }}; background: {{ i.bg }}; border-left: 2px solid {{ i.rail }}; margin-left: -2px; position: relative; cursor: grab; user-select: none; opacity: {{ i.dim }};">
+                <sc-if value="{{ i.dropBefore }}" hint-placeholder-val="{{ false }}">
+                  <div style="position: absolute; left: 4px; right: 4px; top: -2px; height: 2px; background: #E6E4DE;"></div>
+                </sc-if>
+                <sc-if value="{{ i.dropAfter }}" hint-placeholder-val="{{ false }}">
+                  <div style="position: absolute; left: 4px; right: 4px; bottom: -2px; height: 2px; background: #E6E4DE;"></div>
+                </sc-if>
+                {{ i.glyph }}
+              </div>
+            </sc-for>
+            <div style="display: flex; flex-direction: column; align-items: center; padding-bottom: 10px; gap: 8px;">
+              <div title="Applet Catalog" onClick="{{ openCatalog }}" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: 18px; color: #A5A29A; cursor: pointer;">◍</div>
+              <div title="Settings" onClick="{{ openSettings }}" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: 18px; color: {{ settingsGearFg }}; cursor: pointer;" style-hover="color:#E6E4DE">⚙</div>
+              <div title="Casey · human" style="width: 30px; height: 30px; background: #1A1B1E; color: #E6E4DE; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Serif', serif; font-size: 13px; font-style: italic;">C</div>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ railExpanded }}" hint-placeholder-val="{{ true }}">
+          <div data-rail-list="1" style="display: flex; flex-direction: column; padding: 8px 0; height: 100%;">
+            <sc-for list="{{ rail }}" as="i" hint-placeholder-count="6">
+              <div data-rail-item="{{ i.index }}" onClick="{{ i.open }}" onMouseDown="{{ i.dragDown }}" title="Drag to reorder, or out to dock" style="position: relative; height: 36px; padding: 0 12px; display: flex; align-items: center; gap: 12px; color: {{ i.fg }}; background: {{ i.bg }}; border-left: 2px solid {{ i.rail }}; margin-left: -2px; cursor: grab; user-select: none; opacity: {{ i.dim }};" style-hover="background:#131418">
+                <sc-if value="{{ i.dropBefore }}" hint-placeholder-val="{{ false }}">
+                  <div style="position: absolute; left: 4px; right: 8px; top: -1px; height: 2px; background: #E6E4DE;"></div>
+                </sc-if>
+                <sc-if value="{{ i.dropAfter }}" hint-placeholder-val="{{ false }}">
+                  <div style="position: absolute; left: 4px; right: 8px; bottom: -1px; height: 2px; background: #E6E4DE;"></div>
+                </sc-if>
+                <div style="width: 26px; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 18px;">{{ i.glyph }}</div>
+                <div style="flex: 1; font-size: 13px;">{{ i.label }}</div>
+                <sc-if value="{{ i.badge }}" hint-placeholder-val="{{ false }}">
+                  <div style="font-family: 'IBM Plex Sans', sans-serif; font-size: 10px; color: #A5A29A;">{{ i.badge }}</div>
+                </sc-if>
+              </div>
+            </sc-for>
+            <div data-rail-spacer="1" style="flex: 1; min-height: 44px; margin: 8px 12px; display: flex; align-items: center; gap: 10px; padding: 0 8px; border: 1px {{ railSpacerBorderStyle }} {{ railSpacerBorder }}; background: {{ railSpacerBg }};">
+              <sc-if value="{{ railSpacerActive }}" hint-placeholder-val="{{ false }}">
+                <div style="font-family: 'IBM Plex Mono', monospace; font-size: 15px; color: #E6E4DE;">↓</div>
+                <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.12em; color: #E6E4DE;">DROP TO PIN AT BOTTOM</div>
+              </sc-if>
+            </div>
+            <sc-for list="{{ railBottom }}" as="i" hint-placeholder-count="0">
+              <div data-rail-bottom="{{ i.index }}" onClick="{{ i.open }}" onMouseDown="{{ i.dragDown }}" title="{{ i.label }} · pinned · drag to move" style="position: relative; height: 36px; padding: 0 12px; display: flex; align-items: center; gap: 12px; color: {{ i.fg }}; background: {{ i.bg }}; border-left: 2px solid {{ i.rail }}; margin-left: -2px; cursor: grab; user-select: none; opacity: {{ i.dim }};" style-hover="background:#131418">
+                <sc-if value="{{ i.dropBefore }}" hint-placeholder-val="{{ false }}">
+                  <div style="position: absolute; left: 4px; right: 8px; top: -1px; height: 2px; background: #E6E4DE;"></div>
+                </sc-if>
+                <sc-if value="{{ i.dropAfter }}" hint-placeholder-val="{{ false }}">
+                  <div style="position: absolute; left: 4px; right: 8px; bottom: -1px; height: 2px; background: #E6E4DE;"></div>
+                </sc-if>
+                <div style="width: 26px; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 18px;">{{ i.glyph }}</div>
+                <div style="flex: 1; font-size: 13px;">{{ i.label }}</div>
+                <sc-if value="{{ i.badge }}" hint-placeholder-val="{{ false }}">
+                  <div style="font-family: 'IBM Plex Sans', sans-serif; font-size: 10px; color: #A5A29A;">{{ i.badge }}</div>
+                </sc-if>
+              </div>
+            </sc-for>
+            <div style="margin-top: 0;">
+              <div onClick="{{ openCatalog }}" style="height: 36px; padding: 0 12px; display: flex; align-items: center; gap: 12px; color: #A5A29A; cursor: pointer;" style-hover="background:#131418">
+                <div style="width: 26px; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 18px;">◍</div>
+                <div style="flex: 1; font-size: 13px;">Applet Catalog</div>
+              </div>
+              <div style="height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 12px;">
+                <div style="width: 26px; height: 26px; background: #1A1B1E; color: #E6E4DE; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Serif', serif; font-size: 13px; font-style: italic;">C</div>
+                <div style="flex: 1;">
+                  <div style="font-size: 13px; color: #E6E4DE;">Casey</div>
+                  <div style="font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.14em; color: #6E6C66;">HUMAN</div>
+                </div>
+                <div title="Settings" onClick="{{ openSettings }}" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: 17px; color: {{ settingsGearFg }}; cursor: pointer;" style-hover="background:#131418;color:#E6E4DE">⚙</div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+        <div title="Drag to resize · double-click to cycle" onMouseDown="{{ startRailDrag }}" onDoubleClick="{{ cycleRail }}" style="position: absolute; top: 0; right: 0; bottom: 0; width: 6px; cursor: col-resize; z-index: 30;" style-hover="background:rgba(230,228,222,0.28)"></div>
+      </nav>
+
+      <!-- ---- WORKSPACE (dock tree mount) ---- -->
+      <div style="position: relative; overflow: hidden; background: #0A0A0B; min-width: 0;">
+        {{ workspaceTree }}
+      </div>
+
+      <!-- ---- DASHBOARD ASSISTANT ---- -->
+      <sc-if value="{{ assistantOpen }}" hint-placeholder-val="{{ true }}">
+        <aside style="position: relative; background: #131418; border-left: 1px solid #1E1F22; display: grid; grid-template-rows: 44px auto 1fr auto; overflow: hidden;">
+          <div title="Drag to resize · drag in to close" onMouseDown="{{ startAsstDrag }}" style="position: absolute; top: 0; left: 0; bottom: 0; width: 6px; cursor: col-resize; z-index: 30;" style-hover="background:rgba(230,228,222,0.28)"></div>
+          <sc-if value="{{ asstSnapping }}" hint-placeholder-val="{{ false }}">
+            <div style="position: absolute; inset: 0; z-index: 25; background: rgba(10,10,11,0.82); border-left: 2px solid #E6E4DE; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; pointer-events: none;">
+              <div style="font-family: 'IBM Plex Mono', monospace; font-size: 15px; color: #E6E4DE;">{{ asstSnapArrow }}</div>
+              <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.12em; color: #E6E4DE; white-space: nowrap;">{{ asstSnapLabel }}</div>
+            </div>
+          </sc-if>
+          <div style="padding: 0 16px; display: flex; align-items: center; border-bottom: 1px solid #1E1F22;">
+            <sc-if value="{{ renamingSection }}" hint-placeholder-val="{{ false }}">
+              <input value="{{ sectionNameDraft }}" onInput="{{ onSectionNameInput }}" onKeyDown="{{ onSectionNameKey }}" onBlur="{{ commitSectionName }}" ref="{{ sectionInputRef }}" style="flex: 1; min-width: 0; background: #0F1013; border: 1px solid #3A3B40; outline: none; font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.18em; color: #E6E4DE; text-transform: uppercase; padding: 4px 6px; margin: -1px 0;"></input>
+            </sc-if>
+            <sc-if value="{{ notRenamingSection }}" hint-placeholder-val="{{ true }}">
+              <div onClick="{{ startRenameSection }}" title="Rename section" style="flex: 1; min-width: 0; font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.18em; color: #A5A29A; text-transform: uppercase; cursor: text; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" style-hover="color:#E6E4DE">{{ sectionName }}</div>
+            </sc-if>
+          </div>
+          <div style="border-bottom: 1px solid #1E1F22; max-height: 128px; overflow-y: auto;">
+            <sc-for list="{{ sessions }}" as="s" hint-placeholder-count="4">
+              <div onClick="{{ s.select }}" style="padding: 9px 16px; display: flex; align-items: center; gap: 10px; background: {{ s.rowBg }}; border-left: 2px solid {{ s.railColor }}; margin-left: -2px; cursor: pointer;" style-hover="background:#1A1B1E">
+                <span style="font-size: 10px; color: {{ s.dot }};">{{ s.icon }}</span>
+                <div style="flex: 1; min-width: 0;">
+                  <div style="font-size: 13px; color: {{ s.titleFg }}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ s.title }}</div>
+                  <div style="font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: #6E6C66; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ s.meta }}</div>
+                </div>
+                <span style="font-family: 'IBM Plex Mono', monospace; font-size: 8px; letter-spacing: 0.12em; color: {{ s.stateFg }};">{{ s.state }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div ref="{{ threadRef }}" style="padding: 18px 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px;">
+            <sc-for list="{{ messages }}" as="m" hint-placeholder-count="3">
+              <div style="align-self: {{ m.align }}; max-width: {{ m.maxw }}; background: {{ m.bg }}; color: {{ m.fg }}; padding: {{ m.pad }}; font-size: 13px; line-height: 1.55;">{{ m.text }}</div>
+            </sc-for>
+            <sc-if value="{{ showProposal }}" hint-placeholder-val="{{ true }}">
+              <div style="font-size: 13px; color: #C5C2BA; line-height: 1.55;">
+                Proposal — updates <span style="color: #E6E4DE;">§ Poliziano</span> · role at Careggi:
+                <div style="margin-top: 8px; padding: 10px 12px; background: #1A1B1E; font-family: 'IBM Plex Serif', serif; font-style: italic; font-size: 14px; color: #E6E4DE; line-height: 1.5;">"Attended irregularly 1477–1494 — free from teaching."</div>
+                <div style="margin-top: 8px; display: flex; gap: 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px;">
+                  <span onClick="{{ approve }}" style="color: #E6E4DE; cursor: pointer;" style-hover="text-decoration:underline">[y] approve</span>
+                  <span style="color: #A5A29A; cursor: pointer;" style-hover="color:#E6E4DE">[d] diff</span>
+                  <span onClick="{{ reject }}" style="color: #A5A29A; cursor: pointer;" style-hover="color:#E6E4DE">[n] reject</span>
+                  <span style="margin-left: auto; color: #6E6C66;">2 downstream</span>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+          <div style="padding: 12px 16px; border-top: 1px solid #1E1F22;">
+            <div style="display: flex; align-items: center; gap: 10px; background: #0F1013; padding: 8px 10px; border: 1px solid {{ inputBorder }};">
+              <input value="{{ replyText }}" onInput="{{ onReplyInput }}" onKeyDown="{{ onReplyKey }}" placeholder="Reply to Dashboard…" style="flex: 1; background: transparent; border: none; outline: none; color: #E6E4DE; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px;">
+              <div onClick="{{ send }}" title="Send" style="width: 28px; height: 24px; background: {{ sendBg }}; display: flex; align-items: center; justify-content: center; color: {{ sendFg }}; cursor: pointer;">
+                <svg viewBox="0 0 16 16" style="width: 14px; height: 14px;"><path d="M8 13 L8 3 M4 7 L8 3 L12 7" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+              </div>
+            </div>
+            <div style="margin-top: 8px; display: flex; align-items: center; gap: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #6E6C66;">
+              <span style="cursor: pointer;" style-hover="color:#A5A29A">+ context</span>
+              <span>·</span>
+              <span style="cursor: pointer;" style-hover="color:#A5A29A">⌘↵ send</span>
+              <span onClick="{{ addCard }}" title="Create a new card on the dashboard" style="cursor: pointer; border: 1px solid #26272B; padding: 3px 8px; letter-spacing: 0.1em; color: #A5A29A;" style-hover="background:#1E1F22;color:#E6E4DE">＋MAKE CARD</span>
+              <span style="margin-left: auto;">{{ sessionCount }} sessions</span>
+            </div>
+          </div>
+        </aside>
+      </sc-if>
+
+      <sc-if value="{{ assistantClosed }}" hint-placeholder-val="{{ false }}">
+        <aside title="Reopen assistant · drag to pull out" onMouseDown="{{ startAsstPull }}" style="background: #0A0A0B; border-left: 1px solid #1E1F22; display: flex; justify-content: center; padding-top: 14px; cursor: col-resize;" style-hover="background: #131418">
+          <div style="width: 2px; height: 20px; background: #1E1F22;"></div>
+        </aside>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  _uid = 0;
+  _paneEls = {};
+  _splitEls = {};
+
+  state = {
+    railWidth: 220,
+    asstWidth: 440,
+    assistantOpen: true,
+    asstSnap: null,   // 'close' | 'open' | 'full' — live snap-zone cue while dragging the panel edge
+    asstFull: false,       // assistant snapped to full screen
+    asstPrevLayout: null,  // { asstWidth, railWidth } — layout to restore when leaving full screen
+    activeSession: 0,
+    archiveOpen: true,
+    archiveView: 'list',   // 'cards' | 'list' — Archive section view toggle
+    homeOrder: ['pins', 'fresh', 'living', 'archive'],
+    homeDrag: null,
+    homeDropIndex: null,
+    homeCards: {   // card ids per section — cards can move across sections
+      pins: ['corpus', 'dissertation', 'ficino', 'thread', 'graphview', 'claimsnow', 'activity', 'fichrono', 'ficnet', 'circle', 'entwiki', 'entlive'],
+      fresh: ['contradiction', 'prato', 'excerpt47', 'ingest', 'vasmanetti', 'patrchain', 'platonote', 'pulse', 'claimstack', 'actioncard', 'audit', 'indexing'],
+      living: ['livingq'],
+      archive: ['a-mach', 'a-ch2', 'a-pdfs', 'a-bruni', 'a-petrarch', 'a-stoic', 'a-bocc', 'a-bodleian'],
+    },
+    customCards: {},  // user-created card defs (＋ ADD CARD), merged into homeCardDefs
+    tileDrag: null,   // { id, item } — individual card being dragged (Metro-style)
+    tilePos: null,    // cursor position for the drag ghost
+    stackIndex: 0,             // CLAIMS · STACK — which claim is showing
+    actionState: 'open',       // CONTRADICTION · ACTION — open | resolved | dismissed
+    auditChecks: { villa: true, vasari: false }, // CORPUS · AUDIT task checklist
+    replyText: '',
+    sectionNames: {},          // { appletTitle: customName } — renamed assistant section headers
+    renamingSection: false,
+    sectionNameDraft: '',
+    settings: {
+      activeLeaf: 'assistant',
+      expanded: { you: false, workspace: false, corpus: false, intelligence: true, advanced: false },
+      model: 'sonnet',
+      approvals: { corpus: 'EVERY', external: 'AUTO', research: 'START' },
+    },
+    builder: { name: '', glyph: '⊞', components: {}, source: 'Library' },
+    createdApplets: [],
+    instances: {},   // per-tab applet state (browser url, sourcerer mode/query) keyed by tab id
+    proposalResolved: null,
+
+    // ---- dock state ----
+    dockTree: { type: 'leaf', id: 'root', tabs: [], active: null },
+    activePaneId: 'root',
+    prevTree: null,        // stashed applet view, for the Home toggle
+    prevActivePane: null,
+    dockDrag: null,   // { name, fromId }
+    dockHover: null,  // { paneId, zone }
+    railDrag: null,   // { app, target:{group,index} } — rail reorder / pin
+    railBottom: [],   // applet keys pinned to the bottom of the rail
+    savedLayouts: [],
+    layoutMenuOpen: false,
+
+    threads: {
+      0: [
+        { role: 'user', text: 'Find every mention of Poliziano in the Careggi context and propose Wiki edits.' },
+        { role: 'divi', text: "Searching Wiki and the Prato archive — I'll cross-check dates and draft edits for your approval." },
+      ],
+      1: [
+        { role: 'user', text: 'Run the Medici patronage deep research to completion.' },
+        { role: 'divi', text: 'Day 3 of 4 — 18 of 29 sources cross-checked. I will surface conflicts as I go.' },
+      ],
+      2: [ { role: 'divi', text: 'Paused. 3 entity merges are waiting on your approval before I continue.' } ],
+      3: [ { role: 'divi', text: 'Idle. Ask me to check any citation and I will pull provenance.' } ],
+    },
+  };
+
+  applets = {
+    Home:    { glyph: '◉', title: 'Dashboard' },
+    Sourcerer: { glyph: '◆', code: 'LIGHTRAG', title: 'Sources' },
+    Library: { glyph: '▤', code: 'LIB',   title: 'Library', section: 'INGEST QUEUE',
+      desc: 'Your corpus of primary and secondary sources. Ingest, trust-flag, and search across every document.',
+      rows: [ {kind:'CORPUS', title:'Renaissance Papers', meta:'342 docs · 5 conflicts'}, {kind:'INGEST', title:'12 PDFs from Prato Archive', meta:'processing · 8m'}, {kind:'CORPUS', title:'Vasari · Lives, vol II', meta:'188 docs'}, {kind:'EXPORT', title:'Snapshot v.184 → /Backups', meta:'218 MB'} ] },
+    Wiki:    { glyph: '§', code: 'WIKI',  title: 'Wiki', section: 'UNRESOLVED · 7',
+      desc: 'The living encyclopedia of entities and claims. Contradictions surface here for triage.',
+      rows: [ {kind:'ENTITY', title:'Marsilio Ficino', meta:'34 claims · 3 ⚡'}, {kind:'CONFLICT', title:'Alberti — Genoa vs Venice', meta:'2 sources · resolve →'}, {kind:'ENTITY', title:"Cosimo de' Medici", meta:'82 claims · 4 ⚡'}, {kind:'MERGE', title:'"M. Ficino" ↔ "Marsilio Ficino"', meta:'unmerge ↺'} ] },
+    Graph:   { glyph: '◇', code: 'GRAPH', title: 'Graph', section: 'SAVED VIEWS',
+      desc: 'Explore entities and their relationships as a network. Save subgraph views and open node cards.',
+      rows: [ {kind:'VIEW', title:'Careggi network', meta:'43 nodes · 71 edges'}, {kind:'VIEW', title:'Medici patronage web', meta:'88 nodes · 140 edges'}, {kind:'NODE', title:'Ficino → Cosimo (patronage)', meta:'6 evidences'} ] },
+    Chat:    { glyph: '≋', code: 'CHAT',  title: 'Chat', section: 'RECENT THREADS',
+      desc: 'Ask questions across your whole knowledge base. Every answer is grounded in cited sources.',
+      rows: [ {kind:'THREAD', title:'Neoplatonism antecedents', meta:'6 sources · saved'}, {kind:'THREAD', title:'Stoic revival in the 1470s', meta:'4 sources'}, {kind:'THREAD', title:'Careggi — school or salon?', meta:'14 findings'} ] },
+    Writing: { glyph: '✎', code: 'WRITING', title: 'Writing Studio', section: 'DRAFT SECTIONS',
+      desc: 'Compose long-form work with live citations. Draft blocks pull directly from Wiki and Library.',
+      rows: [ {kind:'CH.3 §1', title:'Neoplatonism in Ficino\u2019s circle', meta:'8,412 words'}, {kind:'CH.3 §2', title:'Footnote drafts', meta:'edited 4m'}, {kind:'CH.2', title:'Draft complete', meta:'reviewed'} ] },
+    Browser: { glyph: '◎', code: 'BROWSE', title: 'Power Browser' },
+    Kanban:  { glyph: '▥', code: 'BOARD', title: 'Kanban', section: 'DISSERTATION BOARD',
+      desc: 'Track the moving parts of your project on a board. Cards pull status from Wiki, Writing, and Library.',
+      rows: [ {kind:'DOING', title:'Draft Ch.3 §2 footnotes', meta:'2 cards'}, {kind:'REVIEW', title:'Careggi salon claim', meta:'blocked · 1'}, {kind:'TODO', title:'Bruni translations survey', meta:'due Jun 30'}, {kind:'DONE', title:'Ch.2 reviewed', meta:'Jun 22'} ] },
+    News:    { glyph: '◈', code: 'NEWS', title: 'News Buddy', section: 'WATCHED FEEDS',
+      desc: 'Watch archives, catalogs, and journals for anything touching your entities. New matches surface here.',
+      rows: [ {kind:'ALERT', title:'Prato Archive digitized', meta:'1462 folios · new'}, {kind:'FEED', title:'Bodleian catalog update', meta:'3 new · Jun 10'}, {kind:'FEED', title:'Renaissance Quarterly', meta:'new issue'}, {kind:'MATCH', title:'"Ficino" — 4 new mentions', meta:'across 2 feeds'} ] },
+    KeyPass: { glyph: '⚷', code: 'VAULT', title: 'KeyPass DB', section: 'CREDENTIAL VAULT',
+      desc: 'Your local, encrypted vault for archive logins and API keys. Nothing leaves the machine.',
+      rows: [ {kind:'VAULT', title:'Archive credentials', meta:'12 entries · locked'}, {kind:'ENTRY', title:'archivio.prato.it', meta:'copied 2d'}, {kind:'ENTRY', title:'Bodleian SOLO', meta:'copied 1w'}, {kind:'KEY', title:'Deep Research API', meta:'rotated Jun 1'} ] },
+    Settings: { glyph: '⚙', code: 'PREFS', title: 'Settings' },
+    Builder: { glyph: '⊞', code: 'BUILD', title: 'Applet Builder' },
+    Dadabase: { glyph: '▦', code: 'DBASE', title: 'Databasise', section: 'TABLES',
+      desc: 'A structured store for the records you pull out of the corpus — typed tables, saved queries, and relations that stay in sync with Wiki and Library.',
+      rows: [ {kind:'TABLE', title:'Patronage records', meta:'218 rows · 9 cols'}, {kind:'TABLE', title:'Letters index', meta:'1,204 rows'}, {kind:'QUERY', title:'Ficino correspondents', meta:'saved · 34 rows'}, {kind:'SCHEMA', title:'Entities \u2192 Sources', meta:'6 relations'} ] },
+  };
+
+  railOrder = ['Sourcerer', 'Library', 'Wiki', 'Graph', 'Chat', 'Writing', 'Browser', 'Kanban', 'News', 'KeyPass', 'Builder', 'Dadabase'];
+
+  DEF_BROWSER = { url: 'archivio.prato.it / medici / libro-di-conti-1462', title: 'Medici · Libro di Conti (1462)' };
+  DEF_SOURCERER = { mode: 'Hybrid', query: '' };
+  browserBookmarks = [
+    { label: 'Prato Archive',  url: 'archivio.prato.it / medici / libro-di-conti-1462', title: 'Medici · Libro di Conti (1462)' },
+    { label: 'Vatican MSS',    url: 'digi.vatlib.it / mss / quattrocento',              title: 'Vatican · Quattrocento Manuscripts' },
+    { label: 'Laurenziana',    url: 'bml.firenze.it / plut / ficino-epist',             title: 'Biblioteca Laurenziana · Ficino, Epistolae' },
+    { label: 'Journal Index',  url: 'index.scholar / renaissance-studies',             title: 'Journal Index · Renaissance Studies' },
+  ];
+  badges = { Wiki: '7' };
+  sourcererModes = ['Naive', 'Local', 'Global', 'Hybrid'];
+  builderGlyphs = ['⊞', '◫', '⎔', '⌾', '⊚', '▣', '◈', '❖'];
+  builderComponents = [
+    { id: 'doclist',    label: '<DocList>',     note: 'source documents + trust flags' },
+    { id: 'claimlist',  label: '<ClaimList>',   note: 'entity claims with provenance' },
+    { id: 'subgraph',   label: '<SubGraph>',    note: 'relationship network view' },
+    { id: 'threadref',  label: '<ThreadRef>',   note: 'saved chat threads' },
+    { id: 'findingrow', label: '<FindingRow>',  note: 'research findings feed' },
+    { id: 'citationset',label: '<CitationSet>', note: 'grouped citations' },
+    { id: 'draftblock', label: '<DraftBlock>',  note: 'editable prose block' },
+    { id: 'provenance', label: '<Provenance>',  note: 'source trail for a claim' },
+  ];
+  builderSources = ['Library', 'Wiki', 'Graph', 'External'];
+  settingsIndex = [
+    { id: 'you',          label: 'YOU',          children: [ {id:'profile',glyph:'○',label:'Profile'}, {id:'identity',glyph:'⌾',label:'Identity & voice'} ] },
+    { id: 'workspace',    label: 'WORKSPACE',    children: [ {id:'appearance',glyph:'◧',label:'Appearance'}, {id:'layout',glyph:'▤',label:'Layout & panels'}, {id:'shortcuts',glyph:'⌘',label:'Shortcuts'}, {id:'notifications',glyph:'✧',label:'Notifications'} ] },
+    { id: 'corpus',       label: 'CORPUS',       children: [ {id:'sources',glyph:'▤',label:'Sources'}, {id:'trust',glyph:'§',label:'Trust & provenance'}, {id:'backups',glyph:'⎈',label:'Backups'} ] },
+    { id: 'intelligence', label: 'INTELLIGENCE', children: [ {id:'assistant',glyph:'≋',label:'Assistant & Agents'}, {id:'applets',glyph:'◍',label:'Applets'}, {id:'models',glyph:'◐',label:'Local models'}, {id:'external',glyph:'⌕',label:'External sources'} ] },
+    { id: 'advanced',     label: 'ADVANCED',     children: [ {id:'data',glyph:'▦',label:'Data & export'}, {id:'developer',glyph:'⌗',label:'Developer'}, {id:'about',glyph:'◇',label:'About'} ] },
+  ];
+
+  componentDidMount() {
+    try { const raw = localStorage.getItem('divi-dock-layouts'); if (raw) this.setState({ savedLayouts: JSON.parse(raw) }); } catch (e) {}
+    this.loadRegistry();
+  }
+
+  // ===== applet framework =====
+  // Real applets live in applets/*.js, listed in applets/registry.js.
+  // A registered applet replaces its demo stub (same key) or appends to the rail (new key).
+  realApplets = {};
+  THEME = {
+    bg: '#0A0A0B', panel: '#131418', panel2: '#0F1013', line: '#1E1F22', line2: '#26272B',
+    fg: '#E6E4DE', mid: '#A5A29A', dim: '#6E6C66', good: '#5E8A6E', warn: '#B08A6E',
+    sans: "'IBM Plex Sans', sans-serif", mono: "'IBM Plex Mono', monospace", serif: "'IBM Plex Serif', serif",
+  };
+  async loadRegistry() {
+    let reg;
+    try { reg = await import('./applets/registry.js'); } catch (e) { console.warn('[applets] no registry loaded:', e.message); return; }
+    (reg.applets || []).forEach(mod => {
+      const man = mod && mod.manifest;
+      if (!man || !man.key || typeof mod.App !== 'function') { console.warn('[applets] bad module (needs manifest.key + App):', mod); return; }
+      const prev = this.applets[man.key] || {};
+      this.applets[man.key] = { ...prev, glyph: man.glyph || prev.glyph || '◌', code: man.code || prev.code || man.key.toUpperCase(), title: man.title || prev.title || man.key, desc: man.desc || prev.desc || '', real: true };
+      if (!this.railOrder.includes(man.key)) this.railOrder.push(man.key);
+      this.realApplets[man.key] = mod;
+    });
+    this.forceUpdate();
+  }
+  makeHost(app, instanceId) {
+    const ns = (k) => 'sourcerer:' + app + ':' + k;
+    return {
+      key: app,
+      instanceId: instanceId,
+      theme: this.THEME,
+      storage: {
+        get: (k, fb) => { try { const r = localStorage.getItem(ns(k)); return r == null ? fb : JSON.parse(r); } catch (e) { return fb; } },
+        set: (k, v) => { try { localStorage.setItem(ns(k), JSON.stringify(v)); } catch (e) {} },
+        remove: (k) => { try { localStorage.removeItem(ns(k)); } catch (e) {} },
+      },
+      // The ONE seam for AI. Swap the backend here later; applets never call a model directly.
+      ai: async (promptOrBody) => {
+        if (!(window.claude && window.claude.complete)) throw new Error('no AI bridge in this environment');
+        return window.claude.complete(promptOrBody);
+      },
+      open: (key) => this.openInPane(key),
+    };
+  }
+  // FLIP: capture card positions before a re-render so they can slide to new slots
+  getSnapshotBeforeUpdate() {
+    const rects = {};
+    document.querySelectorAll('[data-tile-id]').forEach(el => { rects[el.getAttribute('data-tile-id')] = el.getBoundingClientRect(); });
+    return rects;
+  }
+  componentDidUpdate(prevProps, prevState, prevRects) {
+    if (!prevRects) return;
+    document.querySelectorAll('[data-tile-id]').forEach(el => {
+      const id = el.getAttribute('data-tile-id');
+      const prev = prevRects[id]; if (!prev) return;
+      const now = el.getBoundingClientRect();
+      const dx = prev.left - now.left, dy = prev.top - now.top;
+      if (!dx && !dy) return;
+      el.style.transition = 'none';
+      el.style.transform = `translate(${dx}px, ${dy}px)`;
+      requestAnimationFrame(() => {
+        el.style.transition = 'transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1)';
+        el.style.transform = '';
+        const clear = () => { el.style.transition = ''; el.style.transform = ''; el.removeEventListener('transitionend', clear); };
+        el.addEventListener('transitionend', clear);
+      });
+    });
+  }
+
+  // ===== tree helpers =====
+  uid() { this._uid += 1; return 'n' + this._uid + '_' + Math.random().toString(36).slice(2, 6); }
+  reid(node) { const n = { ...node, id: this.uid() }; if (n.type === 'split') n.children = node.children.map(c => this.reid(c)); return n; }
+  findNode(node, id) {
+    if (node.id === id) return node;
+    if (node.type === 'split') { for (const c of node.children) { const r = this.findNode(c, id); if (r) return r; } }
+    return null;
+  }
+  firstLeafId(node) { if (node.type === 'leaf') return node.id; return this.firstLeafId(node.children[0]); }
+  mapNode(node, id, fn) {
+    if (node.id === id) return fn(node);
+    if (node.type === 'split') return { ...node, children: node.children.map(c => this.mapNode(c, id, fn)) };
+    return node;
+  }
+  prune(node) {
+    if (node.type === 'leaf') return node.tabs.length ? node : null;
+    const kids = node.children.map(c => this.prune(c)).filter(Boolean);
+    if (kids.length === 0) return null;
+    if (kids.length === 1) return kids[0];
+    let sizes = node.sizes;
+    if (!sizes || sizes.length !== kids.length) sizes = kids.map(() => 1 / kids.length);
+    return { ...node, children: kids, sizes };
+  }
+
+  // ===== tab / pane actions ===== (a tab is an instance { id, app })
+  focusTab(paneId, tabId) {
+    this.setState(s => ({ activePaneId: paneId, dockTree: this.mapNode(s.dockTree, paneId, l => ({ ...l, active: tabId })) }));
+  }
+  // logo → toggle between Home and the applet view you were just in
+  // each view remembers its own side-panel layout (left rail + assistant)
+  panelSnap(s) { return { railWidth: s.railWidth, assistantOpen: s.assistantOpen, asstWidth: s.asstWidth }; }
+  openHome() {
+    this.setState(s => {
+      const isHome = s.dockTree.type === 'leaf' && s.dockTree.tabs.length === 0;
+      if (isHome) {
+        if (!s.prevTree) return null; // already home, nothing stashed
+        const ap = this.findNode(s.prevTree, s.prevActivePane) ? s.prevActivePane : this.firstLeafId(s.prevTree);
+        return { dockTree: s.prevTree, activePaneId: ap, prevTree: null, prevActivePane: null,
+          homePanels: this.panelSnap(s), ...(s.appletPanels || {}) };
+      }
+      const t = { type: 'leaf', id: this.uid(), tabs: [], active: null };
+      return { dockTree: t, activePaneId: t.id, prevTree: s.dockTree, prevActivePane: s.activePaneId,
+        appletPanels: this.panelSnap(s),
+        ...(s.homePanels || { railWidth: 220, assistantOpen: true, asstWidth: 440 }) };
+    });
+  }
+  // ＋ ADD CARD (assistant footer) → mint a fresh card and show it on Home
+  addCard() {
+    const id = 'card-' + Date.now();
+    const def = { span: 1, kind: 'NEW CARD', mark: 'inferred', title: 'Untitled card', foot: 'just now · drag to file', to: 'Wiki' };
+    this.setState(s => {
+      const isHome = s.dockTree.type === 'leaf' && s.dockTree.tabs.length === 0;
+      const goHome = isHome ? {} : (() => { const t = { type: 'leaf', id: this.uid(), tabs: [], active: null }; return { dockTree: t, activePaneId: t.id, prevTree: s.dockTree, prevActivePane: s.activePaneId }; })();
+      return { ...goHome, customCards: { ...s.customCards, [id]: def }, homeCards: { ...s.homeCards, fresh: [id, ...(s.homeCards.fresh || [])] } };
+    });
+  }
+  // the rail / + button → open the applet as a NEW instance (multiples allowed)
+  openInPane(app, paneId) {
+    if (app === 'Home') return;
+    this.setState(s => {
+      let id = paneId || s.activePaneId;
+      const node = this.findNode(s.dockTree, id);
+      if (!node || node.type !== 'leaf') id = this.firstLeafId(s.dockTree);
+      const tab = { id: this.uid(), app };
+      const tree = this.mapNode(s.dockTree, id, l => ({ ...l, tabs: [...l.tabs, tab], active: tab.id }));
+      return { dockTree: tree, activePaneId: id };
+    });
+  }
+  closeTab(paneId, tabId, e) {
+    if (e) e.stopPropagation();
+    this.setState(s => {
+      let tree = this.mapNode(s.dockTree, paneId, l => {
+        const tabs = l.tabs.filter(t => t.id !== tabId);
+        return { ...l, tabs, active: l.active === tabId ? (tabs.length ? tabs[tabs.length - 1].id : null) : l.active };
+      });
+      tree = this.prune(tree) || { type: 'leaf', id: this.uid(), tabs: [], active: null };
+      let ap = s.activePaneId;
+      if (!this.findNode(tree, ap)) ap = this.firstLeafId(tree);
+      return { dockTree: tree, activePaneId: ap };
+    });
+  }
+
+  // ===== drag to dock =====
+  startDockDrag(paneId, tab, e) {
+    if (e.target.closest('[data-tabclose]')) return;
+    e.preventDefault();
+    const ox = e.clientX, oy = e.clientY;
+    let moved = false;
+    this.setState({ dockDrag: { app: tab.app, tabId: tab.id, fromId: paneId } });
+    const move = (ev) => {
+      if (!moved && Math.hypot(ev.clientX - ox, ev.clientY - oy) < 5) return;
+      moved = true;
+      this.setState({ dockHover: this.hitTest(ev.clientX, ev.clientY) });
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+      const drag = this.state.dockDrag, hover = this.state.dockHover;
+      this.setState({ dockDrag: null, dockHover: null });
+      if (!moved) { this.focusTab(paneId, tab.id); return; }
+      if (drag && hover) this.performDock(drag, hover);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  }
+  // drag a rail item: within the rail → reorder; out into the workspace → dock
+  startRailAppletDrag(app, e) {
+    if (e.button !== 0) return;
+    const ox = e.clientX, oy = e.clientY;
+    let moved = false, mode = null;
+    const move = (ev) => {
+      if (!moved) {
+        if (Math.hypot(ev.clientX - ox, ev.clientY - oy) < 5) return;
+        moved = true;
+        try { window.getSelection().removeAllRanges(); } catch (er) {}
+      }
+      const target = this.railDropTarget(ev.clientX, ev.clientY);
+      if (target) {
+        if (mode !== 'reorder') { mode = 'reorder'; this.setState({ dockDrag: null, dockHover: null }); }
+        this.setState({ railDrag: { app, target } });
+      } else {
+        if (mode !== 'dock') { mode = 'dock'; this.setState({ railDrag: null, dockDrag: { app, tabId: null, fromId: null, source: 'rail' } }); }
+        this.setState({ dockHover: this.hitTest(ev.clientX, ev.clientY) });
+      }
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+      if (!moved) return; // treat as a plain click → the item's onClick handles it
+      if (mode === 'reorder') {
+        const drag = this.state.railDrag;
+        this.setState({ railDrag: null });
+        if (drag) this.applyRailReorder(drag.app, drag.target);
+      } else {
+        const drag = this.state.dockDrag, hover = this.state.dockHover;
+        this.setState({ dockDrag: null, dockHover: null });
+        if (drag && hover) this.performDock(drag, hover);
+      }
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  }
+  // decide where a rail drag would land: a group (top / bottom-pinned) + insertion index, or null to dock
+  railDropTarget(x, y) {
+    const list = document.querySelector('[data-rail-list]');
+    if (!list) return null;
+    const rr = list.getBoundingClientRect();
+    if (x < rr.left - 24 || x > rr.right + 12) return null; // outside the rail → dock into workspace
+    const idxIn = (els) => { let i = els.length; for (let k = 0; k < els.length; k++) { const r = els[k].getBoundingClientRect(); if (y < r.top + r.height / 2) { i = k; break; } } return i; };
+    const bottomEls = [...list.querySelectorAll('[data-rail-bottom]')];
+    const topEls = [...list.querySelectorAll('[data-rail-item]')];
+    // over (or below) the pinned group → reorder within it
+    if (bottomEls.length) {
+      const bTop = bottomEls[0].getBoundingClientRect().top;
+      if (y >= bTop - 6) return { group: 'bottom', index: idxIn(bottomEls) };
+    }
+    // anywhere below the last top item (the spacer OR the footer / Applet Catalog area) → pin at bottom
+    if (topEls.length) {
+      const lastBottom = topEls[topEls.length - 1].getBoundingClientRect().bottom;
+      if (y > lastBottom + 2) return { group: 'bottom', index: bottomEls.length };
+    }
+    // otherwise reorder within the top group
+    return { group: 'top', index: idxIn(topEls) };
+  }
+  applyRailReorder(app, target) {
+    if (!target) return;
+    const wasBottom = this.state.railBottom.indexOf(app);
+    const bottom = this.state.railBottom.filter(k => k !== app);
+    if (target.group === 'bottom') {
+      let to = Math.max(0, Math.min(target.index, bottom.length));
+      if (wasBottom !== -1 && wasBottom < target.index) to = Math.max(0, to - 1);
+      to = Math.max(0, Math.min(to, bottom.length));
+      bottom.splice(to, 0, app);
+      this.setState({ railBottom: bottom }, () => this.forceUpdate());
+    } else {
+      this.setState({ railBottom: bottom }, () => this.reorderTop(app, target.index));
+    }
+  }
+  reorderTop(app, index) {
+    const pinnedSet = new Set(this.state.railBottom);
+    if (!this.railOrder.includes(app)) { this.forceUpdate(); return; } // created applet — leave appended
+    const top = this.railOrder.filter(k => !pinnedSet.has(k));
+    const pinned = this.railOrder.filter(k => pinnedSet.has(k));
+    const from = top.indexOf(app);
+    top.splice(from, 1);
+    let to = Math.max(0, Math.min(index, top.length + 1));
+    if (from < to) to -= 1;
+    to = Math.max(0, Math.min(to, top.length));
+    top.splice(to, 0, app);
+    this.railOrder = [...top, ...pinned];
+    this.forceUpdate();
+  }
+  hitTest(x, y) {
+    // over a pane's tab bar → add the tab to that bar (highest priority)
+    const topEl = document.elementFromPoint(x, y);
+    if (topEl) {
+      const bar = topEl.closest('[data-tabbar]');
+      if (bar) {
+        const pid = bar.getAttribute('data-tabbar');
+        const tabEls = [...bar.querySelectorAll('[data-tab]')];
+        let index = tabEls.length, boundaryX = null;
+        for (let i = 0; i < tabEls.length; i++) {
+          const tr = tabEls[i].getBoundingClientRect();
+          if (x < tr.left + tr.width / 2) { index = i; boundaryX = tr.left; break; }
+        }
+        if (boundaryX === null) boundaryX = tabEls.length ? tabEls[tabEls.length - 1].getBoundingClientRect().right : bar.getBoundingClientRect().left;
+        const pane = this._paneEls[pid];
+        const caretX = pane ? (boundaryX - pane.getBoundingClientRect().left) : 0;
+        return { paneId: pid, zone: 'center', onBar: true, index, caretX };
+      }
+    }
+    // outer workspace edge → dock to a full half of the whole workspace
+    const wp = this._workspaceEl;
+    if (wp) {
+      const r = wp.getBoundingClientRect();
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
+        const M = 34;
+        const dl = x - r.left, dr = r.right - x, dt = y - r.top, db = r.bottom - y;
+        const m = Math.min(dl, dr, dt, db);
+        if (m < M) {
+          const zone = m === dl ? 'left' : m === dr ? 'right' : m === dt ? 'top' : 'bottom';
+          return { outer: true, zone };
+        }
+      }
+    }
+    for (const id in this._paneEls) {
+      const el = this._paneEls[id]; if (!el) continue;
+      const r = el.getBoundingClientRect();
+      if (x < r.left || x > r.right || y < r.top || y > r.bottom) continue;
+      const cx = (x - r.left) / r.width, cy = (y - r.top) / r.height;
+      let zone;
+      if (cx > 0.33 && cx < 0.67 && cy > 0.33 && cy < 0.67) zone = 'center';
+      else {
+        const dl = cx, dr = 1 - cx, dt = cy, db = 1 - cy, m = Math.min(dl, dr, dt, db);
+        zone = m === dl ? 'left' : m === dr ? 'right' : m === dt ? 'top' : 'bottom';
+      }
+      return { paneId: id, zone };
+    }
+    return null;
+  }
+  performDock(drag, hover) {
+    const { app, tabId, fromId } = drag; // tabId null / fromId null → dragged fresh from the rail
+    const zone = hover.zone;
+    const newTab = () => ({ id: tabId || this.uid(), app }); // moving preserves the instance id
+    const removeFrom = (tree) => (fromId && tabId) ? this.mapNode(tree, fromId, l => {
+      const tabs = l.tabs.filter(t => t.id !== tabId);
+      return { ...l, tabs, active: l.active === tabId ? (tabs.length ? tabs[tabs.length - 1].id : null) : l.active };
+    }) : tree;
+
+    // ---- outer dock: split the WHOLE workspace into halves ----
+    if (hover.outer) {
+      this.setState(s => {
+        let tree = this.prune(removeFrom(s.dockTree)) || { type: 'leaf', id: this.uid(), tabs: [], active: null };
+        const nt = newTab();
+        const nl = { type: 'leaf', id: this.uid(), tabs: [nt], active: nt.id };
+        const dir = (zone === 'left' || zone === 'right') ? 'row' : 'col';
+        const first = (zone === 'left' || zone === 'top') ? nl : tree;
+        const second = first === nl ? tree : nl;
+        return { dockTree: { type: 'split', id: this.uid(), dir, sizes: [0.5, 0.5], children: [first, second] }, activePaneId: nl.id };
+      });
+      return;
+    }
+
+    // ---- inner dock: onto the pane under the cursor ----
+    const toId = hover.paneId;
+    // block only a same-pane EDGE split of a single-tab pane (reordering-in-bar is fine)
+    if (fromId && fromId === toId && zone !== 'center') {
+      const leaf = this.findNode(this.state.dockTree, fromId);
+      if (!leaf || leaf.tabs.length <= 1) return;
+    }
+    this.setState(s => {
+      let newActive = toId;
+      if (zone === 'center') {
+        // add / reorder into the target bar at the chosen index
+        const base0 = (fromId && fromId !== toId) ? removeFrom(s.dockTree) : s.dockTree;
+        let tree = this.mapNode(base0, toId, l => {
+          if (l.type !== 'leaf') return l;
+          const nt = newTab();
+          const had = tabId ? l.tabs.findIndex(t => t.id === tabId) : -1;
+          const arr = tabId ? l.tabs.filter(t => t.id !== tabId) : l.tabs;
+          let idx = (hover.index == null) ? arr.length : hover.index;
+          if (had > -1 && had < idx) idx -= 1; // account for the tab we just pulled out
+          idx = Math.max(0, Math.min(arr.length, idx));
+          return { ...l, tabs: [...arr.slice(0, idx), nt, ...arr.slice(idx)], active: nt.id };
+        });
+        tree = this.prune(tree) || { type: 'leaf', id: this.uid(), tabs: [], active: null };
+        newActive = null; // recompute after prune
+        const target = this.findNode(tree, toId);
+        newActive = target ? toId : this.firstLeafId(tree);
+        return { dockTree: tree, activePaneId: newActive };
+      }
+      // edges → split
+      let tree = removeFrom(s.dockTree);
+      const nt = newTab();
+      const nl = { type: 'leaf', id: this.uid(), tabs: [nt], active: nt.id };
+      newActive = nl.id;
+      tree = this.mapNode(tree, toId, target => {
+        const dir = (zone === 'left' || zone === 'right') ? 'row' : 'col';
+        const first = (zone === 'left' || zone === 'top') ? nl : target;
+        const second = first === nl ? target : nl;
+        return { type: 'split', id: this.uid(), dir, sizes: [0.5, 0.5], children: [first, second] };
+      });
+      tree = this.prune(tree) || { type: 'leaf', id: this.uid(), tabs: [], active: null };
+      if (!this.findNode(tree, newActive)) newActive = this.firstLeafId(tree);
+      return { dockTree: tree, activePaneId: newActive };
+    });
+  }
+  startResize(id, i, dir, e) {
+    e.preventDefault();
+    const el = this._splitEls[id]; if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const move = (ev) => {
+      this.setState(s => ({ dockTree: this.mapNode(s.dockTree, id, node => {
+        if (node.type !== 'split') return node;
+        const sizes = [...node.sizes];
+        const total = sizes[i] + sizes[i + 1];
+        let before = 0; for (let k = 0; k < i; k++) before += sizes[k];
+        const frac = dir === 'row' ? (ev.clientX - rect.left) / rect.width : (ev.clientY - rect.top) / rect.height;
+        let a = frac - before; a = Math.max(0.12, Math.min(total - 0.12, a));
+        sizes[i] = a; sizes[i + 1] = total - a;
+        return { ...node, sizes };
+      }) }));
+    };
+    const up = () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  }
+
+  // ===== layouts =====
+  persistLayouts(list) { try { localStorage.setItem('divi-dock-layouts', JSON.stringify(list)); } catch (e) {} }
+  saveLayout() {
+    this.setState(s => {
+      const list = [...s.savedLayouts, { name: 'Layout ' + (s.savedLayouts.length + 1), tree: s.dockTree }];
+      this.persistLayouts(list);
+      return { savedLayouts: list, layoutMenuOpen: false };
+    });
+  }
+  applyLayout(i) {
+    this.setState(s => {
+      const tree = this.reid(JSON.parse(JSON.stringify(s.savedLayouts[i].tree)));
+      return { dockTree: tree, activePaneId: this.firstLeafId(tree), layoutMenuOpen: false };
+    });
+  }
+  removeLayout(i, e) {
+    if (e) e.stopPropagation();
+    this.setState(s => { const list = s.savedLayouts.filter((_, k) => k !== i); this.persistLayouts(list); return { savedLayouts: list }; });
+  }
+  resetLayout() {
+    const t = { type: 'leaf', id: this.uid(), tabs: [], active: null };
+    this.setState({ dockTree: t, activePaneId: t.id, layoutMenuOpen: false });
+  }
+
+  // ===== per-tab applet state =====
+  instState(id, key, def) { const i = this.state.instances[id]; return (i && i[key]) ? i[key] : def; }
+  setInst(id, key, val) { this.setState(s => ({ instances: { ...s.instances, [id]: { ...(s.instances[id] || {}), [key]: val } } })); }
+  setSourcererMode(id, m) { this.setInst(id, 'sourcerer', { ...this.instState(id, 'sourcerer', this.DEF_SOURCERER), mode: m }); }
+  setSourcererQuery(id, v) { this.setInst(id, 'sourcerer', { ...this.instState(id, 'sourcerer', this.DEF_SOURCERER), query: v }); }
+  setBrowserUrl(id, v) { this.setInst(id, 'browser', { ...this.instState(id, 'browser', this.DEF_BROWSER), url: v }); }
+  goBookmark(id, b) { this.setInst(id, 'browser', { url: b.url, title: b.title }); }
+  setBuilderName(v) { this.setState(s => ({ builder: { ...s.builder, name: v } })); }
+  setBuilderGlyph(g) { this.setState(s => ({ builder: { ...s.builder, glyph: g } })); }
+  setBuilderSource(src) { this.setState(s => ({ builder: { ...s.builder, source: src } })); }
+  toggleBuilderComponent(id) { this.setState(s => ({ builder: { ...s.builder, components: { ...s.builder.components, [id]: !s.builder.components[id] } } })); }
+  createApplet() {
+    const b = this.state.builder;
+    const chosen = this.builderComponents.filter(c => b.components[c.id]);
+    if (!b.name.trim() || chosen.length === 0) return;
+    const key = 'custom-' + Date.now();
+    const applet = { key, glyph: b.glyph, title: b.name.trim(), code: 'CUSTOM', section: 'COMPONENTS · ' + b.source.toUpperCase(),
+      desc: 'Custom applet built with the Applet Builder — ' + chosen.length + ' component' + (chosen.length > 1 ? 's' : '') + ', sourced from ' + b.source + '.',
+      rows: chosen.map(c => ({ kind: 'COMPONENT', title: c.label, meta: c.note })) };
+    this.setState(s => ({ createdApplets: [...s.createdApplets, applet], builder: { name: '', glyph: '⊞', components: {}, source: 'Library' } }), () => this.openInPane(key));
+  }
+  toggleSettingsGroup(id) { this.setState(s => ({ settings: { ...s.settings, expanded: { ...s.settings.expanded, [id]: !s.settings.expanded[id] } } })); }
+  setSettingsLeaf(id) { this.setState(s => ({ settings: { ...s.settings, activeLeaf: id } })); }
+  setModel(id) { this.setState(s => ({ settings: { ...s.settings, model: id } })); }
+  setApproval(key, v) { this.setState(s => ({ settings: { ...s.settings, approvals: { ...s.settings.approvals, [key]: v } } })); }
+  cycleRail() { this.setState(s => ({ railWidth: s.railWidth >= 150 ? 56 : (s.railWidth >= 28 ? 0 : 220) })); }
+  startRailDrag(e) {
+    e.preventDefault();
+    const move = (ev) => { const rect = this._app.getBoundingClientRect(); let w = ev.clientX - rect.left - 1; w = Math.max(0, Math.min(340, w)); if (w < 34) w = 0; else if (w < 150) w = 56; this.setState({ railWidth: w }); };
+    const up = () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
+    window.addEventListener('mousemove', move); window.addEventListener('mouseup', up);
+  }
+  startAsstPull(e) {
+    e.preventDefault();
+    let moved = false;
+    this.setState({ assistantOpen: true, asstWidth: 8 });
+    const move = (ev) => { moved = true; const rect = this._app.getBoundingClientRect(); let w = rect.right - ev.clientX - 1; w = Math.max(60, Math.min(720, w)); this.setState({ asstWidth: w, asstSnap: w < 180 ? 'open' : null }); };
+    const up = () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); this.setState(s => (!moved || s.asstWidth < 180) ? { asstWidth: 440, asstSnap: null } : { asstWidth: Math.max(300, s.asstWidth), asstSnap: null }); };
+    window.addEventListener('mousemove', move); window.addEventListener('mouseup', up);
+  }
+  startAsstDrag(e) {
+    e.preventDefault(); if (!this.state.assistantOpen) return;
+    if (this.state.asstFull) { this.exitAsstFull(); return; }  // grab the edge while full screen → snap back
+    const startW = this.state.asstWidth;
+    const move = (ev) => {
+      const rect = this._app.getBoundingClientRect();
+      let w = rect.right - ev.clientX - 1;
+      const fullZone = w > 620;  // past normal max — the ghost appears and release will snap
+      w = Math.max(60, Math.min(rect.width - 160, w));
+      this.setState({ asstWidth: w, asstSnap: fullZone ? 'full' : (w < 180 ? 'close' : null) });
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up);
+      this.setState(s => {
+        if (s.asstSnap === 'full') return { asstFull: true, asstPrevLayout: { asstWidth: Math.max(300, Math.min(720, startW)), railWidth: s.railWidth }, asstSnap: null };
+        if (s.asstWidth < 180) return { assistantOpen: false, asstWidth: 440, asstSnap: null };
+        return { asstWidth: Math.max(300, Math.min(720, s.asstWidth)), asstSnap: null };
+      });
+    };
+    window.addEventListener('mousemove', move); window.addEventListener('mouseup', up);
+  }
+  // leave full screen: panel snaps back to its previous width, rail pops back to how it was
+  exitAsstFull() {
+    this.setState(s => {
+      const prev = s.asstPrevLayout || { asstWidth: 440, railWidth: 220 };
+      return { asstFull: false, asstWidth: prev.asstWidth, railWidth: prev.railWidth, asstPrevLayout: null, asstSnap: null };
+    });
+  }
+  send() {
+    const t = this.state.replyText.trim(); if (!t) return;
+    this.setState(s => { const id = s.activeSession; const thread = [...(s.threads[id] || [])];
+      thread.push({ role: 'user', text: t }); thread.push({ role: 'divi', text: 'On it — searching the corpus and cross-checking sources. I\u2019ll post proposals here for your approval.' });
+      return { threads: { ...s.threads, [id]: thread }, replyText: '' };
+    }, () => { const el = this._thread; if (el) el.scrollTop = el.scrollHeight; });
+  }
+
+  // ===== home section reorder (drag like tiles) =====
+  startHomeDrag(key, e) {
+    e.preventDefault();
+    const ox = e.clientX, oy = e.clientY;
+    let moved = false;
+    const move = (ev) => {
+      if (!moved && Math.hypot(ev.clientX - ox, ev.clientY - oy) < 5) return;
+      moved = true;
+      try { window.getSelection().removeAllRanges(); } catch (er) {}
+      this.setState({ homeDrag: key, homeDropIndex: this.homeDropIndexAt(ev.clientY) });
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+      const dragKey = this.state.homeDrag, idx = this.state.homeDropIndex;
+      this.setState({ homeDrag: null, homeDropIndex: null });
+      if (moved && dragKey != null && idx != null) this.applyHomeReorder(dragKey, idx);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  }
+  homeDropIndexAt(y) {
+    const els = [...document.querySelectorAll('[data-home-sec]')];
+    let i = els.length;
+    for (let k = 0; k < els.length; k++) { const r = els[k].getBoundingClientRect(); if (y < r.top + r.height / 2) { i = k; break; } }
+    return i;
+  }
+  applyHomeReorder(key, index) {
+    this.setState(s => {
+      const from = s.homeOrder.indexOf(key);
+      if (from === -1) return null;
+      const order = s.homeOrder.filter(k => k !== key);
+      let to = index;
+      if (from < index) to -= 1;
+      to = Math.max(0, Math.min(order.length, to));
+      order.splice(to, 0, key);
+      return { homeOrder: order };
+    });
+  }
+
+  // ===== home card drag (Metro-style: move within AND across sections) =====
+  startTileDrag(sec, id, def, e) {
+    if (e.button !== 0) return;
+    e.stopPropagation(); e.preventDefault();
+    const ox = e.clientX, oy = e.clientY;
+    // remember where inside the card it was grabbed, so the floating tile stays under the cursor at full size
+    const r0 = e.currentTarget.getBoundingClientRect();
+    const grab = { dx: e.clientX - r0.left, dy: e.clientY - r0.top, w: r0.width, h: r0.height };
+    let moved = false;
+    const move = (ev) => {
+      if (!moved && Math.hypot(ev.clientX - ox, ev.clientY - oy) < 5) return;
+      moved = true;
+      try { window.getSelection().removeAllRanges(); } catch (er) {}
+      const target = this.tileTargetAt(ev.clientX, ev.clientY, id);
+      this.setState(s => {
+        const st = { tileDrag: { id, item: def, grab }, tilePos: { x: ev.clientX, y: ev.clientY } };
+        if (target && s.homeCards[target.sec]) {
+          const cards = {};
+          Object.keys(s.homeCards).forEach(k => { cards[k] = [...s.homeCards[k]]; });
+          const curSec = Object.keys(cards).find(k => cards[k].includes(id));
+          if (curSec) {
+            const fromIdx = cards[curSec].indexOf(id);
+            if (!(curSec === target.sec && fromIdx === target.idx)) {
+              cards[curSec].splice(fromIdx, 1);
+              const idx = Math.max(0, Math.min(target.idx, cards[target.sec].length));
+              cards[target.sec].splice(idx, 0, id);
+              st.homeCards = cards;
+            }
+          }
+        }
+        return st;
+      });
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+      const drag = this.state.tileDrag, pos = this.state.tilePos;
+      this.setState({ tileDrag: null, tilePos: null });
+      if (!moved) { if (def && def.to) this.openInPane(def.to); return; }
+      // on release, the tile flies from where it was dropped into its new slot
+      if (drag && drag.grab && pos) requestAnimationFrame(() => {
+        const el = document.querySelector('[data-tile-id="' + id + '"]');
+        if (!el) return;
+        const now = el.getBoundingClientRect();
+        const dx = (pos.x - drag.grab.dx) - now.left, dy = (pos.y - drag.grab.dy) - now.top;
+        el.style.transition = 'none';
+        el.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(1.05)';
+        el.style.position = 'relative'; el.style.zIndex = '400';
+        el.style.boxShadow = '0 18px 44px rgba(0,0,0,0.65)';
+        requestAnimationFrame(() => {
+          el.style.transition = 'transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1), box-shadow 0.28s';
+          el.style.transform = '';
+          el.style.boxShadow = '';
+          const clear = () => { el.style.transition = ''; el.style.transform = ''; el.style.position = ''; el.style.zIndex = ''; el.style.boxShadow = ''; el.removeEventListener('transitionend', clear); };
+          el.addEventListener('transitionend', clear);
+        });
+      });
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  }
+  // what's under the cursor: a card slot in any section, else a section grid (append at end)
+  tileTargetAt(x, y, dragId) {
+    // hit-test settled cards only (skip the dragged one); use the midpoint to
+    // decide before/after so the preview index is stable and never oscillates
+    const seen = {};
+    for (const el of [...document.querySelectorAll('[data-tile-sec]')]) {
+      const sec = el.getAttribute('data-tile-sec');
+      if (el.getAttribute('data-tile-id') === dragId) continue;
+      const idx = seen[sec] || 0; seen[sec] = idx + 1;
+      const r = el.getBoundingClientRect();
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
+        const listLike = r.width > r.height * 3; // full-width rows split top/bottom, tiles split left/right
+        const after = listLike ? (y > r.top + r.height / 2) : (x > r.left + r.width / 2);
+        return { sec, idx: idx + (after ? 1 : 0) };
+      }
+    }
+    for (const el of [...document.querySelectorAll('[data-tile-grid]')]) {
+      const r = el.getBoundingClientRect();
+      if (x >= r.left && x <= r.right && y >= r.top - 8 && y <= r.bottom + 8) {
+        const sec = el.getAttribute('data-tile-grid');
+        return { sec, idx: (this.state.homeCards[sec] || []).length };
+      }
+    }
+    return null;
+  }
+
+  renderVals() {
+    const s = this.state;
+    const h = React.createElement;
+    const MONO = "'IBM Plex Mono', monospace", SANS = "'IBM Plex Sans', sans-serif", SERIF = "'IBM Plex Serif', serif";
+    const syncedTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    const rw = s.railWidth;
+    const railHidden = rw < 28, railCompact = rw >= 28 && rw < 150, railExpanded = rw >= 150;
+    const railColPx = railHidden ? 5 : Math.round(rw);
+
+    const appletMap = { ...this.applets };
+    s.createdApplets.forEach(a => { appletMap[a.key] = a; });
+    const activeLeafNode = this.findNode(s.dockTree, s.activePaneId);
+    const activeTab = activeLeafNode ? (activeLeafNode.tabs || []).find(t => t.id === activeLeafNode.active) : null;
+    const activeName = activeTab ? activeTab.app : 'Home';
+    const ap = appletMap[activeName] || this.applets.Home;
+    const isSettings = activeName === 'Settings';
+
+    // ---- settings VM ----
+    const si = s.settings;
+    let activeLeaf = null, activeGroupLabel = '';
+    const settingsGroups = this.settingsIndex.map(g => {
+      const open = !!si.expanded[g.id];
+      return { label: g.label, count: String(g.children.length), open, caret: open ? '▾' : '▸',
+        caretFg: open ? '#E6E4DE' : '#6E6C66', labelFg: open ? '#E6E4DE' : '#A5A29A', toggle: () => this.toggleSettingsGroup(g.id),
+        children: g.children.map(c => { const on = si.activeLeaf === c.id; if (on) { activeLeaf = c; activeGroupLabel = g.label; }
+          return { glyph: c.glyph, label: c.label, fg: on ? '#E6E4DE' : '#A5A29A', bg: on ? '#131418' : 'transparent', rail: on ? '#E6E4DE' : 'transparent', select: () => this.setSettingsLeaf(c.id) }; }) };
+    });
+    if (!activeLeaf) { activeLeaf = { label: 'Assistant & Agents' }; activeGroupLabel = 'INTELLIGENCE'; }
+    const settingsIsAssistant = si.activeLeaf === 'assistant';
+    const settingsTitle = activeLeaf.label;
+    const settingsCrumb = 'SETTINGS · ' + activeGroupLabel + ' · ' + (activeLeaf.label || '').toUpperCase();
+    const modelOptions = [
+      { id: 'sonnet', label: 'Claude Sonnet 4.5', meta: 'default' },
+      { id: 'gpt5',   label: 'GPT-5', meta: '' },
+      { id: 'local',  label: 'Local · Llama 3.3 70B', meta: 'not installed' },
+    ].map(m => { const on = si.model === m.id; return { ...m, fg: on ? '#E6E4DE' : '#A5A29A', dotBg: on ? '#E6E4DE' : 'transparent', dotBorder: on ? 'none' : '1px solid #26272B', select: () => this.setModel(m.id) }; });
+    const approvalRows = [
+      { key: 'corpus', label: 'Corpus mutations', opts: ['EVERY','BATCH','AUTO'] },
+      { key: 'external', label: 'External searches', opts: ['EVERY','BATCH','AUTO'] },
+      { key: 'research', label: 'Long-running research', opts: ['START','HOURLY','END'] },
+    ].map(r => ({ label: r.label, opts: r.opts.map(v => { const on = si.approvals[r.key] === v; return { label: v, bg: on ? '#1E1F22' : 'transparent', fg: on ? '#E6E4DE' : '#6E6C66', select: () => this.setApproval(r.key, v) }; }) }));
+
+    // ---- sourcerer / builder VM ----
+    const glyphOptionsVM = this.builderGlyphs.map(g => { const on = s.builder.glyph === g; return { glyph: g, bg: on ? '#1E1F22' : 'transparent', fg: on ? '#E6E4DE' : '#A5A29A', border: on ? '#E6E4DE' : '#26272B', select: () => this.setBuilderGlyph(g) }; });
+    const componentDefsVM = this.builderComponents.map(c => { const on = !!s.builder.components[c.id]; return { label: c.label, note: c.note, boxBg: on ? '#E6E4DE' : 'transparent', boxMark: on ? '✓' : '', fg: on ? '#E6E4DE' : '#A5A29A', toggle: () => this.toggleBuilderComponent(c.id) }; });
+    const sourceOptionsVM = this.builderSources.map(src => { const on = s.builder.source === src; return { label: src, bg: on ? '#1E1F22' : 'transparent', fg: on ? '#E6E4DE' : '#6E6C66', select: () => this.setBuilderSource(src) }; });
+    const previewRows = this.builderComponents.filter(c => s.builder.components[c.id]).map(c => ({ label: c.label, note: c.note }));
+    const canCreate = !!(s.builder.name.trim() && previewRows.length);
+
+    // ---- home data ----
+    // one registry of cards; which section each card lives in is s.homeCards state
+    const homeCardDefs = {
+      // CARD RULES (from the Card Visuals sheet):
+      //   marks   — curated ◆ filled green diamond · document ○ hollow circle · live ● pulsing dot · inferred ◇ hollow amber diamond
+      //   states  — bar: amber left edge + warm bg = needs attention · dashed: not yet wired into the corpus · dim: future/inactive
+      //   bodies  — variant: metric | spark | progress | excerpt | timeline | skeleton | compare | graph | chain | feed | annotation | cluster | stack (default: kind / title / foot)
+      corpus:        { span: 2, kind: 'CORPUS · PRIMARY',      mark: 'live', title: 'Renaissance Papers',              foot: '342 docs · 5 conflicts', bg: '#1E1F22', to: 'Library' },
+      dissertation:  { span: 2, kind: 'DISSERTATION · CH.3',   title: "Neoplatonism in Ficino's circle",               foot: '8,412 words',            to: 'Writing' },
+      ficino:        { span: 1, kind: 'ENTITY',                mark: 'curated', title: 'Marsilio Ficino',              foot: '34 claims',              to: 'Wiki' },
+      thread:        { span: 1, kind: 'THREAD · SAVED',        title: 'Neoplatonism antecedents',                      foot: '6 sources',              to: 'Chat' },
+      graphview:     { span: 2, kind: 'GRAPH · VIEW',          title: 'Careggi network',                               foot: '43 nodes · 71 edges',    to: 'Graph' },
+      contradiction: { span: 2, kind: 'NEW CONTRADICTION',     bar: true, bg: '#1E1C17', title: 'Alberti — Genoa vs Venice', foot: '2 sources · resolve →', to: 'Wiki' },
+      prato:         { span: 2, kind: 'DEEP RESEARCH FINDING', dashed: true, title: 'Medici account book · Prato Archive digitized', foot: '1462 folios · scan →',   to: 'Library' },
+      claimsnow:     { span: 1, kind: 'CLAIMS · LIVE',         mark: 'live', variant: 'metric', big: '342',            foot: '▲ 18 today', footColor: '#86A38C', title: 'Claims', to: 'Wiki' },
+      activity:      { span: 2, kind: 'CLAIM ACTIVITY · 30D',  mark: 'live', variant: 'spark', title: 'Ficino corpus', foot: 'Jun 6 → today · ▲ 42%',  to: 'Graph' },
+      fichrono:      { span: 2, kind: 'TIMELINE · FICINO',     variant: 'timeline', title: 'Ficino timeline', events: [['1433', 'Born in Figline', '#C9C6BE'], ['1462', 'Receives Careggi villa', '#86A38C'], ['1484', 'Plato translation printed', '#B8A06E']], foot: '3 of 11 events', to: 'Wiki' },
+      excerpt47:     { span: 2, kind: 'EXCERPT · LETTER 47',   mark: 'doc', variant: 'excerpt', title: '"Between the soul and the body there is a spirit, most subtle…"', foot: 'Ficino → Cavalcanti · p. 112', to: 'Library' },
+      ingest:        { span: 2, kind: 'INGESTION · MEDICI LETTERS', variant: 'progress', pct: 68, title: '217 / 319 docs', foot: '~11 min remaining', to: 'Library' },
+      indexing:      { span: 1, kind: 'INDEXING…',             variant: 'skeleton', title: 'Indexing', foot: '',       to: 'Library' },
+      ficnet:        { span: 2, kind: 'CONNECTIONS · FICINO',  variant: 'graph', title: 'Ficino network', foot: '4 direct · 19 second-degree', to: 'Graph' },
+      circle:        { span: 2, kind: 'CLUSTER · CAREGGI CIRCLE', variant: 'cluster', bg: '#131417', title: 'Careggi circle', tiles: ['Ficino', 'Pico', 'Poliziano'], foot: 'view all 9 →', to: 'Wiki' },
+      vasmanetti:    { span: 2, kind: 'COMPARE · SOURCES',     variant: 'compare', title: 'Vasari vs Manetti', left: ['Vasari', '61', '4 flagged'], right: ['Manetti', '38', '1 flagged'], foot: '7 overlap · 2 disagree', footColor: '#D8C69C', to: 'Library' },
+      patrchain:     { span: 2, kind: 'THREAD · CLAIM CHAIN',  variant: 'chain', title: 'Patronage chain', steps: [['Cosimo funds the academy', 'done'], ['Ficino appointed head, 1462', 'done'], ['Patronage precedes doctrine', 'inferred']], foot: 'inferred · conf 0.72', to: 'Chat' },
+      platonote:     { span: 2, kind: 'CLAIM',                 variant: 'annotation', mark: 'curated', title: 'Plato translation began 1463', note: 'Hankins dates the commission earlier — check the 1462 deed.', foot: '', to: 'Wiki' },
+      pulse:         { span: 2, kind: 'ACTIVITY',              variant: 'feed', mark: 'live', title: 'Activity', items: [['curated', '+3 claims · Prato ledger', '2m'], ['inferred', 'Contradiction · Alberti', '18m'], ['doc', 'Corpus H re-indexed', '1h']], foot: '', to: 'Library' },
+      claimstack:    { span: 1, kind: 'CLAIMS · STACK',        variant: 'stack', title: 'Careggi claims', claims: ['Ficino completed the Plato corpus by 1469', 'Cosimo gifted the Careggi villa in 1462', 'The academy met on Plato\u2019s birthday, Nov 7'] },
+      actioncard:    { span: 1, kind: 'CONTRADICTION · ACTION', variant: 'action', title: 'Alberti birthplace: Genoa vs Venice' },
+      entwiki:       { span: 2, kind: 'ENTITY · WIKI',         mark: 'curated', variant: 'entitywiki', title: 'Marsilio Ficino', desc: 'Italian Neoplatonist, priest and translator (1433\u20131499).', bullets: ['Translated Plato in full', 'Led the Careggi circle'], quote: 'The soul is the mirror of the world.', to: 'Wiki' },
+      entlive:       { span: 1, kind: 'ENTITY · LIVE',         mark: 'live', variant: 'entitylive', title: 'Marsilio Ficino', claimsN: 34, openN: 2, to: 'Wiki' },
+      audit:         { span: 2, kind: 'CORPUS · AUDIT',        variant: 'audit', title: 'Audit', rows: [['Careggi salon', '3', '\u2713', '#86A38C'], ['Plato dates', '2', '?', '#D8C69C']], tasks: [{ id: 'villa', label: 'Verify villa deed' }, { id: 'vasari', label: 'Cross-check Vasari' }] },
+      livingq:       { span: 2, kind: 'LIVING QUESTION · WEEK 2', title: '"Was Ficino\u2019s Careggi a formal institution or an informal salon?"', foot: '14 findings · lean: informal salon (0.68) · OPEN THREAD →', italic: true, to: 'Wiki' },
+      'a-mach':      { span: 1, kind: 'CTR',   title: 'Machiavelli birthplace',    foot: 'Jun 24', to: 'Wiki' },
+      'a-ch2':       { span: 1, kind: 'PAPER', title: 'Ch. 2 draft complete',      foot: 'Jun 22', to: 'Writing' },
+      'a-pdfs':      { span: 1, kind: 'ING',   title: '12 PDFs from Prato',        foot: 'Jun 20', to: 'Library' },
+      'a-bruni':     { span: 1, kind: 'RES',   title: 'Bruni translations survey', foot: 'Jun 18', to: 'Library' },
+      'a-petrarch':  { span: 1, kind: 'CTR',   title: 'Petrarch death year',       foot: 'Jun 16', to: 'Wiki' },
+      'a-stoic':     { span: 1, kind: 'CHAT',  title: 'Q: Stoic revival threads',  foot: 'Jun 14', to: 'Chat' },
+      'a-bocc':      { span: 1, kind: 'MRG',   title: 'Boccaccio aliases',         foot: 'Jun 12', to: 'Wiki' },
+      'a-bodleian':  { span: 1, kind: 'NEWS',  title: 'Bodleian catalog update',   foot: 'Jun 10', to: 'Library' },
+    };
+    Object.assign(homeCardDefs, s.customCards || {});
+    const homeCards = s.homeCards || { pins: [], fresh: [], living: [], archive: [] };
+    // a card renders in the visual style of whichever section it currently sits in
+    const cardEl = (sec, id, ghost) => {
+      const t = homeCardDefs[id]; if (!t) return null;
+      const dragging = s.tileDrag && s.tileDrag.id === id;
+      const base = ghost ? { key: 'tileghost-' + id } : { key: id, 'data-tile-sec': sec, 'data-tile-id': id, title: 'Drag to move · click to open', onMouseDown: (e) => this.startTileDrag(sec, id, t, e) };
+      const dim = 1;
+      // Metro-style: the full tile rides the cursor (ghost), while its faint gap slides through the grid to preview the landing slot
+      let liftStyle = {};
+      if (ghost) {
+        const g = s.tileDrag && s.tileDrag.grab, p = s.tilePos;
+        liftStyle = (g && p) ? { position: 'fixed', left: (p.x - g.dx) + 'px', top: (p.y - g.dy) + 'px', width: g.w + 'px', height: g.h + 'px', margin: 0, zIndex: 400, pointerEvents: 'none', boxSizing: 'border-box', transform: 'scale(1.05)', boxShadow: '0 18px 44px rgba(0,0,0,0.65)', opacity: 0.95, transition: 'none' } : { display: 'none' };
+      } else if (dragging) {
+        liftStyle = { opacity: 0.15, cursor: 'grabbing' };
+      }
+      if (sec === 'archive' && s.archiveView !== 'cards') return h('div', { ...base, style: { display: 'grid', gridTemplateColumns: '68px 1fr 90px', alignItems: 'center', gap: '12px', padding: '8px 4px', borderBottom: '1px solid #1E1F22', opacity: dim, cursor: dragging ? 'grabbing' : 'pointer', transition: 'transform 0.1s, box-shadow 0.1s', ...liftStyle } }, [
+        h('span', { key: 'k', style: { fontFamily: MONO, fontSize: '9px', letterSpacing: '0.14em', color: '#6E6C66', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, t.kind),
+        h('span', { key: 's', style: { fontSize: '12px', color: '#A5A29A' } }, t.title),
+        h('span', { key: 'w', style: { fontFamily: MONO, fontSize: '10px', color: '#6E6C66', textAlign: 'right' } }, t.foot),
+      ]);
+      if (sec === 'living') return h('div', { ...base, style: { background: '#1A1B1E', padding: '16px', marginBottom: '4px', opacity: dim, cursor: dragging ? 'grabbing' : 'pointer', transition: 'transform 0.1s, box-shadow 0.1s', ...liftStyle } }, [
+        h('div', { key: 'k', style: { fontFamily: MONO, fontSize: '8px', letterSpacing: '0.14em', color: '#A5A29A' } }, t.kind),
+        h('div', { key: 'q', style: { fontFamily: SERIF, fontStyle: t.italic ? 'italic' : 'normal', fontSize: '19px', color: '#E6E4DE', lineHeight: 1.2, marginTop: '6px' } }, t.title),
+        h('div', { key: 'm', style: { fontFamily: MONO, fontSize: '10px', color: '#A5A29A', marginTop: '10px' } }, t.foot),
+      ]);
+      // ---- card rendering rules (mirrors the Card Visuals sheet) ----
+      const inkMain = t.dim ? '#4A4B4F' : '#E6E4DE';
+      const inkSub = t.dim ? '#4A4B4F' : (t.bar ? '#D8C69C' : '#A5A29A');
+      const markEl = (m) => {
+        if (m === 'curated') return h('span', { key: 'mk', style: { width: '7px', height: '7px', background: '#86A38C', transform: 'rotate(45deg)', flexShrink: 0 } });
+        if (m === 'doc') return h('span', { key: 'mk', style: { width: '7px', height: '7px', border: '1.5px solid #6E6C66', borderRadius: '50%', flexShrink: 0 } });
+        if (m === 'live') return h('span', { key: 'mk', style: { width: '5px', height: '5px', borderRadius: '50%', background: '#86A38C', animation: 'cv-pulse 1.6s ease-in-out infinite', flexShrink: 0 } });
+        if (m === 'inferred') return h('span', { key: 'mk', style: { width: '7px', height: '7px', border: '1.5px solid #B8A06E', transform: 'rotate(45deg)', flexShrink: 0 } });
+        return null;
+      };
+      const shim = (w, hh) => ({ width: w, height: hh, background: 'linear-gradient(90deg,#1E1F22 25%,#2A2B2F 50%,#1E1F22 75%)', backgroundSize: '200px 100%', animation: 'cv-shimmer 1.4s linear infinite' });
+      const kindRow = h('div', { key: 'k', style: { display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 } }, [
+        h('span', { key: 'l', style: { fontFamily: MONO, fontSize: '8px', letterSpacing: '0.14em', color: inkSub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, t.kind),
+        markEl(t.mark),
+      ]);
+      const footEl = (c) => h('div', { key: 'f', style: { fontFamily: MONO, fontSize: '10px', color: c || inkSub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, t.foot);
+      const titleEl = (extra) => h('div', { key: 't', style: { fontFamily: SERIF, fontSize: '15px', lineHeight: 1.15, marginTop: '2px', flex: 1, fontStyle: t.italic ? 'italic' : 'normal', color: inkMain, ...(extra || {}) } }, t.title);
+      let kids;
+      let barColor = t.bar ? '#B8A06E' : null, bgOverride = null, onClickExtra = null;
+      if (t.variant === 'metric') kids = [kindRow,
+        h('div', { key: 'b', style: { fontFamily: SERIF, fontSize: '26px', color: inkMain, flex: 1, marginTop: '2px' } }, t.big),
+        footEl(t.footColor)];
+      else if (t.variant === 'spark') kids = [kindRow, titleEl({ flex: 'none' }),
+        h('svg', { key: 'sv', viewBox: '0 0 180 28', preserveAspectRatio: 'none', style: { width: '100%', height: '24px', display: 'block', flex: 1 } }, [
+          h('polyline', { key: 'p', points: '0,24 22,20 44,22 66,15 88,18 110,10 132,13 154,5 180,2', fill: 'none', stroke: '#86A38C', strokeWidth: 1.5 })]),
+        footEl()];
+      else if (t.variant === 'progress') kids = [kindRow,
+        h('div', { key: 'b', style: { display: 'flex', alignItems: 'baseline', gap: '8px', flex: 1, marginTop: '2px' } }, [
+          h('span', { key: 'n', style: { fontFamily: SERIF, fontSize: '24px', color: inkMain } }, t.pct + '%'),
+          h('span', { key: 'm', style: { fontFamily: MONO, fontSize: '10px', color: inkSub } }, t.title)]),
+        h('div', { key: 'bar', style: { height: '3px', background: '#26272B', margin: '4px 0 6px' } }, [
+          h('div', { key: 'fl', style: { height: '100%', width: t.pct + '%', background: '#86A38C' } })]),
+        footEl()];
+      else if (t.variant === 'excerpt') kids = [kindRow,
+        h('div', { key: 'q', style: { fontFamily: SERIF, fontStyle: 'italic', fontSize: '13.5px', lineHeight: 1.4, color: '#C9C6BE', flex: 1, marginTop: '4px' } }, t.title),
+        footEl()];
+      else if (t.variant === 'timeline') kids = [kindRow,
+        h('div', { key: 'tl', style: { display: 'flex', flexDirection: 'column', gap: '5px', marginTop: '6px', flex: 1 } }, (t.events || []).map((ev, i) => h('div', { key: i, style: { display: 'grid', gridTemplateColumns: '34px 9px 1fr', gap: '7px', alignItems: 'center' } }, [
+          h('span', { key: 'y', style: { fontFamily: MONO, fontSize: '9px', color: '#6E6C66', textAlign: 'right' } }, ev[0]),
+          h('span', { key: 'd', style: { width: '6px', height: '6px', borderRadius: '50%', background: ev[2] || '#C9C6BE', justifySelf: 'center' } }),
+          h('span', { key: 't', style: { fontSize: '11px', color: '#C9C6BE' } }, ev[1])]))),
+        footEl()];
+      else if (t.variant === 'skeleton') kids = [
+        h('div', { key: 's1', style: shim('56px', '7px') }),
+        h('div', { key: 's2', style: shim('110px', '13px') }),
+        h('div', { key: 's3', style: shim('100%', '8px') }),
+        h('div', { key: 's4', style: shim('72px', '8px') })];
+      else if (t.variant === 'compare') kids = [kindRow,
+        h('div', { key: 'b', style: { display: 'grid', gridTemplateColumns: '1fr 1px 1fr', gap: '10px', flex: 1, marginTop: '4px' } }, [
+          h('div', { key: 'l', style: { display: 'flex', flexDirection: 'column', gap: '1px' } }, [
+            h('span', { key: 'n', style: { fontFamily: SERIF, fontSize: '13px', color: inkMain } }, t.left[0]),
+            h('span', { key: 'v', style: { fontFamily: SERIF, fontSize: '19px', color: inkMain } }, t.left[1]),
+            h('span', { key: 'm', style: { fontFamily: MONO, fontSize: '9px', color: inkSub } }, t.left[2])]),
+          h('div', { key: 'd', style: { background: '#26272B' } }),
+          h('div', { key: 'r', style: { display: 'flex', flexDirection: 'column', gap: '1px' } }, [
+            h('span', { key: 'n', style: { fontFamily: SERIF, fontSize: '13px', color: inkMain } }, t.right[0]),
+            h('span', { key: 'v', style: { fontFamily: SERIF, fontSize: '19px', color: inkMain } }, t.right[1]),
+            h('span', { key: 'm', style: { fontFamily: MONO, fontSize: '9px', color: inkSub } }, t.right[2])])]),
+        footEl(t.footColor)];
+      else if (t.variant === 'graph') kids = [kindRow,
+        h('svg', { key: 'sv', viewBox: '0 0 180 58', style: { width: '100%', flex: 1, display: 'block', marginTop: '4px', minHeight: '44px' } }, [
+          h('line', { key: 'l1', x1: 90, y1: 29, x2: 32, y2: 12, stroke: '#3A3B40', strokeWidth: 1 }),
+          h('line', { key: 'l2', x1: 90, y1: 29, x2: 150, y2: 10, stroke: '#3A3B40', strokeWidth: 1 }),
+          h('line', { key: 'l3', x1: 90, y1: 29, x2: 42, y2: 48, stroke: '#3A3B40', strokeWidth: 1 }),
+          h('line', { key: 'l4', x1: 90, y1: 29, x2: 146, y2: 46, stroke: '#3A3B40', strokeWidth: 1 }),
+          h('circle', { key: 'c0', cx: 90, cy: 29, r: 6, fill: '#86A38C' }),
+          h('circle', { key: 'c1', cx: 32, cy: 12, r: 3.5, fill: '#C9C6BE' }),
+          h('circle', { key: 'c2', cx: 150, cy: 10, r: 3.5, fill: '#C9C6BE' }),
+          h('circle', { key: 'c3', cx: 42, cy: 48, r: 3.5, fill: '#B8A06E' }),
+          h('circle', { key: 'c4', cx: 146, cy: 46, r: 3.5, fill: '#6E6C66' })]),
+        footEl()];
+      else if (t.variant === 'chain') kids = [kindRow,
+        h('div', { key: 'ch', style: { display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px', flex: 1 } }, (t.steps || []).map((st, i) => h('div', { key: i, style: { display: 'flex', alignItems: 'baseline', gap: '8px' } }, [
+          h('span', { key: 'd', style: { width: '6px', height: '6px', flexShrink: 0, transform: 'rotate(45deg)', background: st[1] === 'inferred' ? 'transparent' : '#86A38C', border: st[1] === 'inferred' ? '1.5px solid #B8A06E' : 'none' } }),
+          h('span', { key: 't', style: { fontSize: '11.5px', lineHeight: 1.3, color: st[1] === 'inferred' ? '#D8C69C' : '#C9C6BE' } }, st[0])]))),
+        footEl()];
+      else if (t.variant === 'feed') kids = [kindRow,
+        h('div', { key: 'fd', style: { display: 'flex', flexDirection: 'column', marginTop: '2px', flex: 1 } }, (t.items || []).map((it, i) => h('div', { key: i, style: { display: 'grid', gridTemplateColumns: '10px 1fr 26px', alignItems: 'center', gap: '8px', padding: '5px 0', borderBottom: i < (t.items.length - 1) ? '1px solid #222327' : 'none' } }, [
+          h('span', { key: 'm', style: { display: 'flex', alignItems: 'center' } }, [markEl(it[0])]),
+          h('span', { key: 't', style: { fontSize: '11px', color: '#C9C6BE', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, it[1]),
+          h('span', { key: 'w', style: { fontFamily: MONO, fontSize: '9px', color: '#6E6C66', textAlign: 'right' } }, it[2])])))];
+      else if (t.variant === 'annotation') kids = [kindRow, titleEl({ flex: 'none' }),
+        h('div', { key: 'n', style: { margin: '4px 0 0 10px', background: '#211F1A', border: '1px solid #333026', padding: '7px 10px', flex: 1 } }, [
+          h('div', { key: 'l', style: { fontFamily: MONO, fontSize: '7.5px', letterSpacing: '0.14em', color: '#B8A06E' } }, 'NOTE · YOU'),
+          h('div', { key: 't', style: { fontSize: '11px', color: '#C9C6BE', lineHeight: 1.4, marginTop: '3px' } }, t.note)])];
+      else if (t.variant === 'cluster') kids = [kindRow,
+        h('div', { key: 'g', style: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '5px', margin: '6px 0', flex: 1 } }, (t.tiles || []).map((nm, i) => h('div', { key: i, style: { background: '#1A1B1E', border: '1px solid #26272B', padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 } }, [
+          h('span', { key: 'k', style: { fontFamily: MONO, fontSize: '7px', letterSpacing: '0.14em', color: '#6E6C66' } }, 'ENTITY'),
+          h('span', { key: 'n', style: { fontFamily: SERIF, fontSize: '12px', color: inkMain, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, nm)]))),
+        footEl()];
+      else if (t.variant === 'stack') {
+        const claims = t.claims || [];
+        const idx = (s.stackIndex || 0) % (claims.length || 1);
+        onClickExtra = () => this.setState(st => ({ stackIndex: ((st.stackIndex || 0) + 1) % claims.length }));
+        kids = [
+          h('div', { key: 'k', style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' } }, [
+            h('span', { key: 'l', style: { fontFamily: MONO, fontSize: '8px', letterSpacing: '0.14em', color: inkSub } }, t.kind),
+            h('span', { key: 'p', style: { fontFamily: MONO, fontSize: '10px', color: '#6E6C66' } }, (idx + 1) + ' / ' + claims.length)]),
+          h('div', { key: 'c', style: { fontFamily: SERIF, fontSize: '14px', lineHeight: 1.3, color: inkMain, flex: 1, marginTop: '2px', minHeight: '38px' } }, claims[idx]),
+          h('span', { key: 'f', style: { fontFamily: MONO, fontSize: '10px', color: '#6E6C66' } }, 'click to cycle →')];
+      }
+      else if (t.variant === 'action') {
+        const ast = s.actionState || 'open';
+        const open = ast === 'open';
+        barColor = open ? '#B8A06E' : (ast === 'resolved' ? '#86A38C' : '#3A3B40');
+        bgOverride = open ? '#1E1C17' : '#16171A';
+        const lbl = open ? 'CONTRADICTION · ACTION' : (ast === 'resolved' ? 'RESOLVED ✓' : 'DISMISSED');
+        const lblC = open ? '#D8C69C' : (ast === 'resolved' ? '#86A38C' : '#6E6C66');
+        const txt = open ? t.title : (ast === 'resolved' ? 'Genoa confirmed via baptismal record' : 'Alberti birthplace — set aside');
+        const btn = (label, onc, primary) => h('button', { key: label, onMouseDown: (e) => e.stopPropagation(), onClick: (e) => { e.stopPropagation(); onc(); }, style: { fontFamily: MONO, fontSize: '10px', letterSpacing: '0.08em', color: primary ? '#1A1B1E' : '#A5A29A', background: primary ? '#B8A06E' : 'transparent', border: primary ? 'none' : '1px solid #3A3B40', padding: '5px 12px', cursor: 'pointer' } }, label);
+        kids = [
+          h('span', { key: 'k', style: { fontFamily: MONO, fontSize: '8px', letterSpacing: '0.14em', color: lblC } }, lbl),
+          h('div', { key: 't', style: { fontFamily: SERIF, fontSize: '14px', lineHeight: 1.2, color: inkMain, flex: 1 } }, txt),
+          open ? h('div', { key: 'b', style: { display: 'flex', gap: '8px' } }, [btn('RESOLVE', () => this.setState({ actionState: 'resolved' }), true), btn('DISMISS', () => this.setState({ actionState: 'dismissed' }), false)])
+               : h('span', { key: 'u', onMouseDown: (e) => e.stopPropagation(), onClick: (e) => { e.stopPropagation(); this.setState({ actionState: 'open' }); }, style: { fontFamily: MONO, fontSize: '9px', color: '#6E6C66', cursor: 'pointer', alignSelf: 'flex-start' } }, 'undo →')];
+      }
+      else if (t.variant === 'entitywiki') kids = [kindRow,
+        h('div', { key: 't', style: { fontFamily: SERIF, fontSize: '17px', lineHeight: 1.1, color: inkMain } }, t.title),
+        h('div', { key: 'd', style: { fontSize: '12px', color: '#C9C6BE', lineHeight: 1.5 } }, t.desc),
+        h('div', { key: 'b', style: { display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '12px', color: '#A5A29A' } }, (t.bullets || []).map((b, i) => h('span', { key: i }, '· ' + b))),
+        h('div', { key: 'q', style: { borderLeft: '2px solid #3A3B40', paddingLeft: '11px', fontFamily: SERIF, fontStyle: 'italic', fontSize: '13px', color: '#C9C6BE', flex: 1 } }, t.quote)];
+      else if (t.variant === 'entitylive') kids = [kindRow,
+        h('div', { key: 't', style: { fontFamily: SERIF, fontSize: '17px', lineHeight: 1.1, color: inkMain } }, t.title),
+        h('div', { key: 'n', style: { display: 'flex', alignItems: 'baseline', gap: '8px', flex: 1, marginTop: '2px' } }, [
+          h('span', { key: 'c', style: { fontFamily: SERIF, fontSize: '28px', color: inkMain } }, t.claimsN),
+          h('span', { key: 'cl', style: { fontFamily: MONO, fontSize: '10px', color: '#A5A29A' } }, 'claims'),
+          h('span', { key: 'o', style: { fontFamily: SERIF, fontSize: '28px', color: '#D8C69C' } }, t.openN),
+          h('span', { key: 'ol', style: { fontFamily: MONO, fontSize: '10px', color: '#D8C69C' } }, 'open')]),
+        h('span', { key: 's', style: { fontFamily: MONO, fontSize: '10px', color: '#6E6C66' } }, 'synced ' + syncedTime)];
+      else if (t.variant === 'audit') {
+        const checks = s.auditChecks || {};
+        kids = [kindRow,
+          h('div', { key: 'tbl', style: { display: 'grid', gridTemplateColumns: '1fr 34px 26px', fontFamily: MONO, fontSize: '11px', marginTop: '2px' } }, [
+            h('div', { key: 'h1', style: { color: '#6E6C66', padding: '4px 0', borderBottom: '1px solid #26272B' } }, 'Claim'),
+            h('div', { key: 'h2', style: { color: '#6E6C66', padding: '4px 0', borderBottom: '1px solid #26272B', textAlign: 'right' } }, 'Src'),
+            h('div', { key: 'h3', style: { color: '#6E6C66', padding: '4px 0', borderBottom: '1px solid #26272B', textAlign: 'right' } }, 'OK'),
+            ...(t.rows || []).flatMap((r, i) => [
+              h('div', { key: 'a' + i, style: { color: '#C9C6BE', padding: '5px 0' } }, r[0]),
+              h('div', { key: 'b' + i, style: { color: '#A5A29A', padding: '5px 0', textAlign: 'right' } }, r[1]),
+              h('div', { key: 'c' + i, style: { color: r[3], padding: '5px 0', textAlign: 'right' } }, r[2])])]),
+          h('div', { key: 'tasks', style: { display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px' } }, (t.tasks || []).map((tk) => {
+            const done = !!checks[tk.id];
+            return h('div', { key: tk.id, onMouseDown: (e) => e.stopPropagation(), onClick: (e) => { e.stopPropagation(); this.setState(st => ({ auditChecks: { ...st.auditChecks, [tk.id]: !st.auditChecks[tk.id] } })); }, style: { display: 'flex', alignItems: 'center', gap: '8px', color: done ? '#8A8880' : '#C9C6BE', cursor: 'pointer' } }, [
+              h('span', { key: 'x', style: { width: '13px', height: '13px', flexShrink: 0, border: '1px solid ' + (done ? '#86A38C' : '#3A3B40'), background: done ? '#86A38C' : 'transparent', color: '#1A1B1E', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' } }, done ? '✓' : ''),
+              h('span', { key: 'l', style: { textDecoration: done ? 'line-through' : 'none' } }, tk.label)]);
+          }))];
+      }
+      else kids = [kindRow, titleEl(), footEl()];
+      return h('div', { ...base, ...(onClickExtra ? { onClick: onClickExtra } : {}), style: { gridColumn: 'span ' + (t.span === 2 ? 2 : 1), minWidth: 0, minHeight: '82px', background: t.dashed ? 'transparent' : (bgOverride || t.bg || '#1A1B1E'), border: t.dashed ? '1px dashed #3A3B40' : 'none', boxShadow: t.variant === 'stack' ? '3px 3px 0 #131417, 6px 6px 0 #0D0E10' : (barColor ? 'inset 2px 0 0 ' + barColor : 'none'), color: inkMain, padding: barColor ? '10px 12px 10px 14px' : '10px 12px', display: 'flex', flexDirection: 'column', gap: t.variant === 'skeleton' ? '8px' : '4px', opacity: dim, cursor: dragging ? 'grabbing' : 'pointer', transition: 'transform 0.1s, box-shadow 0.1s', ...liftStyle } }, kids);
+    };
+    const cardGrid = (sec) => { const listMode = sec === 'living' || (sec === 'archive' && s.archiveView !== 'cards'); return h('div', { key: 'grid', 'data-tile-grid': sec, style: listMode ? { minHeight: '36px' } : { display: 'grid', gridTemplateColumns: 'repeat(4, 176px)', gridAutoRows: 'minmax(82px, auto)', gap: '4px', alignContent: 'flex-start', justifyContent: 'start', minHeight: '36px' } }, (homeCards[sec] || []).map(id => cardEl(sec, id))); };
+
+    // ===== content bodies =====
+    const divider = (label) => h('div', { style: { display: 'flex', alignItems: 'baseline', gap: '8px', margin: '0 0 8px' } }, [
+      h('div', { key: 'l', style: { fontFamily: MONO, fontSize: '10px', letterSpacing: '0.14em', color: '#A5A29A' } }, label),
+      h('div', { key: 'r', style: { height: '1px', flex: 1, background: 'linear-gradient(to right,#3A3B40,#1E1F22)' } }),
+    ]);
+
+    const homeDivider = (label, secKey) => h('div', { key: 'hd', style: { display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 8px' } }, [
+      h('div', { key: 'grip', title: 'Drag to reorder section', style: { cursor: 'grab', color: s.homeDrag === secKey ? '#E6E4DE' : '#4A4B4F', fontFamily: MONO, fontSize: '12px', lineHeight: 1, userSelect: 'none', padding: '0 2px' } }, '⠿'),
+      h('div', { key: 'l', style: { fontFamily: MONO, fontSize: '10px', letterSpacing: '0.14em', color: '#A5A29A' } }, label),
+      h('div', { key: 'r', style: { height: '1px', flex: 1, background: 'linear-gradient(to right,#3A3B40,#1E1F22)' } }),
+    ]);
+
+    const archiveDivider = () => h('div', { key: 'hd', style: { display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 8px' } }, [
+      h('div', { key: 'grip', title: 'Drag to reorder section', style: { cursor: 'grab', color: s.homeDrag === 'archive' ? '#E6E4DE' : '#4A4B4F', fontFamily: MONO, fontSize: '12px', lineHeight: 1, userSelect: 'none', padding: '0 2px' } }, '⠿'),
+      h('div', { key: 'l', style: { fontFamily: MONO, fontSize: '10px', letterSpacing: '0.14em', color: '#A5A29A' } }, 'ARCHIVE · ' + (34 + (homeCards.archive || []).length)),
+      h('div', { key: 'r', style: { height: '1px', flex: 1, background: 'linear-gradient(to right,#3A3B40,#1E1F22)' } }),
+      h('div', { key: 'tg', title: 'Switch view · cards ↔ list', onMouseDown: (e) => e.stopPropagation(), style: { display: 'flex', alignItems: 'stretch', border: '1px solid #26272B', fontFamily: MONO, fontSize: '10px', letterSpacing: '0.14em' } }, [
+        h('div', { key: 'c', onMouseDown: (e) => e.stopPropagation(), onClick: (e) => { e.stopPropagation(); this.setState({ archiveView: 'cards' }); }, style: { padding: '4px 10px', cursor: 'pointer', background: s.archiveView === 'cards' ? '#1E1F22' : 'transparent', color: s.archiveView === 'cards' ? '#E6E4DE' : '#6E6C66' } }, '◧ CARDS'),
+        h('div', { key: 'li', onMouseDown: (e) => e.stopPropagation(), onClick: (e) => { e.stopPropagation(); this.setState({ archiveView: 'list' }); }, style: { padding: '4px 10px', cursor: 'pointer', background: s.archiveView !== 'cards' ? '#1E1F22' : 'transparent', color: s.archiveView !== 'cards' ? '#E6E4DE' : '#6E6C66' } }, '≡ LIST'),
+      ]),
+    ]);
+
+    const homeSections = {
+      pins: () => [ homeDivider('◆ PINNED', 'pins'), cardGrid('pins') ],
+      fresh: () => [ homeDivider('FRESH', 'fresh'), cardGrid('fresh') ],
+      living: () => [ homeDivider('LIVING', 'living'), cardGrid('living') ],
+      archive: () => [ archiveDivider(), cardGrid('archive') ],
+    };
+
+    const homeBody = () => {
+      const order = (s.homeOrder && s.homeOrder.length) ? s.homeOrder : ['pins', 'fresh', 'living', 'archive'];
+      const dropLine = (k) => h('div', { key: k, style: { height: '2px', background: '#E6E4DE', margin: '0 0 16px', boxShadow: '0 0 8px rgba(230,228,222,0.5)' } });
+      const blocks = [];
+      order.forEach((key, i) => {
+        if (s.homeDrag && s.homeDropIndex === i) blocks.push(dropLine('dl' + i));
+        blocks.push(h('div', { key: 'sec-' + key, 'data-home-sec': key, onMouseDown: (e) => this.startHomeDrag(key, e), style: { marginBottom: '18px', opacity: s.homeDrag === key ? 0.4 : 1, transition: 'opacity 0.12s', cursor: s.homeDrag === key ? 'grabbing' : 'default' } }, (homeSections[key] || (() => null))()));
+      });
+      if (s.homeDrag && s.homeDropIndex === order.length) blocks.push(dropLine('dlend'));
+      // card being dragged: the full tile rides the cursor, rendered in the style of the section it currently sits in
+      if (s.tileDrag && s.tilePos) {
+        const gid = s.tileDrag.id;
+        const gsec = Object.keys(homeCards).find(k => (homeCards[k] || []).includes(gid)) || 'pins';
+        blocks.push(cardEl(gsec, gid, true));
+      }
+      return h('div', { style: { padding: '20px 24px', fontFamily: SANS } }, blocks);
+    };
+
+    const sourcererBody = (id) => { const sc = this.instState(id, 'sourcerer', this.DEF_SOURCERER); const sourcererModesVM = this.sourcererModes.map(m => { const on = sc.mode === m; return { label: m, bg: on ? '#1E1F22' : 'transparent', fg: on ? '#E6E4DE' : '#6E6C66', select: () => this.setSourcererMode(id, m) }; }); return h('div', { style: { padding: '28px 32px', fontFamily: SANS, display: 'flex', flexDirection: 'column', gap: '18px' } }, [
+      h('div', { key: 'h', style: { display: 'flex', gap: '16px' } }, [
+        h('div', { key: 'g', style: { width: '48px', height: '48px', flexShrink: 0, background: '#131418', border: '1px solid #26272B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: '24px', color: '#E6E4DE' } }, '◆'),
+        h('div', { key: 't' }, [
+          h('div', { key: 'c', style: { fontFamily: MONO, fontSize: '10px', letterSpacing: '0.16em', color: '#6E6C66' } }, 'APPLET · LIGHTRAG ENGINE'),
+          h('div', { key: 'ti', style: { fontFamily: SERIF, fontSize: '26px', color: '#E6E4DE', lineHeight: 1.1, marginTop: '4px' } }, 'Sourcerer'),
+          h('div', { key: 'd', style: { fontSize: '13px', color: '#A5A29A', lineHeight: 1.55, marginTop: '6px', maxWidth: '560px' } }, 'Graph-augmented retrieval over your whole corpus. Ask in plain language — Sourcerer walks the knowledge graph and returns grounded answers.'),
+        ]),
+      ]),
+      h('div', { key: 'q', style: { display: 'flex', alignItems: 'center', gap: '10px', background: '#0F1013', border: '1px solid #26272B', padding: '10px 12px' } }, [
+        h('span', { key: 'i', style: { fontFamily: MONO, fontSize: '14px', color: '#6E6C66' } }, '⌕'),
+        h('input', { key: 'in', value: sc.query, onInput: (e) => this.setSourcererQuery(id, e.target.value), placeholder: 'Ask the graph — e.g. How was Careggi organized?', style: { flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#E6E4DE', fontFamily: SANS, fontSize: '13px' } }),
+        h('span', { key: 'k', style: { fontFamily: MONO, fontSize: '10px', color: '#6E6C66' } }, '⌘↵'),
+      ]),
+      h('div', { key: 'm', style: { display: 'flex', alignItems: 'center', gap: '10px' } }, [
+        h('span', { key: 'l', style: { fontFamily: MONO, fontSize: '10px', letterSpacing: '0.14em', color: '#6E6C66' } }, 'RETRIEVAL MODE'),
+        h('div', { key: 'seg', style: { display: 'flex', border: '1px solid #26272B' } }, sourcererModesVM.map((m, i) => h('div', { key: i, onClick: m.select, style: { padding: '6px 12px', background: m.bg, color: m.fg, cursor: 'pointer', borderRight: '1px solid #26272B', fontFamily: MONO, fontSize: '10px', letterSpacing: '0.14em' } }, m.label))),
+      ]),
+      h('div', { key: 'res', style: { display: 'grid', gridTemplateColumns: '1fr 260px', gap: '4px' } }, [
+        h('div', { key: 'a', style: { background: '#131418', border: '1px solid #1E1F22', padding: '18px' } }, [
+          h('div', { key: 'l', style: { fontFamily: MONO, fontSize: '9px', letterSpacing: '0.14em', color: '#6E6C66' } }, 'ANSWER · ' + sc.mode + ' RETRIEVAL'),
+          h('div', { key: 't', style: { fontFamily: SERIF, fontSize: '16px', color: '#E6E4DE', lineHeight: 1.5, marginTop: '10px' } }, 'Careggi functioned as an informal sodalitas — a fellowship convened at the Medici villa — rather than a chartered school. No matriculation records exist; membership was invitational.'),
+        ]),
+        h('div', { key: 'sd', style: { background: '#0F1013', border: '1px solid #1E1F22', padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' } }, [
+          h('div', { key: 'e' }, [
+            h('div', { key: 'l', style: { fontFamily: MONO, fontSize: '9px', letterSpacing: '0.14em', color: '#6E6C66' } }, 'ENTITIES · 5'),
+            h('div', { key: 'c', style: { marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '4px' } }, ['Careggi', 'Ficino', 'Cosimo', 'Landino', 'Poliziano'].map((x, i) => h('span', { key: i, style: { fontFamily: MONO, fontSize: '11px', color: '#E6E4DE', background: '#1A1B1E', padding: '3px 8px' } }, x))),
+          ]),
+          h('div', { key: 'g', style: { marginTop: 'auto', fontFamily: MONO, fontSize: '10px', color: '#6E6C66' } }, 'graph walk · 14 nodes · 0.4s'),
+        ]),
+      ]),
+    ]); };
+
+    const builderBody = () => h('div', { style: { display: 'grid', gridTemplateColumns: '1fr 300px', height: '100%', minHeight: 0, fontFamily: SANS } }, [
+      h('div', { key: 'form', style: { padding: '28px 32px', overflowY: 'auto' } }, [
+        h('div', { key: 'c', style: { fontFamily: MONO, fontSize: '10px', letterSpacing: '0.16em', color: '#6E6C66' } }, 'APPLET · BUILD'),
+        h('h1', { key: 't', style: { fontFamily: SERIF, fontWeight: 400, fontSize: '26px', margin: '6px 0 4px', color: '#E6E4DE', lineHeight: 1.1 } }, 'Applet Builder'),
+        h('div', { key: 'd', style: { fontSize: '13px', color: '#A5A29A', lineHeight: 1.55, maxWidth: '520px' } }, 'Compose a new applet from Sourcerer\u2019s component vocabulary. Name it, give it a mark, wire its data source, and it joins your rail.'),
+        h('div', { key: 'nl', style: { fontSize: '13px', color: '#E6E4DE', margin: '22px 0 8px' } }, 'Name'),
+        h('input', { key: 'ni', value: s.builder.name, onInput: (e) => this.setBuilderName(e.target.value), placeholder: 'e.g. Timeline, Citation Auditor…', style: { width: '100%', maxWidth: '400px', background: '#0F1013', border: '1px solid #26272B', outline: 'none', color: '#E6E4DE', fontFamily: SANS, fontSize: '14px', padding: '10px 12px' } }),
+        h('div', { key: 'gl', style: { fontSize: '13px', color: '#E6E4DE', margin: '20px 0 8px' } }, 'Mark'),
+        h('div', { key: 'gp', style: { display: 'flex', gap: '6px', flexWrap: 'wrap' } }, glyphOptionsVM.map((g, i) => h('div', { key: i, onClick: g.select, style: { width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: '20px', color: g.fg, background: g.bg, border: '1px solid ' + g.border, cursor: 'pointer' } }, g.glyph))),
+        h('div', { key: 'cl', style: { fontSize: '13px', color: '#E6E4DE', margin: '20px 0 8px' } }, 'Built from'),
+        h('div', { key: 'cg', style: { display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '4px', maxWidth: '560px' } }, componentDefsVM.map((c, i) => h('div', { key: i, onClick: c.toggle, style: { display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: '#131418', border: '1px solid #1E1F22', cursor: 'pointer' } }, [
+          h('span', { key: 'b', style: { width: '15px', height: '15px', flexShrink: 0, border: '1px solid #3A3B40', background: c.boxBg, color: '#0A0A0B', fontFamily: MONO, fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center' } }, c.boxMark),
+          h('span', { key: 't' }, [
+            h('span', { key: 'l', style: { display: 'block', fontFamily: MONO, fontSize: '13px', color: c.fg } }, c.label),
+            h('span', { key: 'n', style: { display: 'block', fontSize: '11px', color: '#6E6C66', marginTop: '1px' } }, c.note),
+          ]),
+        ]))),
+        h('div', { key: 'sl', style: { fontSize: '13px', color: '#E6E4DE', margin: '20px 0 8px' } }, 'Data source'),
+        h('div', { key: 'sg', style: { display: 'flex', border: '1px solid #26272B', width: 'fit-content' } }, sourceOptionsVM.map((o, i) => h('div', { key: i, onClick: o.select, style: { padding: '8px 14px', background: o.bg, color: o.fg, cursor: 'pointer', borderRight: '1px solid #26272B', fontFamily: MONO, fontSize: '11px', letterSpacing: '0.1em' } }, o.label))),
+      ]),
+      h('div', { key: 'prev', style: { borderLeft: '1px solid #1E1F22', background: '#060708', padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto' } }, [
+        h('div', { key: 'l', style: { fontFamily: MONO, fontSize: '10px', letterSpacing: '0.16em', color: '#6E6C66' } }, 'LIVE PREVIEW'),
+        h('div', { key: 'card', style: { background: '#0A0A0B', border: '1px solid #1E1F22', padding: '16px' } }, [
+          h('div', { key: 'hd', style: { display: 'flex', alignItems: 'center', gap: '12px' } }, [
+            h('div', { key: 'g', style: { width: '40px', height: '40px', background: '#131418', border: '1px solid #26272B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: '20px', color: '#E6E4DE' } }, s.builder.glyph),
+            h('div', { key: 'n' }, [
+              h('div', { key: 'nm', style: { fontFamily: SERIF, fontSize: '17px', color: s.builder.name.trim() ? '#E6E4DE' : '#6E6C66' } }, s.builder.name.trim() || 'Untitled applet'),
+              h('div', { key: 's', style: { fontFamily: MONO, fontSize: '9px', letterSpacing: '0.14em', color: '#6E6C66' } }, 'SOURCE · ' + s.builder.source),
+            ]),
+          ]),
+          previewRows.length === 0 ? h('div', { key: 'em', style: { marginTop: '14px', padding: '12px', border: '1px dashed #26272B', fontFamily: MONO, fontSize: '11px', color: '#6E6C66' } }, 'Pick components to see them here.') : null,
+          h('div', { key: 'rows', style: { marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '4px' } }, previewRows.map((r, i) => h('div', { key: i, style: { padding: '10px 12px', background: '#131418', border: '1px solid #1E1F22' } }, [
+            h('div', { key: 'l', style: { fontFamily: MONO, fontSize: '12px', color: '#E6E4DE' } }, r.label),
+            h('div', { key: 'n', style: { fontSize: '11px', color: '#6E6C66', marginTop: '2px' } }, r.note),
+          ]))),
+        ]),
+        h('div', { key: 'btn', onClick: () => this.createApplet(), style: { marginTop: 'auto', textAlign: 'center', padding: '12px', background: canCreate ? '#E6E4DE' : '#1A1B1E', color: canCreate ? '#0A0A0B' : '#6E6C66', fontFamily: MONO, fontSize: '12px', letterSpacing: '0.14em', cursor: 'pointer' } }, 'CREATE APPLET →'),
+      ]),
+    ]);
+
+    const settingsBody = () => {
+      const assistantPane = h('div', { key: 'ap' }, [
+        h('div', { key: 'm', style: { display: 'grid', gridTemplateColumns: '200px 1fr', gap: '20px', padding: '18px 0', borderTop: '1px solid #1E1F22' } }, [
+          h('div', { key: 'l' }, [ h('div', { key: 't', style: { fontSize: '14px', color: '#E6E4DE' } }, 'Model'), h('div', { key: 'd', style: { fontSize: '12px', color: '#6E6C66', lineHeight: 1.5, marginTop: '4px' } }, 'Which model handles reasoning + tool use.') ]),
+          h('div', { key: 'r', style: { display: 'flex', flexDirection: 'column', gap: '4px' } }, modelOptions.map((m, i) => h('div', { key: i, onClick: m.select, style: { display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', color: m.fg, cursor: 'pointer' } }, [
+            h('span', { key: 'd', style: { width: '8px', height: '8px', background: m.dotBg, border: m.dotBorder } }),
+            h('span', { key: 'l', style: { flex: 1, fontSize: '13px' } }, m.label),
+            m.meta ? h('span', { key: 'me', style: { fontFamily: MONO, fontSize: '10px', color: '#6E6C66' } }, m.meta) : null,
+          ]))),
+        ]),
+        h('div', { key: 'ap2', style: { display: 'grid', gridTemplateColumns: '200px 1fr', gap: '20px', padding: '18px 0', borderTop: '1px solid #1E1F22' } }, [
+          h('div', { key: 'l' }, [ h('div', { key: 't', style: { fontSize: '14px', color: '#E6E4DE' } }, 'Approvals'), h('div', { key: 'd', style: { fontSize: '12px', color: '#6E6C66', lineHeight: 1.5, marginTop: '4px' } }, 'When must Dashboard ask before acting?') ]),
+          h('div', { key: 'r', style: { display: 'flex', flexDirection: 'column', gap: '2px' } }, approvalRows.map((r, i) => h('div', { key: i, style: { display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 0', borderBottom: '1px solid #1E1F22' } }, [
+            h('span', { key: 'l', style: { flex: 1, fontSize: '13px', color: '#E6E4DE' } }, r.label),
+            h('div', { key: 'o', style: { display: 'flex', border: '1px solid #26272B' } }, r.opts.map((o, k) => h('div', { key: k, onClick: o.select, style: { padding: '5px 10px', background: o.bg, color: o.fg, cursor: 'pointer', fontFamily: MONO, fontSize: '10px', letterSpacing: '0.14em' } }, o.label))),
+          ]))),
+        ]),
+        h('div', { key: 'v', style: { display: 'grid', gridTemplateColumns: '200px 1fr', gap: '20px', padding: '18px 0', borderTop: '1px solid #1E1F22' } }, [
+          h('div', { key: 'l' }, [ h('div', { key: 't', style: { fontSize: '14px', color: '#E6E4DE' } }, 'Voice'), h('div', { key: 'd', style: { fontSize: '12px', color: '#6E6C66', lineHeight: 1.5, marginTop: '4px' } }, 'How Dashboard writes back.') ]),
+          h('div', { key: 'r' }, h('div', { style: { fontFamily: SERIF, fontSize: '15px', lineHeight: 1.6, color: '#C5C2BA', padding: '14px 16px', background: '#0F1013', borderLeft: '2px solid #26272B' } }, 'Cite everything. No hedging when evidence is solid. Never write "delve", "moreover", or emoji.')),
+        ]),
+      ]);
+      const genericPane = h('div', { key: 'gp', style: { borderTop: '1px solid #1E1F22', paddingTop: '24px', display: 'flex', flexDirection: 'column', gap: '18px' } }, [
+        h('div', { key: 't', style: { fontSize: '14px', color: '#A5A29A', lineHeight: 1.6, maxWidth: '520px' } }, 'This preference group is wired as a placeholder. Pick Intelligence → Assistant & Agents to see a fully-built pane.'),
+        h('div', { key: 'd', style: { display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 16px', border: '1px dashed #26272B', color: '#6E6C66', fontFamily: MONO, fontSize: '11px' } }, [ h('span', { key: 'g', style: { color: '#A5A29A' } }, '⚙'), h('span', { key: 's' }, 'Dummy settings section — ' + settingsTitle) ]),
+      ]);
+      return h('div', { style: { display: 'grid', gridTemplateColumns: '210px 1fr', height: '100%', minHeight: 0, fontFamily: SANS } }, [
+        h('nav', { key: 'nav', style: { borderRight: '1px solid #1E1F22', padding: '16px 0', overflowY: 'auto' } }, [
+          h('div', { key: 'h', style: { padding: '0 16px 12px', fontFamily: MONO, fontSize: '10px', letterSpacing: '0.16em', color: '#6E6C66' } }, 'SETTINGS'),
+          ...settingsGroups.flatMap((g, gi) => [
+            h('div', { key: 'g' + gi, onClick: g.toggle, style: { padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' } }, [
+              h('span', { key: 'c', style: { fontFamily: MONO, fontSize: '10px', color: g.caretFg, width: '10px' } }, g.caret),
+              h('span', { key: 'l', style: { fontFamily: MONO, fontSize: '10px', letterSpacing: '0.14em', color: g.labelFg, flex: 1 } }, g.label),
+              h('span', { key: 'n', style: { fontFamily: MONO, fontSize: '10px', color: '#6E6C66' } }, g.count),
+            ]),
+            ...(g.open ? g.children.map((c, ci) => h('div', { key: 'g' + gi + 'c' + ci, onClick: c.select, style: { padding: '7px 16px 7px 36px', display: 'flex', alignItems: 'center', gap: '10px', color: c.fg, background: c.bg, borderLeft: '2px solid ' + c.rail, marginLeft: '-2px', cursor: 'pointer' } }, [
+              h('span', { key: 'g', style: { width: '18px', textAlign: 'center', fontFamily: MONO, fontSize: '13px' } }, c.glyph),
+              h('span', { key: 'l', style: { fontSize: '13px' } }, c.label),
+            ])) : []),
+          ]),
+        ]),
+        h('div', { key: 'body', style: { padding: '28px 32px', overflowY: 'auto' } }, [
+          h('div', { key: 'crumb', style: { fontFamily: MONO, fontSize: '10px', letterSpacing: '0.14em', color: '#6E6C66' } }, settingsCrumb),
+          h('h1', { key: 'title', style: { fontFamily: SERIF, fontWeight: 400, fontSize: '26px', margin: '6px 0 24px', color: '#E6E4DE', lineHeight: 1.1 } }, settingsTitle),
+          settingsIsAssistant ? assistantPane : genericPane,
+        ]),
+      ]);
+    };
+
+    const stubBody = (name) => {
+      const a = appletMap[name] || {};
+      return h('div', { style: { padding: '32px 36px', fontFamily: SANS, display: 'flex', flexDirection: 'column', gap: '20px' } }, [
+        h('div', { key: 'h', style: { display: 'flex', gap: '16px' } }, [
+          h('div', { key: 'g', style: { width: '48px', height: '48px', flexShrink: 0, background: '#131418', border: '1px solid #26272B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: '24px', color: '#E6E4DE' } }, a.glyph),
+          h('div', { key: 't' }, [
+            h('div', { key: 'c', style: { fontFamily: MONO, fontSize: '10px', letterSpacing: '0.16em', color: '#6E6C66' } }, 'APPLET · ' + (a.code || '')),
+            h('div', { key: 'ti', style: { fontFamily: SERIF, fontSize: '26px', color: '#E6E4DE', lineHeight: 1.1, marginTop: '4px' } }, a.title || name),
+            h('div', { key: 'd', style: { fontSize: '13px', color: '#A5A29A', lineHeight: 1.55, marginTop: '6px', maxWidth: '560px' } }, a.desc || ''),
+          ]),
+        ]),
+        h('div', { key: 'sec', style: { fontFamily: MONO, fontSize: '10px', letterSpacing: '0.14em', color: '#A5A29A' } }, a.section || 'ITEMS'),
+        h('div', { key: 'rows', style: { display: 'flex', flexDirection: 'column', gap: '4px' } }, (a.rows || []).map((r, i) => h('div', { key: i, style: { display: 'grid', gridTemplateColumns: '22px 84px 1fr auto', alignItems: 'center', gap: '12px', padding: '12px 14px', background: '#131418', border: '1px solid #1E1F22' } }, [
+          h('span', { key: 'g', style: { fontFamily: MONO, fontSize: '14px', color: '#E6E4DE' } }, a.glyph),
+          h('span', { key: 'k', style: { fontFamily: MONO, fontSize: '9px', letterSpacing: '0.14em', color: '#6E6C66' } }, r.kind),
+          h('span', { key: 't', style: { fontFamily: SERIF, fontSize: '15px', color: '#E6E4DE' } }, r.title),
+          h('span', { key: 'm', style: { fontFamily: MONO, fontSize: '10px', color: '#A5A29A' } }, r.meta),
+        ]))),
+      ]);
+    };
+
+    const browserBody = (id) => { const br = this.instState(id, 'browser', this.DEF_BROWSER); const bmVM = this.browserBookmarks.map(b => ({ ...b, go: () => this.goBookmark(id, b), active: br.url === b.url })); return h('div', { style: { height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column', fontFamily: SANS } }, [
+      // toolbar
+      h('div', { key: 'tb', style: { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderBottom: '1px solid #1E1F22', flex: '0 0 auto' } }, [
+        h('div', { key: 'nav', style: { display: 'flex', gap: '2px' } }, ['←', '→', '⟳'].map((g, i) => h('div', { key: i, style: { width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#A5A29A', fontFamily: MONO, fontSize: '14px', cursor: 'pointer' } }, g))),
+        h('div', { key: 'addr', style: { flex: 1, display: 'flex', alignItems: 'center', gap: '8px', background: '#0F1013', border: '1px solid #26272B', padding: '7px 12px' } }, [
+          h('span', { key: 'lock', title: 'Secure', style: { fontFamily: MONO, fontSize: '11px', color: '#5E8A6E' } }, '⧉'),
+          h('input', { key: 'in', value: br.url, onInput: (e) => this.setBrowserUrl(id, e.target.value), style: { flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#E6E4DE', fontFamily: MONO, fontSize: '12px' } }),
+          h('span', { key: 'go', style: { fontFamily: MONO, fontSize: '10px', color: '#6E6C66' } }, '↵'),
+        ]),
+        h('div', { key: 'clip', style: { display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 12px', border: '1px solid #26272B', color: '#E6E4DE', fontFamily: MONO, fontSize: '11px', letterSpacing: '0.08em', cursor: 'pointer' } }, '⊕ CLIP'),
+      ]),
+      // bookmarks bar
+      h('div', { key: 'bm', style: { display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderBottom: '1px solid #1E1F22', overflowX: 'auto', flex: '0 0 auto' } }, [
+        h('span', { key: 'lb', style: { fontFamily: MONO, fontSize: '9px', letterSpacing: '0.14em', color: '#6E6C66', flexShrink: 0 } }, 'SAVED SOURCES'),
+        ...bmVM.map((b, i) => h('div', { key: i, onClick: b.go, title: b.title, style: { flexShrink: 0, padding: '5px 10px', background: b.active ? '#1E1F22' : '#131418', border: '1px solid ' + (b.active ? '#3A3B40' : '#1E1F22'), color: b.active ? '#E6E4DE' : '#A5A29A', fontFamily: MONO, fontSize: '11px', cursor: 'pointer' } }, b.label)),
+      ]),
+      // page view + reader panel
+      h('div', { key: 'view', style: { flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '1fr 264px' } }, [
+        h('div', { key: 'vp', style: { overflow: 'auto', background: 'repeating-linear-gradient(135deg,#0C0D0F 0 12px,#0A0A0B 12px 24px)' } },
+          h('div', { style: { minHeight: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '48px 40px' } }, [
+            h('div', { key: 'k', style: { fontFamily: MONO, fontSize: '11px', letterSpacing: '0.18em', color: '#6E6C66' } }, 'LIVE WEB VIEW'),
+            h('div', { key: 't', style: { fontFamily: SERIF, fontSize: '24px', color: '#E6E4DE', textAlign: 'center', lineHeight: 1.2, maxWidth: '440px' } }, br.title),
+            h('div', { key: 'u', style: { fontFamily: MONO, fontSize: '11px', color: '#5E8A6E' } }, br.url),
+            h('div', { key: 'n', style: { marginTop: '10px', fontFamily: MONO, fontSize: '10px', color: '#6E6C66', maxWidth: '340px', textAlign: 'center', lineHeight: 1.7 } }, 'Rendered page. Drag-select any passage to clip it into the corpus — Divi captures the source URL and retrieval date automatically.'),
+          ])),
+        h('div', { key: 'sp', style: { borderLeft: '1px solid #1E1F22', background: '#0F1013', padding: '16px', display: 'flex', flexDirection: 'column', gap: '18px', overflowY: 'auto' } }, [
+          h('div', { key: 'ent' }, [
+            h('div', { key: 'l', style: { fontFamily: MONO, fontSize: '9px', letterSpacing: '0.14em', color: '#6E6C66' } }, 'ON THIS PAGE · 4 ENTITIES'),
+            h('div', { key: 'c', style: { marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '4px' } }, ["Cosimo de' Medici", 'account book', 'Careggi', 'florins'].map((x, i) => h('span', { key: i, style: { fontFamily: MONO, fontSize: '11px', color: '#E6E4DE', background: '#1A1B1E', padding: '3px 8px' } }, x))),
+          ]),
+          h('div', { key: 'act' }, [
+            h('div', { key: 'l', style: { fontFamily: MONO, fontSize: '9px', letterSpacing: '0.14em', color: '#6E6C66', marginBottom: '8px' } }, 'ACTIONS'),
+            h('div', { key: 'a1', style: { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', background: '#131418', border: '1px solid #1E1F22', color: '#E6E4DE', fontSize: '12px', cursor: 'pointer', marginBottom: '4px' } }, [h('span', { key: 'g', style: { fontFamily: MONO } }, '⊕'), h('span', { key: 't' }, 'Clip page to Library')]),
+            h('div', { key: 'a2', style: { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', background: '#131418', border: '1px solid #1E1F22', color: '#E6E4DE', fontSize: '12px', cursor: 'pointer' } }, [h('span', { key: 'g', style: { fontFamily: MONO } }, '§'), h('span', { key: 't' }, 'Send entities to Wiki')]),
+          ]),
+          h('div', { key: 'trust', style: { marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', border: '1px dashed #3A2A24', color: '#B08A6E', fontFamily: MONO, fontSize: '10px', lineHeight: 1.5 } }, [h('span', { key: 'g' }, '⚑'), h('span', { key: 't' }, 'Unverified source — trust-flag on ingest')]),
+        ]),
+      ]),
+    ]); };
+
+    const body = (name, id) => {
+      if (!name) return h('div', { style: { padding: '40px', color: '#6E6C66', fontFamily: MONO, fontSize: '12px' } }, 'Empty pane');
+      if (this.realApplets[name]) return h(this.realApplets[name].App, { key: id || name, React: React, host: this.makeHost(name, id) });
+      if (name === 'Home') return homeBody();
+      if (name === 'Settings') return settingsBody();
+      if (name === 'Sourcerer') return sourcererBody(id);
+      if (name === 'Builder') return builderBody();
+      if (name === 'Browser') return browserBody(id);
+      return stubBody(name);
+    };
+
+    // ===== dock overlay =====
+    const zoneGlyph = { center: '＋', left: '←', right: '→', top: '↑', bottom: '↓' };
+    const renderOverlay = (node) => {
+      const hv = (s.dockHover && s.dockHover.paneId === node.id) ? s.dockHover : null;
+      const hover = hv ? hv.zone : null;
+      const onBar = !!(hv && hv.onBar);
+      let shadow = null;
+      if (onBar) {
+        const dn = s.dockDrag ? s.dockDrag.app : '';
+        const meta = appletMap[dn] || {};
+        const cx = (hv && hv.caretX != null) ? hv.caretX : 0;
+        shadow = h('div', { key: 'sh' }, [
+          h('div', { key: 'tint', style: { position: 'absolute', inset: 0, background: 'rgba(230,228,222,0.06)', pointerEvents: 'none' } }),
+          h('div', { key: 'bar', style: { position: 'absolute', top: 0, left: 0, right: 0, height: '34px', background: 'rgba(230,228,222,0.10)', borderBottom: '2px solid #E6E4DE', pointerEvents: 'none' } }),
+          h('div', { key: 'caret', style: { position: 'absolute', top: 0, left: (cx - 1.5) + 'px', width: '3px', height: '34px', background: '#E6E4DE', boxShadow: '0 0 8px rgba(230,228,222,0.6)', pointerEvents: 'none' } }),
+          h('div', { key: 'pill', style: { position: 'absolute', top: '5px', left: cx + 'px', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: '6px', padding: '3px 9px', background: '#E6E4DE', color: '#0A0A0B', fontFamily: MONO, fontSize: '11px', whiteSpace: 'nowrap', pointerEvents: 'none' } }, [
+            h('span', { key: 'g' }, meta.glyph || '+'),
+            h('span', { key: 'l' }, meta.title || dn),
+          ]),
+        ]);
+      } else if (hover) {
+        const st = { position: 'absolute', background: 'rgba(230,228,222,0.10)', border: '1.5px solid #E6E4DE', pointerEvents: 'none' };
+        if (hover === 'center') Object.assign(st, { inset: '0' });
+        if (hover === 'left') Object.assign(st, { top: 0, left: 0, bottom: 0, width: '50%' });
+        if (hover === 'right') Object.assign(st, { top: 0, right: 0, bottom: 0, width: '50%' });
+        if (hover === 'top') Object.assign(st, { top: 0, left: 0, right: 0, height: '50%' });
+        if (hover === 'bottom') Object.assign(st, { bottom: 0, left: 0, right: 0, height: '50%' });
+        shadow = h('div', { key: 'sh', style: st });
+      }
+      const chip = (z, pos) => h('div', { key: z, style: Object.assign({ position: 'absolute', width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: '15px', border: '1px solid', borderColor: hover === z ? '#E6E4DE' : '#4A4B4F', color: hover === z ? '#E6E4DE' : '#8A877F', background: hover === z ? 'rgba(230,228,222,0.16)' : 'rgba(10,10,11,0.9)' }, pos) }, zoneGlyph[z]);
+      const chips = onBar ? null : h('div', { key: 'ch', style: { position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: '132px', height: '132px' } }, [
+        chip('center', { top: '47px', left: '47px' }),
+        chip('left', { top: '47px', left: '2px' }),
+        chip('right', { top: '47px', right: '2px' }),
+        chip('top', { top: '2px', left: '47px' }),
+        chip('bottom', { bottom: '2px', left: '47px' }),
+      ]);
+      return h('div', { key: 'ov', style: { position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 20, outline: (hover || onBar) ? '1.5px solid #E6E4DE' : '1px dashed #33343A', outlineOffset: '-1px' } }, [shadow, chips]);
+    };
+
+    // ===== pane tree render =====
+    this._paneEls = {};
+    this._splitEls = {};
+    const renderLeaf = (node) => {
+      const strip = h('div', { key: 'strip', 'data-tabbar': node.id, style: { display: 'flex', alignItems: 'stretch', height: '34px', flex: '0 0 34px', borderBottom: '1px solid #1E1F22', background: '#060708', overflowX: 'auto' } }, [
+        ...node.tabs.map(t => {
+          const on = t.id === node.active; const meta = appletMap[t.app] || {};
+          return h('div', { key: t.id, 'data-tab': t.id, onMouseDown: (e) => this.startDockDrag(node.id, t, e), onClick: () => this.focusTab(node.id, t.id), title: 'Drag to dock · click to focus',
+            style: { display: 'flex', alignItems: 'center', gap: '8px', padding: '0 10px', height: '100%', minWidth: '124px', borderRight: '1px solid #1E1F22', background: on ? '#0A0A0B' : '#060708', color: on ? '#E6E4DE' : '#A5A29A', cursor: 'pointer', position: 'relative', userSelect: 'none' } }, [
+            on ? h('div', { key: 'a', style: { position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: '#E6E4DE' } }) : null,
+            h('span', { key: 'g', style: { fontFamily: MONO, fontSize: '13px' } }, meta.glyph),
+            h('span', { key: 'l', style: { flex: 1, fontSize: '12px', whiteSpace: 'nowrap' } }, meta.title || t.app),
+            h('span', { key: 'x', 'data-tabclose': '1', onClick: (e) => this.closeTab(node.id, t.id, e), title: 'Close tab', style: { width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: MONO, fontSize: '11px', color: '#6E6C66' } }, '✕'),
+          ]);
+        }),
+        h('div', { key: '__plus', onClick: () => this.openInPane('Library', node.id), title: 'Open applet', style: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '34px', flex: '0 0 34px', borderRight: '1px solid #1E1F22', color: '#6E6C66', cursor: 'pointer' } }, h('span', { style: { fontFamily: MONO, fontSize: '15px' } }, '+')),
+      ]);
+      const activeTab = node.tabs.find(t => t.id === node.active);
+      const content = h('div', { key: 'content', style: { flex: 1, minHeight: 0, overflow: 'auto', position: 'relative' } }, body(activeTab ? activeTab.app : 'Home', activeTab ? activeTab.id : null));
+      const showStrip = node.tabs.length > 0;
+      return h('div', { key: node.id, ref: (el) => { if (el) this._paneEls[node.id] = el; }, style: { display: 'flex', flexDirection: 'column', height: '100%', width: '100%', minWidth: 0, minHeight: 0, position: 'relative', boxShadow: node.id === s.activePaneId ? 'inset 0 0 0 1px #26272B' : 'none' } }, [showStrip ? strip : null, content, s.dockDrag ? renderOverlay(node) : null]);
+    };
+    const renderSplit = (node) => {
+      const items = [];
+      node.children.forEach((c, i) => {
+        items.push(h('div', { key: c.id, style: { flex: (node.sizes[i] || 0.5) + ' 1 0', minWidth: 0, minHeight: 0, display: 'flex' } }, renderNode(c)));
+        if (i < node.children.length - 1) items.push(h('div', { key: 'rz' + i, onMouseDown: (e) => this.startResize(node.id, i, node.dir, e), style: { flex: '0 0 5px', cursor: node.dir === 'row' ? 'col-resize' : 'row-resize', background: '#1E1F22', zIndex: 15 } }));
+      });
+      return h('div', { key: node.id, ref: (el) => { if (el) this._splitEls[node.id] = el; }, style: { display: 'flex', flexDirection: node.dir === 'row' ? 'row' : 'column', width: '100%', height: '100%', minWidth: 0, minHeight: 0 } }, items);
+    };
+    const renderNode = (node) => node.type === 'leaf' ? renderLeaf(node) : renderSplit(node);
+    let outerOverlay = null;
+    if (s.dockDrag && s.dockHover && s.dockHover.outer) {
+      const z = s.dockHover.zone;
+      const sh = { position: 'absolute', background: 'rgba(230,228,222,0.12)', pointerEvents: 'none' };
+      if (z === 'left') Object.assign(sh, { top: 0, left: 0, bottom: 0, width: '50%', borderRight: '2px solid #E6E4DE' });
+      if (z === 'right') Object.assign(sh, { top: 0, right: 0, bottom: 0, width: '50%', borderLeft: '2px solid #E6E4DE' });
+      if (z === 'top') Object.assign(sh, { top: 0, left: 0, right: 0, height: '50%', borderBottom: '2px solid #E6E4DE' });
+      if (z === 'bottom') Object.assign(sh, { bottom: 0, left: 0, right: 0, height: '50%', borderTop: '2px solid #E6E4DE' });
+      outerOverlay = h('div', { key: 'outer', style: { position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 45, outline: '2px solid #E6E4DE', outlineOffset: '-2px' } }, [
+        h('div', { key: 's', style: sh }),
+        h('div', { key: 'b', style: { position: 'absolute', top: '10px', left: '50%', transform: 'translateX(-50%)', padding: '4px 10px', background: '#0A0A0B', border: '1px solid #E6E4DE', fontFamily: MONO, fontSize: '10px', letterSpacing: '0.14em', color: '#E6E4DE' } }, 'DOCK TO WORKSPACE ' + z.toUpperCase()),
+      ]);
+    }
+    const workspaceTree = h('div', { ref: (el) => { if (el) this._workspaceEl = el; }, style: { position: 'relative', width: '100%', height: '100%' } }, [renderNode(s.dockTree), outerOverlay]);
+
+    // ===== rail =====
+    const railLabel = { Writing: 'Writing', Builder: 'Applet Builder' };
+    const allKeys = [...this.railOrder, ...s.createdApplets.map(a => a.key)];
+    const pinnedSet = new Set(s.railBottom);
+    const topKeys = allKeys.filter(k => !pinnedSet.has(k));
+    const bottomKeys = s.railBottom.filter(k => allKeys.includes(k));
+    const rd = s.railDrag;
+    const tgt = rd && rd.target;
+    const mkItem = (group, groupLen) => (name, idx) => { const on = name === activeName; const meta = appletMap[name] || {};
+      return { label: railLabel[name] || meta.title || name, glyph: meta.glyph, badge: this.badges[name] || '', fg: on ? '#E6E4DE' : '#A5A29A', bg: on ? '#1A1B1E' : 'transparent', rail: on ? '#E6E4DE' : 'transparent', index: idx,
+        dim: (rd && rd.app === name) ? 0.35 : 1,
+        dropBefore: !!(tgt && tgt.group === group && tgt.index === idx),
+        dropAfter: !!(tgt && tgt.group === group && idx === groupLen - 1 && tgt.index === groupLen),
+        open: () => this.openInPane(name), dragDown: (e) => this.startRailAppletDrag(name, e) }; };
+    const rail = topKeys.map(mkItem('top', topKeys.length));
+    const railBottom = bottomKeys.map(mkItem('bottom', bottomKeys.length));
+    const railReordering = !!rd;
+    const railSpacerActive = !!(tgt && tgt.group === 'bottom' && bottomKeys.length === 0);
+    const railSpacerBorderStyle = railReordering ? 'dashed' : 'solid';
+    const railSpacerBorder = railSpacerActive ? '#E6E4DE' : (railReordering ? '#2A2B30' : 'transparent');
+    const railSpacerBg = railSpacerActive ? 'rgba(230,228,222,0.06)' : 'transparent';
+
+    // ===== sessions / assistant =====
+    const sessMeta = [
+      { icon: '●', dot: '#E6E4DE', title: 'Poliziano · Careggi edits',        meta: 'started 12m ago · you',        state: 'ACTIVE',  stateFg: '#E6E4DE' },
+      { icon: '●', dot: '#E6E4DE', title: 'Medici patronage · Deep Research',  meta: 'day 3 of 4 · 18/29 · agent',   state: 'RUNNING', stateFg: '#E6E4DE' },
+      { icon: '●', dot: '#A5A29A', title: 'Wiki cleanup · entity merges',      meta: 'paused · waiting on approval', state: 'PAUSED',  stateFg: '#A5A29A' },
+      { icon: '○', dot: '#6E6C66', title: 'Bibliography check',               meta: 'idle · 8m',                    state: 'IDLE',    stateFg: '#6E6C66' },
+    ];
+    const sessions = sessMeta.map((m, i) => { const on = i === s.activeSession;
+      return { ...m, rowBg: on ? '#1E1F22' : 'transparent', railColor: on ? '#A5A29A' : 'transparent', titleFg: on ? '#E6E4DE' : '#A5A29A', select: () => this.setState({ activeSession: i, proposalResolved: null }) }; });
+    const raw = s.threads[s.activeSession] || [];
+    const messages = raw.map(m => m.role === 'user'
+      ? { text: m.text, align: 'flex-end', maxw: '90%', bg: '#1E1F22', fg: '#E6E4DE', pad: '9px 12px' }
+      : { text: m.text, align: 'stretch', maxw: '100%', bg: 'transparent', fg: '#C5C2BA', pad: '0' });
+
+    const savedLayouts = s.savedLayouts.map((L, i) => ({ name: L.name, apply: () => this.applyLayout(i), remove: (e) => this.removeLayout(i, e) }));
+
+    return {
+      activeApplet: ap.title || 'Dashboard',
+      sectionName: (s.sectionNames[ap.title] || ((ap.title || 'Dashboard') + ' Assistant')).toUpperCase(),
+      renamingSection: s.renamingSection,
+      notRenamingSection: !s.renamingSection,
+      sectionNameDraft: s.sectionNameDraft,
+      startRenameSection: () => this.setState({ renamingSection: true, sectionNameDraft: (s.sectionNames[ap.title] || ((ap.title || 'Dashboard') + ' Assistant')) }),
+      onSectionNameInput: (e) => this.setState({ sectionNameDraft: e.target.value }),
+      commitSectionName: () => this.setState(st => {
+        const t = ap.title; const v = (st.sectionNameDraft || '').trim();
+        const names = { ...st.sectionNames };
+        if (v) { names[t] = v; } else { delete names[t]; }
+        return { sectionNames: names, renamingSection: false };
+      }),
+      onSectionNameKey: (e) => { if (e.key === 'Enter') { e.target.blur(); } else if (e.key === 'Escape') { this.setState({ renamingSection: false }); } },
+      sectionInputRef: (el) => { if (el) { el.focus(); el.select(); } },
+      gridCols: s.asstFull ? '0px 0px 1fr' : railColPx + 'px 1fr ' + (s.assistantOpen ? Math.round(s.asstWidth) : 5) + 'px',
+      assistantClosed: !s.assistantOpen,
+      startAsstPull: (e) => this.startAsstPull(e),
+      asstSnapping: s.asstSnap === 'close' || s.asstSnap === 'open',
+      asstGhost: s.asstSnap === 'full',
+      asstGhostRight: Math.round(s.asstWidth) + 'px',
+      asstSnapArrow: { close: '→', full: '⛶', pull: '⇤' }[s.asstSnap] || '←',
+      asstSnapLabel: { close: 'RELEASE TO CLOSE', full: 'RELEASE FOR FULL SCREEN', pull: 'KEEP PULLING — SNAPS FULL SCREEN' }[s.asstSnap] || 'RELEASE TO SNAP OPEN',
+      railIconFg: railHidden ? '#6E6C66' : '#E6E4DE',
+      asstIconFg: s.assistantOpen ? '#E6E4DE' : '#6E6C66',
+      railHidden, railCompact, railExpanded,
+      cycleRail: () => this.cycleRail(),
+      startRailDrag: (e) => this.startRailDrag(e),
+      startAsstDrag: (e) => this.startAsstDrag(e),
+      appRef: (el) => { this._app = el; },
+      toggleAssistant: () => { if (this.state.asstFull) { this.exitAsstFull(); } else { this.setState(st => ({ assistantOpen: !st.assistantOpen })); } },
+      openCatalog: () => this.openInPane('Library'),
+      openHome: () => this.openHome(),
+      openSettings: () => this.openInPane('Settings'),
+      settingsGearFg: isSettings ? '#E6E4DE' : '#A5A29A',
+      rail,
+      railBottom,
+      railReordering, railSpacerActive, railSpacerBorderStyle, railSpacerBorder, railSpacerBg,
+      workspaceTree,
+
+      // layouts
+      layoutMenuOpen: s.layoutMenuOpen,
+      layoutIconFg: s.layoutMenuOpen ? '#E6E4DE' : '#A5A29A',
+      toggleLayoutMenu: () => this.setState(st => ({ layoutMenuOpen: !st.layoutMenuOpen })),
+      saveLayout: () => this.saveLayout(),
+      resetLayout: () => this.resetLayout(),
+      savedLayouts,
+      hasLayouts: savedLayouts.length > 0,
+      noLayouts: savedLayouts.length === 0,
+
+      // assistant
+      assistantOpen: s.assistantOpen,
+      sessions, messages, sessionCount: sessMeta.length, addCard: () => this.addCard(),
+      showProposal: s.activeSession === 0 && s.proposalResolved === null,
+      approve: () => this.setState(st => ({ proposalResolved: 'approved', threads: { ...st.threads, 0: [...st.threads[0], { role: 'divi', text: '✓ Approved. Edit written to § Poliziano · 2 downstream copies updated.' }] } })),
+      reject: () => this.setState(st => ({ proposalResolved: 'rejected', threads: { ...st.threads, 0: [...st.threads[0], { role: 'divi', text: 'Rejected. I\u2019ll leave § Poliziano unchanged and look for stronger evidence.' }] } })),
+      replyText: s.replyText,
+      onReplyInput: (e) => this.setState({ replyText: e.target.value }),
+      onReplyKey: (e) => { if (e.key === 'Enter') { e.preventDefault(); this.send(); } },
+      send: () => this.send(),
+      threadRef: (el) => { this._thread = el; },
+      inputBorder: s.replyText.trim() ? '#33343A' : '#1E1F22',
+      sendBg: s.replyText.trim() ? '#E6E4DE' : '#1E1F22',
+      sendFg: s.replyText.trim() ? '#0A0A0B' : '#6E6C66',
+    };
+  }
+}
+</script>
+</body>
+</html>

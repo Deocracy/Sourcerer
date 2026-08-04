@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dockview-core@2.0.0/dist/styles/dockview.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap">
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #0A0A0B; }
+    * { box-sizing: border-box; }
+    a { color: #86A38C; text-decoration: none; }
+    a:hover { color: #A3BCA8; text-decoration: underline; }
+    ::-webkit-scrollbar { width: 3px; height: 3px; }
+    ::-webkit-scrollbar-thumb { background: #1A1B1E; border: none; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #26272B; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-corner { background: transparent; }
+    .sourcerer-dock {
+      --dv-group-view-background-color: #0A0A0B;
+      --dv-tabs-and-actions-container-background-color: #0F1013;
+      --dv-tabs-and-actions-container-height: 34px;
+      --dv-tabs-and-actions-container-font-size: 12px;
+      --dv-activegroup-visiblepanel-tab-background-color: #0A0A0B;
+      --dv-activegroup-hiddenpanel-tab-background-color: #0F1013;
+      --dv-inactivegroup-visiblepanel-tab-background-color: #0D0E10;
+      --dv-inactivegroup-hiddenpanel-tab-background-color: #0F1013;
+      --dv-activegroup-visiblepanel-tab-color: #E6E4DE;
+      --dv-activegroup-hiddenpanel-tab-color: #6E6C66;
+      --dv-inactivegroup-visiblepanel-tab-color: #A5A29A;
+      --dv-inactivegroup-hiddenpanel-tab-color: #6E6C66;
+      --dv-tab-divider-color: #1E1F22;
+      --dv-separator-border: #1E1F22;
+      --dv-paneview-header-border-color: #1E1F22;
+      --dv-drag-over-background-color: rgba(134, 163, 140, 0.14);
+      --dv-drag-over-border-color: #86A38C;
+      --dv-tab-close-icon-color: #6E6C66;
+      --dv-icon-hover-background-color: #1E1F22;
+      --dv-floating-box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+      --dv-background-color: #0A0A0B;
+    }
+    .sourcerer-dock .dv-tab { font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.04em; }
+    .sourcerer-dock .dv-tabs-container { scrollbar-width: none; }
+    .sourcerer-dock .dv-tabs-container::-webkit-scrollbar { display: none; height: 0; }
+    .win-ctl { -webkit-app-region: no-drag; }
+    .win-ctl:hover { background: rgba(230,228,222,0.07); color: #E6E4DE; }
+    .win-ctl.win-close:hover { background: #C42B1C; color: #fff; }
+    .no-drag { -webkit-app-region: no-drag; }
+  </style>
+</helmet>
+
+<div style="position: fixed; inset: 0; background: radial-gradient(120% 120% at 50% -10%, #0E0F12 0%, #050506 60%, #030304 100%); display: flex; padding: 20px;">
+<div style="flex: 1; min-width: 0; min-height: 0; display: grid; grid-template-rows: 40px 1fr; background: #0A0A0B; color: #E6E4DE; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; border: 1px solid #1E1F22; border-radius: 10px; overflow: hidden; box-shadow: 0 24px 70px -10px rgba(0,0,0,0.75), 0 4px 14px rgba(0,0,0,0.5);">
+
+  <!-- Title bar -->
+  
+
+  <!-- Body: bespoke left rail · dockview workspace · bespoke right rail -->
+  <div data-tauri-drag-region="" style="-webkit-app-region: drag; display: flex; align-items: center; gap: 0; background: #0F1013; border-bottom: 1px solid #1E1F22; padding-left: 12px; user-select: none;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      
+      <span class="no-drag" onClick="{{ toggleDivi }}" title="{{ diviTitle }}" style="font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; font-weight: 600; color: #E6E4DE; letter-spacing: 0.01em; cursor: pointer;">Sourcerer</span>
+      <div class="no-drag" title="{{ diviTitle }}" onClick="{{ toggleDivi }}" style="display: flex; align-items: center; gap: 7px; height: 24px; padding: 0 10px; border: 1px solid {{ diviBtnBorder }}; background: {{ diviBtnBg }}; color: {{ diviBtnFg }}; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; letter-spacing: 0.06em; cursor: pointer;" style-hover="border-color:#3A3B40">DIVI</div><span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #6E6C66; letter-spacing: 0.04em; white-space: nowrap;">— {{ corpusLabel }}</span>
+    </div>
+    <div style="flex: 1;"></div>
+    <div class="win-ctl no-drag" title="{{ leftRailTitle }}" onClick="{{ cycleRail }}" style="width: 36px; height: 40px; display: flex; align-items: center; justify-content: center; color: {{ leftToggleFg }}; cursor: pointer;">
+      <svg viewBox="0 0 16 12" style="width: 16px; height: 12px;"><rect x="0.5" y="0.5" width="15" height="11" fill="none" stroke="currentColor"></rect><rect x="0.5" y="0.5" width="{{ leftColW }}" height="11" fill="currentColor"></rect></svg>
+    </div>
+    <div class="win-ctl no-drag" title="{{ rightRailTitle }}" onClick="{{ toggleRight }}" style="width: 36px; height: 40px; display: flex; align-items: center; justify-content: center; color: {{ rightToggleFg }}; cursor: pointer;">
+      <svg viewBox="0 0 16 12" style="width: 16px; height: 12px;"><rect x="0.5" y="0.5" width="15" height="11" fill="none" stroke="currentColor"></rect><rect x="{{ rightFillX }}" y="0.5" width="{{ rightFillW }}" height="11" fill="{{ rightToggleFill }}" stroke="currentColor"></rect></svg>
+    </div>
+    <div class="win-ctl" title="Minimize" onClick="{{ winMin }}" style="width: 46px; height: 40px; display: flex; align-items: center; justify-content: center; color: #A5A29A; cursor: default;">
+      <span style="width: 11px; height: 1px; background: currentColor; display: block;"></span>
+    </div>
+    <div class="win-ctl" title="Maximize" onClick="{{ winMax }}" style="width: 46px; height: 40px; display: flex; align-items: center; justify-content: center; color: #A5A29A; cursor: default;">
+      <span style="width: 9px; height: 9px; border: 1px solid currentColor; display: block;"></span>
+    </div>
+    <div class="win-ctl win-close" title="Close" onClick="{{ winClose }}" style="width: 46px; height: 40px; display: flex; align-items: center; justify-content: center; color: #A5A29A; font-size: 13px; cursor: default;">✕</div>
+  </div><div style="position: relative; display: grid; grid-template-columns: {{ gridCols }}; overflow: hidden; min-width: 0; min-height: 0;">
+
+    <!-- ghost preview of the area the right rail will snap to cover -->
+    <sc-if value="{{ rightGhost }}" hint-placeholder-val="{{ false }}">
+      <div style="position: absolute; top: 0; bottom: 0; left: 0; right: {{ rightGhostRight }}; z-index: 60; background: rgba(0,0,0,0.62); border: 1px dashed rgba(230,228,222,0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; pointer-events: none;">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 15px; color: #E6E4DE;">⛶</div>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.12em; color: #E6E4DE; white-space: nowrap;">LET GO TO SNAP</div>
+      </div>
+    </sc-if>
+
+    <!-- ==== LEFT RAIL (bespoke) ==== -->
+    <nav ref="{{ navRef }}" style="position: relative; background: #0A0A0B; border-right: 1px solid {{ navBorder }}; overflow: hidden;">
+      <sc-if value="{{ railHidden }}" hint-placeholder-val="{{ false }}">
+        <div title="Reopen rail (⌘\)" onClick="{{ cycleRail }}" style="width: 100%; height: 100%; cursor: pointer;" style-hover="background:#1E1F22"></div>
+      </sc-if>
+      <sc-if value="{{ railCompact }}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; align-items: center; padding: 6px 0; height: 100%; overflow-y: auto; overflow-x: hidden;">
+          <sc-for list="{{ rail }}" as="i" hint-placeholder-count="6">
+            <div data-rail-row="{{ i.index }}" title="{{ i.label }} · drag to reorder, or out to dock" onClick="{{ i.open }}" onMouseDown="{{ i.dragDown }}" style="width: 40px; height: 40px; margin: 2px 0; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: 20px; color: {{ i.fg }}; background: {{ i.bg }}; border-left: 2px solid {{ i.railColor }}; margin-left: -2px; position: relative; cursor: grab; user-select: none; opacity: {{ i.dim }};">
+              <sc-if value="{{ i.dropBefore }}" hint-placeholder-val="{{ false }}">
+                <div style="position: absolute; left: 4px; right: 4px; top: -2px; height: 2px; background: #E6E4DE;"></div>
+              </sc-if>
+              <sc-if value="{{ i.dropAfter }}" hint-placeholder-val="{{ false }}">
+                <div style="position: absolute; left: 4px; right: 4px; bottom: -2px; height: 2px; background: #E6E4DE;"></div>
+              </sc-if>
+              {{ i.glyph }}
+              <sc-if value="{{ i.badge }}" hint-placeholder-val="{{ false }}">
+                <div style="position: absolute; top: 5px; right: 4px; min-width: 12px; height: 12px; padding: 0 3px; background: #A5A29A; color: #0A0A0B; font-family: 'IBM Plex Sans', sans-serif; font-size: 9px; font-weight: 600; display: flex; align-items: center; justify-content: center;">{{ i.badge }}</div>
+              </sc-if>
+            </div>
+          </sc-for>
+          <div style="flex: 1; min-height: 24px;"></div>
+          <div style="display: flex; flex-direction: column; align-items: center; padding-bottom: 10px; gap: 8px;">
+            <div title="Applet Catalog" onClick="{{ openCatalog }}" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: 18px; color: #A5A29A; cursor: pointer;" style-hover="color:#E6E4DE">◍</div>
+            <div title="Settings" onClick="{{ openSettings }}" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: 18px; color: #6E6C66; cursor: pointer;" style-hover="color:#E6E4DE">⚙</div>
+            <div title="Casey · human" style="width: 30px; height: 30px; background: #1A1B1E; color: #E6E4DE; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Serif', serif; font-size: 13px; font-style: italic;">C</div>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ railExpanded }}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; flex-direction: column; padding: 8px 0; height: 100%; overflow-y: auto; overflow-x: hidden;">
+          <sc-for list="{{ rail }}" as="i" hint-placeholder-count="6">
+            <div data-rail-row="{{ i.index }}" onClick="{{ i.open }}" onMouseDown="{{ i.dragDown }}" title="Drag to reorder, or out to dock" style="position: relative; height: 36px; padding: 0 12px; display: flex; align-items: center; gap: 12px; color: {{ i.fg }}; background: {{ i.bg }}; border-left: 2px solid {{ i.railColor }}; margin-left: -2px; cursor: grab; user-select: none; opacity: {{ i.dim }};" style-hover="background:#131418">
+              <sc-if value="{{ i.dropBefore }}" hint-placeholder-val="{{ false }}">
+                <div style="position: absolute; left: 4px; right: 8px; top: -1px; height: 2px; background: #E6E4DE;"></div>
+              </sc-if>
+              <sc-if value="{{ i.dropAfter }}" hint-placeholder-val="{{ false }}">
+                <div style="position: absolute; left: 4px; right: 8px; bottom: -1px; height: 2px; background: #E6E4DE;"></div>
+              </sc-if>
+              <div style="width: 26px; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 18px;">{{ i.glyph }}</div>
+              <div style="flex: 1; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ i.label }}</div>
+              <sc-if value="{{ i.badge }}" hint-placeholder-val="{{ false }}">
+                <div style="font-family: 'IBM Plex Sans', sans-serif; font-size: 10px; color: #A5A29A;">{{ i.badge }}</div>
+              </sc-if>
+            </div>
+          </sc-for>
+          <div style="flex: 1; min-height: 24px;"></div>
+          <div>
+            <div onClick="{{ openCatalog }}" style="height: 36px; padding: 0 12px; display: flex; align-items: center; gap: 12px; color: #A5A29A; cursor: pointer;" style-hover="background:#131418">
+              <div style="width: 26px; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 18px;">◍</div>
+              <div style="flex: 1; font-size: 13px;">Applet Catalog</div>
+            </div>
+            <div style="height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 12px; border-top: 1px solid #1E1F22;">
+              <div style="width: 26px; height: 26px; background: #1A1B1E; color: #E6E4DE; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Serif', serif; font-size: 13px; font-style: italic;">C</div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 13px; color: #E6E4DE;">Casey</div>
+                <div style="font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.14em; color: #6E6C66;">HUMAN</div>
+              </div>
+              <div title="Settings" onClick="{{ openSettings }}" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: 17px; color: #6E6C66; cursor: pointer;" style-hover="background:#131418;color:#E6E4DE">⚙</div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+      <div title="Drag to resize · double-click to cycle" onMouseDown="{{ startRailResize }}" onDoubleClick="{{ cycleRail }}" style="position: absolute; top: 0; right: 0; bottom: 0; width: 6px; cursor: col-resize; z-index: 30;" style-hover="background:rgba(230,228,222,0.28)"></div>
+    </nav>
+
+    <!-- ==== WORKSPACE (dockview owns ONLY this column) ==== -->
+    <div style="position: relative; min-width: 0; min-height: 0; overflow: hidden;">
+      <div ref="{{ dockRef }}" class="dockview-theme-abyss sourcerer-dock" style="position: absolute; inset: 0;"></div>
+      <sc-if value="{{ diviOpen }}" hint-placeholder-val="{{ true }}">
+        <div ref="{{ diviRef }}" style="position: absolute; inset: 0; z-index: 55; background: #0A0A0B; overflow-y: auto; overflow-x: hidden;"></div>
+      </sc-if>
+      <sc-if value="{{ loadError }}" hint-placeholder-val="{{ false }}">
+        <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: #0A0A0B;">
+          <div style="max-width: 420px; text-align: center; color: #A5A29A; line-height: 1.6;">
+            <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.14em; color: #6E6C66;">DOCKVIEW FAILED TO LOAD</div>
+            <div style="margin-top: 8px;">{{ loadError }}</div>
+            <div style="margin-top: 8px; font-size: 12px;">Check the network connection and reload.</div>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+
+    <!-- ==== RIGHT RAIL · DASHBOARD ASSISTANT (bespoke) ==== -->
+    <sc-if value="{{ rightOpen }}" hint-placeholder-val="{{ true }}">
+      <aside style="position: relative; background: #131418; border-left: 1px solid #1E1F22; display: grid; grid-template-rows: 44px auto 1fr auto; overflow: hidden;">
+        <div title="Drag to resize · drag in to close · drag out to full screen" onMouseDown="{{ startRightResize }}" style="position: absolute; top: 0; left: 0; bottom: 0; width: 6px; cursor: col-resize; z-index: 30;" style-hover="background:rgba(230,228,222,0.28)"></div>
+        <sc-if value="{{ rightSnapping }}" hint-placeholder-val="{{ false }}">
+          <div style="position: absolute; inset: 0; z-index: 25; background: rgba(10,10,11,0.82); border-left: 2px solid #E6E4DE; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; pointer-events: none;">
+            <div style="font-family: 'IBM Plex Mono', monospace; font-size: 15px; color: #E6E4DE;">{{ rightSnapArrow }}</div>
+            <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.12em; color: #E6E4DE; white-space: nowrap;">{{ rightSnapLabel }}</div>
+          </div>
+        </sc-if>
+        <div style="padding: 0 16px; display: flex; align-items: center; border-bottom: 1px solid #1E1F22;">
+          <sc-if value="{{ renamingSection }}" hint-placeholder-val="{{ false }}">
+            <input value="{{ sectionNameDraft }}" onInput="{{ onSectionNameInput }}" onKeyDown="{{ onSectionNameKey }}" onBlur="{{ commitSectionName }}" ref="{{ sectionInputRef }}" style="flex: 1; min-width: 0; background: #0F1013; border: 1px solid #3A3B40; outline: none; font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.18em; color: #E6E4DE; text-transform: uppercase; padding: 4px 6px; margin: -1px 0;">
+          </sc-if>
+          <sc-if value="{{ notRenamingSection }}" hint-placeholder-val="{{ true }}">
+            
+          </sc-if>
+          <div style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px; overflow-x: auto; overflow-y: hidden; height: 44px; padding-right: 6px;">
+            <sc-for list="{{ sessionChips }}" as="c" hint-placeholder-count="3">
+              <div title="{{ c.title }}" style="position: relative; flex-shrink: 0;">
+                <div onClick="{{ c.select }}" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 1px solid {{ c.border }}; background: {{ c.bg }}; color: {{ c.fg }}; font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.03em; cursor: pointer;" style-hover="border-color:#3A3B40">{{ c.roman }}</div>
+                <sc-if value="{{ c.closable }}" hint-placeholder-val="{{ false }}">
+                  <div onClick="{{ c.close }}" title="Close session" style="position: absolute; top: -5px; right: -5px; width: 13px; height: 13px; border-radius: 50%; background: #26272B; color: #A5A29A; display: flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; cursor: pointer;" style-hover="background:#3A3B40;color:#E6E4DE">×</div>
+                </sc-if>
+                <sc-if value="{{ c.running }}" hint-placeholder-val="{{ false }}">
+                  <div title="Running — can't close" style="position: absolute; top: -4px; right: -4px; width: 8px; height: 8px; border-radius: 50%; background: {{ c.dot }}; border: 1.5px solid #131418;"></div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display: flex; align-items: center; gap: 2px; flex-shrink: 0; margin-left: auto; margin-right: -6px;">
+            <div onClick="{{ toggleHistory }}" title="Session history" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: {{ historyFg }};" style-hover="color:#E6E4DE">
+              <svg viewBox="0 0 16 16" style="width: 15px; height: 15px;"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.3"></circle><path d="M8 4.6 L8 8 L10.4 9.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            </div>
+            <div onClick="{{ newAssistant }}" title="New assistant" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #A5A29A;" style-hover="color:#E6E4DE">
+              <svg viewBox="0 0 16 16" style="width: 15px; height: 15px;"><path d="M8 3 L8 13 M3 8 L13 8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"></path></svg>
+            </div>
+          </div>
+        </div>
+        <sc-if value="{{ historyOpen }}" hint-placeholder-val="{{ true }}">
+        <div style="border-bottom: 1px solid #1E1F22; max-height: 128px; overflow-y: auto; overflow-x: hidden;">
+          <sc-for list="{{ sessions }}" as="ss" hint-placeholder-count="4">
+            
+          </sc-for>
+        </div>
+        </sc-if>
+        <div ref="{{ threadRef }}" style="padding: 18px 18px; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; gap: 14px;">
+          <sc-for list="{{ messages }}" as="m" hint-placeholder-count="3">
+            <div style="align-self: {{ m.align }}; max-width: {{ m.maxw }}; background: {{ m.bg }}; color: {{ m.fg }}; padding: {{ m.pad }}; font-size: 13px; line-height: 1.55;">{{ m.text }}</div>
+          </sc-for>
+          <sc-if value="{{ showProposal }}" hint-placeholder-val="{{ true }}">
+            <div style="font-size: 13px; color: #C5C2BA; line-height: 1.55;">
+              Proposal — updates <span style="color: #E6E4DE;">§ Poliziano</span> · role at Careggi:
+              <div style="margin-top: 8px; padding: 10px 12px; background: #1A1B1E; font-family: 'IBM Plex Serif', serif; font-style: italic; font-size: 14px; color: #E6E4DE; line-height: 1.5;">"Attended irregularly 1477–1494 — free from teaching."</div>
+              <div style="margin-top: 8px; display: flex; gap: 14px; font-family: 'IBM Plex Mono', monospace; font-size: 11px;">
+                <span onClick="{{ approve }}" style="color: #E6E4DE; cursor: pointer;" style-hover="text-decoration:underline">[y] approve</span>
+                <span style="color: #A5A29A; cursor: pointer;" style-hover="color:#E6E4DE">[d] diff</span>
+                <span onClick="{{ reject }}" style="color: #A5A29A; cursor: pointer;" style-hover="color:#E6E4DE">[n] reject</span>
+                <span style="margin-left: auto; color: #6E6C66;">2 downstream</span>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+        <div style="padding: 12px 16px; border-top: 1px solid #1E1F22;">
+          <div style="display: flex; align-items: center; gap: 10px; background: #0F1013; padding: 8px 10px; border: 1px solid {{ inputBorder }};">
+            <input value="{{ replyText }}" onInput="{{ onReplyInput }}" onKeyDown="{{ onReplyKey }}" placeholder="Reply to Dashboard…" style="flex: 1; background: transparent; border: none; outline: none; color: #E6E4DE; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px;">
+            <div onClick="{{ send }}" title="Send" style="width: 28px; height: 24px; background: {{ sendBg }}; display: flex; align-items: center; justify-content: center; color: {{ sendFg }}; cursor: pointer;">
+              <svg viewBox="0 0 16 16" style="width: 14px; height: 14px;"><path d="M8 13 L8 3 M4 7 L8 3 L12 7" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            </div>
+          </div>
+          <div style="margin-top: 10px; display: flex; align-items: center; justify-content: flex-end; gap: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 11px;">
+            <div style="position: relative; flex-shrink: 0;">
+              <span onClick="{{ toggleModelMenu }}" style="display: flex; align-items: center; gap: 7px; border: 1px solid {{ modelBorder }}; padding: 5px 10px; color: {{ modelFg }}; cursor: pointer;" style-hover="border-color:#3A3B40;color:#E6E4DE"><span style="color: #86A38C; flex-shrink: 0;">◈</span><span style="white-space: nowrap;">{{ modelName }}</span><span style="color: #6E6C66; font-size: 9px; flex-shrink: 0;">▾</span></span>
+              <sc-if value="{{ modelMenuOpen }}" hint-placeholder-val="{{ false }}">
+                <div style="position: absolute; right: 0; width: 260px; bottom: calc(100% + 8px); background: #131418; border: 1px solid #26272B; box-shadow: 0 10px 34px rgba(0,0,0,0.55); z-index: 50; padding: 8px;">
+                  <div style="display: flex; align-items: center; gap: 8px; background: #0F1013; border: 1px solid #26272B; padding: 7px 9px;">
+                    <svg viewBox="0 0 16 16" style="width: 13px; height: 13px; flex-shrink: 0; color: #6E6C66;"><circle cx="7" cy="7" r="4.2" fill="none" stroke="currentColor" stroke-width="1.3"></circle><path d="M10.2 10.2 L13.5 13.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"></path></svg>
+                    <input value="{{ modelSearch }}" onInput="{{ onModelSearch }}" placeholder="Search models" style="flex: 1; min-width: 0; background: transparent; border: none; outline: none; color: #E6E4DE; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px;">
+                  </div>
+                  <div style="margin-top: 8px; padding: 2px 6px; font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.14em; color: #6E6C66; text-transform: uppercase;">Divi · Bedrock</div>
+                  <div style="max-height: 220px; overflow-y: auto; overflow-x: hidden;">
+                    <sc-for list="{{ modelList }}" as="mo" hint-placeholder-count="6">
+                      <div onClick="{{ mo.pick }}" style="display: flex; align-items: center; gap: 8px; padding: 8px 8px; cursor: pointer; color: {{ mo.fg }};" style-hover="background:#1A1B1E"><span style="flex: 1; font-size: 13px; font-family: 'IBM Plex Sans', sans-serif;">{{ mo.label }}</span><span style="color: #86A38C; font-size: 12px;">{{ mo.check }}</span></div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+            <div style="position: relative; flex-shrink: 0;">
+              <span onClick="{{ toggleEffortMenu }}" style="display: flex; align-items: center; gap: 7px; border: 1px solid {{ effortBorder }}; padding: 5px 10px; color: {{ effortFg }}; cursor: pointer;" style-hover="border-color:#3A3B40;color:#E6E4DE">{{ effortName }}<span style="color: #6E6C66; font-size: 9px;">▾</span></span>
+              <sc-if value="{{ effortMenuOpen }}" hint-placeholder-val="{{ false }}">
+                <div style="position: absolute; right: 0; bottom: calc(100% + 8px); min-width: 120px; background: #131418; border: 1px solid #26272B; box-shadow: 0 10px 34px rgba(0,0,0,0.55); z-index: 50; padding: 4px;">
+                  <sc-for list="{{ effortList }}" as="ei" hint-placeholder-count="3">
+                    <div onClick="{{ ei.pick }}" style="display: flex; align-items: center; gap: 8px; padding: 7px 10px; cursor: pointer; color: {{ ei.fg }};" style-hover="background:#1A1B1E"><span style="flex: 1; font-size: 13px; font-family: 'IBM Plex Sans', sans-serif;">{{ ei.label }}</span><span style="color: #86A38C; font-size: 11px;">{{ ei.check }}</span></div>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </sc-if>
+    <sc-if value="{{ rightClosed }}" hint-placeholder-val="{{ false }}">
+      <aside title="Reopen assistant · drag to pull out" onMouseDown="{{ startRightPull }}" style="background: #0A0A0B; border-left: 1px solid #1E1F22; display: flex; justify-content: center; padding-top: 14px; cursor: col-resize;" style-hover="background:#131418">
+        <div style="width: 2px; height: 20px; background: #1E1F22;"></div>
+      </aside>
+    </sc-if>
+
+  </div>
+
+</div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#86A38C&quot;,&quot;options&quot;:[&quot;#86A38C&quot;,&quot;#8C99A3&quot;,&quot;#A3948C&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Theme&quot;}}">
+class Component extends DCLogic {
+  state = {
+    ready: false, loadError: null, activeKey: 'Home',
+    diviOpen: true,   // Divi dashboard overlay sits over dockview when on
+    railMode: 'expanded', railWidth: 220, liveW: null,   // left rail
+    rightOpen: true, rightWidth: 280, rightLiveW: null,
+    rightSnap: null,   // 'close' | 'open' | 'full' — live snap-zone cue while dragging the rail edge
+    rightFull: false,  // right rail snapped to full screen
+    rightDir: 1,       // bounce direction for the toggle: 1 = opening, -1 = closing
+    rightPrev: null,   // { rightWidth } — layout to restore when leaving full screen
+    activeCorpus: 'ficino', reviewCount: 3,
+    // ---- dashboard assistant (right rail) ----
+    activeSession: 0,
+    historyOpen: true,
+    newSessions: [],
+    closedSessions: [],
+    modelIdx: 2,
+    modeIdx: 0,
+    effortIdx: 0,
+    modelSearch: '',
+    openMenu: null,
+    replyText: '',
+    proposalResolved: null,
+    renamingSection: false,
+    sectionNameDraft: '',
+    sectionNames: {},
+    threads: {
+      0: [
+        { role: 'user', text: 'Find every mention of Poliziano in the Careggi context and propose Wiki edits.' },
+        { role: 'divi', text: "Searching Wiki and the Prato archive \u2014 I'll cross-check dates and draft edits for your approval." },
+      ],
+      1: [
+        { role: 'user', text: 'Run the Medici patronage deep research to completion.' },
+        { role: 'divi', text: 'Day 3 of 4 \u2014 18 of 29 sources cross-checked. I will surface conflicts as I go.' },
+      ],
+      2: [ { role: 'divi', text: 'Paused. 3 entity merges are waiting on your approval before I continue.' } ],
+      3: [ { role: 'divi', text: 'Idle. Ask me to check any citation and I will pull provenance.' } ],
+    },
+    railOrder: ['Sources', 'Library', 'Wiki', 'Graph', 'Chat', 'Writing', 'Browser', 'Kanban', 'News', 'KeyPass', 'Builder', 'Dadabase', 'Notes'],
+    railDrag: null,  // { key, target: index|null, out: bool }
+  };
+
+  T = {
+    bg: '#0A0A0B', panel: '#131418', panel2: '#0F1013', line: '#1E1F22', line2: '#26272B',
+    text: '#E6E4DE', muted: '#A5A29A', faint: '#6E6C66', accent: (this.props && this.props.accent) || '#86A38C', dim: '#3A3B40',
+  };
+  MONO = "'IBM Plex Mono', monospace";
+  SERIF = "'IBM Plex Serif', serif";
+  SANS = "'IBM Plex Sans', sans-serif";
+  MODES = ['Build', 'Ask', 'Chat'];
+  EFFORTS = ['Low', 'Medium', 'High'];
+  MODELS = ['Fable 5 (Global)', 'Fable 5 (US)', 'Opus 4.8', 'Opus 4.8 (US)', 'Sonnet 4.6', 'Sonnet 5'];
+  LAYOUT_KEY = 'sourcerer-dockview-bespoke-v2';
+  HIDDEN_W = 6; COMPACT_W = 56; COMPACT_AT = 132; CLOSE_AT = 44;
+
+  defs = {
+    Home:    { glyph: '◉', title: 'Divi Home', line: 'Your corpora, your applets, and what needs review — the landing surface.' },
+    Library: { glyph: '▥', title: 'Library',   line: 'Corpus & document tree, ingest, document detail, trust flags, OKF export.' },
+    Wiki:    { glyph: '¶', title: 'Wiki',      line: 'Canonical articles with provenance, Unresolved blocks, and the review queue.' },
+    Graph:   { glyph: '⊹', title: 'Graph',     line: 'Interactive knowledge graph — entities and relations, node inspector.' },
+    Chat:    { glyph: '≋', title: 'Chat',      line: 'Corpus-grounded chat with citations and a model settings drawer.' },
+    Sources: { glyph: '◆', title: 'Sources',   line: 'LightRAG ingestion — corpora, pipelines, and source-level trust.' },
+    Writing: { glyph: '✎', title: 'Writing',   line: 'Compose long-form work with live citations from Wiki and Library.' },
+    Browser: { glyph: '◎', title: 'Power Browser', line: 'Research browser — clip pages and archives straight into the corpus.' },
+    Kanban:  { glyph: '▥', title: 'Kanban',    line: 'Project board — cards pull status from Wiki, Writing, and Library.' },
+    News:    { glyph: '◈', title: 'News Buddy', line: 'Watched feeds — archives, catalogs, and journals touching your entities.' },
+    KeyPass: { glyph: '⚷', title: 'KeyPass DB', line: 'Local encrypted vault for archive logins and API keys.' },
+    Builder: { glyph: '⊞', title: 'Applet Builder', line: 'Assemble new applets from corpus-aware components.' },
+    Dadabase:{ glyph: '▦', title: 'Databasise', line: 'Typed tables, saved queries, and relations synced with the corpus.' },
+    Notes:   { glyph: '✳', title: 'Notes',     line: 'Quick capture — scratch notes that can graduate into the corpus.' },
+    Catalog: { glyph: '◍', title: 'Applet Catalog', line: 'Browse and install applets built by you or the community.' },
+    Settings:{ glyph: '⚙', title: 'Settings',  line: 'Providers & keys, corpus tiers, identity, agent access, appearance.' },
+  };
+
+  async componentDidMount() {
+    try {
+      const mod = await import('./store.js');
+      this.store = mod.store;
+      const sync = () => {
+        const st = this.store.getState();
+        let selSig = ''; try { selSig = JSON.stringify(st.selection); } catch (e) {}
+        const sig = [st.railMode, st.rightRailOpen, st.activeCorpus, st.reviewCount, st.rightRailPinned, selSig].join('|');
+        if (sig === this._storeSig) return;
+        this._storeSig = sig;
+        const next = {
+          railMode: st.railMode || 'expanded',
+          rightOpen: st.rightRailOpen !== false,
+          activeCorpus: st.activeCorpus, reviewCount: st.reviewCount,
+        };
+        this._prevSel = selSig;
+        this.setState(next);
+      };
+      this.unsubStore = this.store.subscribe(sync);
+      sync();
+    } catch (e) { console.warn('[shell] store failed:', e.message); }
+
+    this._onKey = (e) => {
+      if (e.key === '\\' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); if (this.store) this.store.getState().cycleRailMode(); }
+    };
+    window.addEventListener('keydown', this._onKey);
+
+    try {
+      this.dv = await import('https://cdn.jsdelivr.net/npm/dockview-core@2.0.0/+esm');
+      this.initDock();
+    } catch (e) {
+      this.setState({ loadError: e.message || String(e) });
+    }
+  }
+  componentWillUnmount() {
+    if (this.ro) { try { this.ro.disconnect(); } catch (e) {} }
+    clearInterval(this._kickT);
+    if (this.unsubStore) { try { this.unsubStore(); } catch (e) {} }
+    window.removeEventListener('resize', this.relayout);
+    if (this._onKey) window.removeEventListener('keydown', this._onKey);
+    if (this.dock) { try { this.dock.dispose(); } catch (e) {} }
+  }
+
+  // ===== right rail body — side-rail.js views (Inspector / Review) =====
+  cycleCorpus = () => {
+    if (!this.store) return;
+    const st = this.store.getState();
+    const ids = st.corpora.map(c => c.id);
+    const i = ids.indexOf(st.activeCorpus);
+    st.setCorpus(ids[(i + 1) % ids.length]);
+  };
+
+  // ===== dashboard assistant =====
+  toRoman = (n) => {
+    const map = [[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']];
+    let out = ''; for (const [v, s] of map) { while (n >= v) { out += s; n -= v; } } return out || 'I';
+  };
+  send = () => {
+    const t = this.state.replyText.trim(); if (!t) return;
+    this.setState(s => {
+      const id = s.activeSession; const thread = [...(s.threads[id] || [])];
+      thread.push({ role: 'user', text: t });
+      thread.push({ role: 'divi', text: 'On it \u2014 searching the corpus and cross-checking sources. I\u2019ll post proposals here for your approval.' });
+      return { threads: { ...s.threads, [id]: thread }, replyText: '' };
+    }, () => { const el = this._thread; if (el) el.scrollTop = el.scrollHeight; });
+  };
+  addCard = () => {};
+
+  // ===== left rail geometry =====
+  navRef = (el) => { this.navEl = el; };
+  effLeftW() {
+    const s = this.state;
+    if (s.liveW != null) return s.liveW;
+    if (s.railMode === 'hidden') return this.HIDDEN_W;
+    if (s.railMode === 'compact') return this.COMPACT_W;
+    return s.railWidth;
+  }
+  startRailResize = (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const navRect = this.navEl ? this.navEl.getBoundingClientRect() : { left: 0 };
+    const move = (ev) => {
+      // live snapping like the old prototype: narrow zone snaps to icons, narrower snaps shut
+      const raw = Math.max(0, Math.min(520, ev.clientX - navRect.left));
+      const w = raw < this.CLOSE_AT ? this.HIDDEN_W : raw < this.COMPACT_AT ? this.COMPACT_W : raw;
+      this.setState({ liveW: w });
+      this.relayout();
+    };
+    const up = (ev) => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up, true);
+      const w = Math.max(this.HIDDEN_W, Math.min(520, ev.clientX - navRect.left));
+      const mode = w < this.CLOSE_AT ? 'hidden' : w < this.COMPACT_AT ? 'compact' : 'expanded';
+      this.setState({ liveW: null, railWidth: mode === 'expanded' ? w : this.state.railWidth, railMode: mode });
+      if (this.store) this.store.getState().setRailMode(mode);
+      requestAnimationFrame(this.relayout);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up, true);
+  };
+
+  // ===== right rail geometry =====
+  effRightW() {
+    const s = this.state;
+    if (s.rightLiveW != null) return s.rightLiveW;
+    return s.rightOpen ? s.rightWidth : this.HIDDEN_W;
+  }
+  FULL_AT = 620;  // drag the edge past this → ghost appears, release snaps full screen
+  enterRightFull() {
+    this.setState({ rightFull: true, rightPrev: { rightWidth: this.state.rightWidth }, rightLiveW: null, rightSnap: null });
+    requestAnimationFrame(this.relayout);
+  }
+  exitRightFull() {
+    const prev = this.state.rightPrev || { rightWidth: 280 };
+    this.setState({ rightFull: false, rightWidth: prev.rightWidth, rightPrev: null, rightLiveW: null, rightSnap: null });
+    requestAnimationFrame(this.relayout);
+  }
+
+  // ===== right rail toggle: bounce closed ↔ part open ↔ full screen (never wraps) =====
+  rightState() {
+    const st = this.store ? this.store.getState() : null;
+    const open = st ? st.rightRailOpen !== false : this.state.rightOpen;
+    if (this.state.rightFull) return 'full';
+    return open ? 'open' : 'closed';
+  }
+  applyRightState(next) {
+    const st = this.store ? this.store.getState() : null;
+    if (next === 'closed') {
+      if (this.state.rightFull) this.exitRightFull();
+      if (st && st.rightRailOpen !== false) st.toggleRightRail();
+    } else if (next === 'open') {
+      if (this.state.rightFull) this.exitRightFull();
+      if (st && st.rightRailOpen === false) st.toggleRightRail();
+    } else if (next === 'full') {
+      if (st && st.rightRailOpen === false) st.toggleRightRail();
+      if (!this.state.rightFull) this.enterRightFull();
+    }
+  }
+  cycleRight = () => {
+    const order = ['closed', 'open', 'full'];
+    const cur = this.rightState();
+    let dir = this.state.rightDir || 1;
+    if (cur === 'closed') dir = 1;      // bounce off the bottom
+    else if (cur === 'full') dir = -1;  // bounce off the top
+    const next = order[order.indexOf(cur) + dir];
+    this.setState({ rightDir: dir });
+    this.applyRightState(next);
+  };
+  startRightResize = (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    if (this.state.rightFull) { this.exitRightFull(); return; }  // grab the edge while full screen → snap back
+    const host = this.dockEl && this.dockEl.parentElement ? this.dockEl.parentElement.parentElement : null;
+    const hostRect = host ? host.getBoundingClientRect() : { right: window.innerWidth, width: window.innerWidth };
+    const move = (ev) => {
+      const raw = hostRect.right - ev.clientX;
+      const fullZone = raw > this.FULL_AT;  // past normal max — ghost appears, release will snap
+      const w = Math.max(this.HIDDEN_W, Math.min(hostRect.width - 160, raw));
+      this.setState({ rightLiveW: w, rightSnap: fullZone ? 'full' : (w < 180 ? 'close' : null) });
+      this.relayout();
+    };
+    const up = (ev) => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up, true);
+      if (this.state.rightSnap === 'full') { this.enterRightFull(); return; }
+      const w = Math.max(this.HIDDEN_W, Math.min(560, hostRect.right - ev.clientX));
+      if (w < 180) {
+        this.setState({ rightLiveW: null, rightSnap: null });
+        if (this.store) { const st = this.store.getState(); if (st.rightRailOpen !== false) st.toggleRightRail(); }
+      } else {
+        this.setState({ rightLiveW: null, rightSnap: null, rightWidth: w });
+      }
+      requestAnimationFrame(this.relayout);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up, true);
+  };
+  startRightPull = (e) => {
+    if (e.button !== 0 || !this.store) return;
+    e.preventDefault();
+    const host = this.dockEl && this.dockEl.parentElement ? this.dockEl.parentElement.parentElement : null;
+    const hostRect = host ? host.getBoundingClientRect() : { right: window.innerWidth };
+    const ox = e.clientX;
+    let moved = false, opened = false;
+    const move = (ev) => {
+      if (!moved && Math.abs(ev.clientX - ox) < 4) return;
+      moved = true;
+      if (!opened) { const st = this.store.getState(); if (st.rightRailOpen === false) st.toggleRightRail(); opened = true; }
+      const raw = hostRect.right - ev.clientX;
+      const w = Math.max(this.HIDDEN_W, Math.min(hostRect.width - 160, raw));
+      this.setState({ rightLiveW: w, rightSnap: raw > this.FULL_AT ? 'full' : (w < 180 ? 'open' : null) });
+      this.relayout();
+    };
+    const up = (ev) => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up, true);
+      if (!moved) { this.store.getState().toggleRightRail(); return; } // plain click
+      if (this.state.rightSnap === 'full') { this.enterRightFull(); return; }
+      const w = Math.max(this.HIDDEN_W, Math.min(560, hostRect.right - ev.clientX));
+      if (w < 180) {
+        // too narrow to be useful — snap open to the default width instead of closing again
+        this.setState({ rightLiveW: null, rightSnap: null, rightWidth: 280 });
+      } else {
+        this.setState({ rightLiveW: null, rightSnap: null, rightWidth: w });
+      }
+      requestAnimationFrame(this.relayout);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up, true);
+  };
+
+  // ===== dockview (workspace only — no rail groups) =====
+  relayout = () => {
+    if (!this.api || !this.dockEl || !this.dockEl.isConnected) return;
+    const w = this.dockEl.clientWidth, h = this.dockEl.clientHeight;
+    if (w > 0 && h > 0) { try { this.api.layout(w, h); } catch (e) {} }
+  };
+  kickLayout() {
+    let tries = 0;
+    clearInterval(this._kickT);
+    this._kickT = setInterval(() => {
+      tries++;
+      const grid = this.dockEl && this.dockEl.querySelector('.dv-grid-view');
+      const ok = grid && grid.clientWidth > 0 && grid.clientHeight > 0;
+      if (ok || tries > 60 || !this.dockEl || !this.dockEl.isConnected) { clearInterval(this._kickT); return; }
+      try { window.dispatchEvent(new Event('resize')); } catch (e) {}
+    }, 120);
+  }
+  dockRef = (el) => {
+    if (!el || el === this.dockEl) return;
+    const prev = this.dockEl;
+    this.dockEl = el;
+    if (!this.dock) { this.initDock(); return; }
+    if (prev && prev !== el) { while (prev.firstChild) el.appendChild(prev.firstChild); }
+    if (this.ro) { try { this.ro.disconnect(); } catch (e) {} this.ro.observe(el); }
+    this.relayout();
+    requestAnimationFrame(this.relayout);
+  };
+  initDock() {
+    if (!this.dockEl || !this.dv || this.dock) return;
+    const opts = { createComponent: (o) => this.makeRenderer(o) };
+    try {
+      this.api = this.dv.createDockview(this.dockEl, opts);
+    } catch (e) {
+      const inst = new this.dv.DockviewComponent(this.dockEl, opts);
+      this.dock = inst; this.api = inst.api || inst;
+    }
+    this.dock = this.dock || this.api;
+
+    const CANARY = this.LAYOUT_KEY + ':canary';
+    let restored = false;
+    try {
+      if (localStorage.getItem(CANARY)) { localStorage.removeItem(this.LAYOUT_KEY); }
+      localStorage.setItem(CANARY, '1');
+      const saved = JSON.parse(localStorage.getItem(this.LAYOUT_KEY));
+      if (saved) { this.api.fromJSON(saved); restored = true; }
+    } catch (e) {
+      restored = false;
+      try { this.api.clear(); } catch (e2) {}
+      try { localStorage.removeItem(this.LAYOUT_KEY); } catch (e2) {}
+    }
+    setTimeout(() => { try { localStorage.removeItem(CANARY); } catch (e) {} }, 4000);
+    if (!restored || this.api.panels.length === 0) {
+      try { this.api.clear(); } catch (e) {}
+      this.addApplet('Wiki');
+      this.addApplet('Library');
+    }
+
+    this.api.onDidLayoutChange(() => {
+      clearTimeout(this._saveT);
+      this._saveT = setTimeout(() => { try { localStorage.setItem(this.LAYOUT_KEY, JSON.stringify(this.api.toJSON())); } catch (e) {} }, 300);
+      this.syncOpen();
+    });
+    this.api.onDidActivePanelChange(() => this.syncOpen());
+
+    this.ro = new ResizeObserver(this.relayout);
+    this.ro.observe(this.dockEl);
+    window.addEventListener('resize', this.relayout);
+    this.relayout();
+    requestAnimationFrame(this.relayout);
+    setTimeout(this.relayout, 250);
+    this.kickLayout();
+
+    try { localStorage.setItem(this.LAYOUT_KEY, JSON.stringify(this.api.toJSON())); } catch (e) {}
+    this.setState({ ready: true });
+    this.syncOpen();
+  }
+
+  syncOpen() {
+    if (!this.api || this._inSync) return;
+    this._inSync = true;
+    try {
+      const active = this.api.activePanel;
+      const activeKey = active ? String(active.id).split(':')[0] : null;
+      if (activeKey && activeKey !== this.state.activeKey) this.setState({ activeKey });
+      if (this.store && activeKey && this.defs[activeKey]) this.store.getState().setRailApplet(activeKey);
+    } finally { this._inSync = false; }
+  }
+
+  addApplet(key) {
+    const def = this.defs[key];
+    if (!def || !this.api) return;
+    const existing = this.api.panels.find(p => String(p.id).split(':')[0] === key);
+    if (existing) { existing.api.setActive(); this.syncOpen(); return; }
+    this.api.addPanel({ id: key + ':' + Date.now(), component: key, title: def.title });
+    this.syncOpen();
+  }
+
+  // open an applet from a user action — also hide the Divi overlay so the applet is visible
+  goApplet = (key) => {
+    this.addApplet(key);
+    if (this.state.diviOpen) this.setState({ diviOpen: false });
+  };
+
+  // mount the Divi dashboard into the overlay when it's shown; unmount when hidden
+  diviRef = (el) => {
+    if (!el) { if (this._diviUnmount) { try { this._diviUnmount(); } catch (e) {} this._diviUnmount = null; } this._diviEl = null; return; }
+    if (el === this._diviEl) return;
+    this._diviEl = el;
+    const T = this.T;
+    // mount into an inner child — mountHome overwrites el.style.cssText, which would
+    // otherwise wipe the overlay's position/z-index and let dockview paint on top.
+    el.innerHTML = '<div style="padding:24px;font-family:' + this.MONO + ';font-size:11px;letter-spacing:0.14em;color:' + T.faint + ';">LOADING DASHBOARD…</div>';
+    const inner = document.createElement('div');
+    import('./home-cards.js')
+      .then(m => { if (this._diviEl !== el) return; el.innerHTML = ''; el.appendChild(inner); this._diviUnmount = m.mountHome(inner, { open: (k) => { if (this.defs[k]) this.goApplet(k); } }); })
+      .catch(e => { el.innerHTML = '<div style="padding:24px;font-family:' + this.MONO + ';font-size:11px;color:' + T.faint + ';">DASHBOARD FAILED TO LOAD · ' + (e.message || e) + '</div>'; });
+  };
+
+  // ===== rail item drag: within rail = reorder · into workspace = dock =====
+  workspaceGroups() {
+    if (!this.api) return [];
+    let groups = [];
+    try { groups = this.api.groups || []; } catch (e) { groups = []; }
+    if (!groups.length) {
+      const seen = new Set();
+      (this.api.panels || []).forEach(p => { const g = p.group; if (g && !seen.has(g)) { seen.add(g); groups.push(g); } });
+    }
+    return groups;
+  }
+  groupRect(g) {
+    let el = null;
+    try { el = g.element; } catch (e) {}
+    if (!el) { try { el = g.model && g.model.element; } catch (e) {} }
+    if (el && el.getBoundingClientRect) { const r = el.getBoundingClientRect(); if (r.width && r.height) return r; }
+    return null;
+  }
+  dockHitTest(x, y) {
+    const groups = this.workspaceGroups();
+    for (const g of groups) {
+      const r = this.groupRect(g);
+      if (!r) continue;
+      if (x < r.left || x > r.right || y < r.top || y > r.bottom) continue;
+      const fx = (x - r.left) / r.width, fy = (y - r.top) / r.height;
+      const m = 0.28;
+      let zone = 'within', dir = 'within';
+      const distL = fx, distR = 1 - fx, distT = fy, distB = 1 - fy;
+      const min = Math.min(distL, distR, distT, distB);
+      if (min < m) {
+        if (min === distL) { zone = 'left'; dir = 'left'; }
+        else if (min === distR) { zone = 'right'; dir = 'right'; }
+        else if (min === distT) { zone = 'top'; dir = 'above'; }
+        else { zone = 'bottom'; dir = 'below'; }
+      }
+      return { group: g, rect: r, zone, dir };
+    }
+    return null;
+  }
+  dropIndicator(hit) {
+    if (!this.dockEl) return;
+    let ov = this._dropOv;
+    if (!hit) { if (ov) ov.style.display = 'none'; return; }
+    if (!ov) {
+      ov = document.createElement('div');
+      ov.style.cssText = 'position:absolute;z-index:40;pointer-events:none;background:rgba(134,163,140,0.18);border:1px solid ' + this.T.accent + ';transition:all 90ms ease;';
+      this.dockEl.parentElement.appendChild(ov);
+      this._dropOv = ov;
+    }
+    const host = this.dockEl.parentElement.getBoundingClientRect();
+    const r = hit.rect, z = hit.zone;
+    let l = r.left - host.left, t = r.top - host.top, w = r.width, h = r.height;
+    if (z === 'left') w = r.width / 2;
+    else if (z === 'right') { l += r.width / 2; w = r.width / 2; }
+    else if (z === 'top') h = r.height / 2;
+    else if (z === 'bottom') { t += r.height / 2; h = r.height / 2; }
+    ov.style.display = 'block';
+    ov.style.left = l + 'px'; ov.style.top = t + 'px'; ov.style.width = w + 'px'; ov.style.height = h + 'px';
+  }
+  railDropIndex(y) {
+    // index in railOrder the dragged item would land BEFORE, from row centers
+    if (!this.navEl) return null;
+    const rows = [...this.navEl.querySelectorAll('[data-rail-row]')];
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i].getBoundingClientRect();
+      if (y < r.top + r.height / 2) return i;
+    }
+    return rows.length;
+  }
+  startRailItemDrag(key, e) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const def = this.defs[key];
+    const ox = e.clientX, oy = e.clientY;
+    let moved = false, ghost = null, hit = null, target = null, out = false;
+    const navRect = () => this.navEl ? this.navEl.getBoundingClientRect() : null;
+    const makeGhost = () => {
+      ghost = document.createElement('div');
+      ghost.style.cssText = 'position:fixed;z-index:9999;pointer-events:none;padding:6px 12px;display:flex;align-items:center;gap:8px;background:' + this.T.panel + ';border:1px solid ' + this.T.line2 + ';color:' + this.T.text + ';font-family:' + this.SANS + ';font-size:12px;box-shadow:0 8px 24px rgba(0,0,0,0.5);opacity:0.95;';
+      ghost.innerHTML = '<span style="font-family:' + this.MONO + ';color:' + this.T.accent + ';">' + def.glyph + '</span>' + def.title;
+      document.body.appendChild(ghost);
+    };
+    const move = (ev) => {
+      if (!moved) {
+        if (Math.hypot(ev.clientX - ox, ev.clientY - oy) < 5) return;
+        moved = true;
+        try { window.getSelection().removeAllRanges(); } catch (er) {}
+        makeGhost();
+        document.body.style.cursor = 'grabbing';
+      }
+      ghost.style.left = (ev.clientX + 12) + 'px';
+      ghost.style.top = (ev.clientY + 12) + 'px';
+      const nr = navRect();
+      out = !nr || ev.clientX > nr.right;
+      if (out) {
+        target = null;
+        hit = this.dockHitTest(ev.clientX, ev.clientY);
+        this.dropIndicator(hit);
+        this.setState({ railDrag: { key, target: null } });
+      } else {
+        hit = null;
+        this.dropIndicator(null);
+        target = this.railDropIndex(ev.clientY);
+        const cur = this.state.railDrag;
+        if (!cur || cur.target !== target) this.setState({ railDrag: { key, target } });
+      }
+    };
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+      document.body.style.cursor = '';
+      if (ghost) ghost.remove();
+      this.dropIndicator(null);
+      const drag = this.state.railDrag;
+      this.setState({ railDrag: null });
+      if (!moved) { this.goApplet(key); return; } // plain click
+      if (out && hit && this.api) {
+        this.api.addPanel({
+          id: key + ':' + Date.now(),
+          component: key,
+          title: def.title,
+          position: { referenceGroup: hit.group, direction: hit.dir },
+        });
+        this.syncOpen();
+        if (this.state.diviOpen) this.setState({ diviOpen: false });
+        requestAnimationFrame(this.relayout);
+        return;
+      }
+      if (drag && drag.target != null) {
+        const order = this.state.railOrder.slice();
+        const from = order.indexOf(key);
+        if (from === -1) return;
+        let to = drag.target;
+        order.splice(from, 1);
+        if (to > from) to--;
+        order.splice(Math.max(0, Math.min(order.length, to)), 0, key);
+        this.setState({ railOrder: order });
+      }
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  }
+
+  // ===== panel content =====
+  makeRenderer(opts) {
+    const id = String(opts.id || '');
+    const name = String(opts.name || id);
+    const key = name.split(':')[0];
+    const el = (key === 'Home') ? this.homeBody()
+      : (key === 'Wiki') ? this.moduleBody('./wiki.js', 'mountWiki')
+      : (key === 'Library') ? this.moduleBody('./library.js', 'mountLibrary')
+      : (key === 'Settings') ? this.moduleBody('./settings.js', 'mountSettings')
+      : this.panelBody(key);
+    return {
+      element: el,
+      init: (params) => { if (params && params.containerElement && !el.parentElement) params.containerElement.appendChild(el); },
+      dispose: () => { if (el.__unmount) { try { el.__unmount(); } catch (e) {} } },
+    };
+  }
+  homeBody() {
+    const T = this.T;
+    const el = document.createElement('div');
+    el.style.cssText = 'height:100%;overflow-y:auto;overflow-x:hidden;background:' + T.bg + ';';
+    el.innerHTML = '<div style="padding:24px;font-family:' + this.MONO + ';font-size:11px;letter-spacing:0.14em;color:' + T.faint + ';">LOADING DASHBOARD…</div>';
+    import('./home-cards.js')
+      .then(m => { el.innerHTML = ''; el.__unmount = m.mountHome(el, { open: (k) => { if (this.defs[k]) this.addApplet(k); } }); })
+      .catch(e => { el.innerHTML = '<div style="padding:24px;font-family:' + this.MONO + ';font-size:11px;color:' + T.faint + ';">DASHBOARD FAILED TO LOAD · ' + (e.message || e) + '</div>'; });
+    return el;
+  }
+  moduleBody(path, fn) {
+    const T = this.T;
+    const el = document.createElement('div');
+    el.style.cssText = 'height:100%;overflow:hidden;background:' + T.bg + ';';
+    el.innerHTML = '<div style="padding:24px;font-family:' + this.MONO + ';font-size:11px;letter-spacing:0.14em;color:' + T.faint + ';">LOADING…</div>';
+    import(path)
+      .then(m => { el.innerHTML = ''; el.__unmount = m[fn](el, { open: (k) => { if (this.defs[k]) this.addApplet(k); } }); })
+      .catch(e => { el.innerHTML = '<div style="padding:24px;font-family:' + this.MONO + ';font-size:11px;color:' + T.faint + ';">FAILED TO LOAD · ' + (e.message || e) + '</div>'; });
+    return el;
+  }
+  panelBody(key) {
+    const T = this.T;
+    const def = this.defs[key] || { glyph: '◌', title: key, line: '' };
+    const el = document.createElement('div');
+    el.style.cssText = 'height:100%;overflow-y:auto;overflow-x:hidden;background:' + T.bg + ';color:' + T.text + ';font-family:' + this.SANS + ';';
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'max-width:640px;padding:36px 40px;';
+    wrap.innerHTML =
+      '<div style="font-family:' + this.MONO + ';font-size:10px;letter-spacing:0.16em;color:' + T.faint + ';">APPLET · ' + def.title.toUpperCase() + '</div>' +
+      '<div style="display:flex;align-items:center;gap:14px;margin-top:10px;">' +
+        '<div style="width:44px;height:44px;flex-shrink:0;background:' + T.panel + ';border:1px solid ' + T.line2 + ';display:flex;align-items:center;justify-content:center;font-family:' + this.MONO + ';font-size:20px;color:' + T.accent + ';">' + def.glyph + '</div>' +
+        '<div style="font-family:' + this.SERIF + ';font-size:26px;line-height:1.1;">' + def.title + '</div>' +
+      '</div>' +
+      '<div style="margin-top:12px;font-size:13px;line-height:1.6;color:' + T.muted + ';">' + def.line + '</div>' +
+      '<div style="margin-top:22px;padding:12px 14px;background:' + T.panel2 + ';border:1px dashed ' + T.line2 + ';font-family:' + this.MONO + ';font-size:11px;line-height:1.7;color:' + T.faint + ';">' +
+        'BESPOKE RAILS · STEP 4<br>' +
+        '· rails live OUTSIDE dockview — dockview owns only the workspace<br>' +
+        '· drag the rail edge to resize; dockview reflows live<br>' +
+        '· rail toggle cycles expanded · icons · hidden (⌘\\)<br>' +
+        '· drag a rail item in to reorder, or into the workspace to dock' +
+      '</div>';
+    el.appendChild(wrap);
+    return el;
+  }
+
+  tauriWin() {
+    try {
+      const t = window.__TAURI__;
+      if (t && t.window && t.window.getCurrentWindow) return t.window.getCurrentWindow();
+      if (t && t.window && t.window.appWindow) return t.window.appWindow;
+    } catch (e) {}
+    return null;
+  }
+  winMin = () => { const w = this.tauriWin(); if (w && w.minimize) w.minimize(); };
+  winMax = () => { const w = this.tauriWin(); if (w && w.toggleMaximize) w.toggleMaximize(); };
+  winClose = () => { const w = this.tauriWin(); if (w && w.close) w.close(); };
+
+  renderVals() {
+    const s = this.state;
+    const T = this.T;
+    const st = this.store ? this.store.getState() : null;
+    const corpusName = st ? ((st.corpora.find(c => c.id === s.activeCorpus) || {}).name || 'Corpus') : 'Ficino corpus';
+    const pinned = st ? st.rightRailPinned !== false : true;
+
+    const leftW = this.effLeftW();
+    const rightW = this.effRightW();
+    const compactView = s.liveW != null ? (leftW < this.COMPACT_AT && leftW >= this.CLOSE_AT) : s.railMode === 'compact';
+    const hiddenView = s.liveW != null ? leftW < this.CLOSE_AT : s.railMode === 'hidden';
+    const expandedView = !compactView && !hiddenView;
+
+    const drag = s.railDrag;
+    const rail = s.railOrder.map((key, idx) => {
+      const def = this.defs[key];
+      const isActive = key === s.activeKey;
+      return {
+        key, index: idx,
+        glyph: def.glyph, label: def.title,
+        badge: (key === 'Wiki' && s.reviewCount > 0) ? String(s.reviewCount) : false,
+        fg: isActive ? T.text : T.muted,
+        bg: isActive ? T.panel : 'transparent',
+        railColor: isActive ? T.accent : 'transparent',
+        dim: drag && drag.key === key ? 0.35 : 1,
+        dropBefore: !!(drag && drag.target === idx && drag.key !== key),
+        dropAfter: !!(drag && idx === s.railOrder.length - 1 && drag.target === s.railOrder.length && drag.key !== key),
+        open: () => {},  // click handled by drag-less mouseup in startRailItemDrag
+        dragDown: (e) => this.startRailItemDrag(key, e),
+      };
+    });
+
+    const activeDef = this.defs[s.activeKey] || { title: 'Dashboard' };
+    const apTitle = activeDef.title;
+    const modeName = this.MODES[s.modeIdx] || this.MODES[0];
+    const effortName = this.EFFORTS[s.effortIdx] || this.EFFORTS[0];
+    const modelName = this.MODELS[s.modelIdx] || this.MODELS[0];
+    const MODES = this.MODES, EFFORTS = this.EFFORTS, MODELS = this.MODELS;
+    const sessMeta = [
+      { icon: '●', dot: '#E6E4DE', title: 'Poliziano · Careggi edits',        meta: 'started 12m ago · you',        state: 'ACTIVE',  stateFg: '#E6E4DE' },
+      { icon: '●', dot: '#E6E4DE', title: 'Medici patronage · Deep Research',  meta: 'day 3 of 4 · 18/29 · agent',   state: 'RUNNING', stateFg: '#E6E4DE' },
+      { icon: '●', dot: '#A5A29A', title: 'Wiki cleanup · entity merges',      meta: 'paused · waiting on approval', state: 'PAUSED',  stateFg: '#A5A29A' },
+      { icon: '○', dot: '#6E6C66', title: 'Bibliography check',               meta: 'idle · 8m',                    state: 'IDLE',    stateFg: '#6E6C66' },
+      ...s.newSessions,
+    ];
+    const sessions = sessMeta.map((m, i) => { const on = i === s.activeSession;
+      return { ...m, rowBg: on ? '#1E1F22' : 'transparent', railColor: on ? '#A5A29A' : 'transparent', titleFg: on ? '#E6E4DE' : '#A5A29A', select: () => this.setState(st => ({ activeSession: i, proposalResolved: null, closedSessions: st.closedSessions.filter(ci => ci !== i) })) }; });
+    const isRunning = (m) => m.state === 'ACTIVE' || m.state === 'RUNNING';
+    let romanN = 0;
+    const sessionChips = sessMeta
+      .map((m, i) => ({ m, i }))
+      .filter(x => s.closedSessions.indexOf(x.i) === -1)
+      .map(({ m, i }) => {
+        romanN += 1;
+        const on = i === s.activeSession;
+        const running = isRunning(m);
+        return {
+          roman: this.toRoman(romanN),
+          title: m.title + (running ? ' · running — can\u2019t close' : ''),
+          border: on ? '#3A3B40' : '#26272B',
+          bg: on ? '#1E1F22' : 'transparent',
+          fg: on ? '#E6E4DE' : '#A5A29A',
+          dot: m.dot, running, closable: !running,
+          select: () => this.setState({ activeSession: i, proposalResolved: null }),
+          close: (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.setState(st => {
+            if (isRunning(m)) return {};
+            const closed = [...st.closedSessions, i];
+            let active = st.activeSession;
+            if (active === i) { const firstOpen = sessMeta.map((_, ii) => ii).find(ii => closed.indexOf(ii) === -1); active = firstOpen == null ? st.activeSession : firstOpen; }
+            return { closedSessions: closed, activeSession: active };
+          }); },
+        };
+      });
+    const rawThread = s.threads[s.activeSession] || [];
+    const messages = rawThread.map(m => m.role === 'user'
+      ? { text: m.text, align: 'flex-end', maxw: '90%', bg: '#1E1F22', fg: '#E6E4DE', pad: '9px 12px' }
+      : { text: m.text, align: 'stretch', maxw: '100%', bg: 'transparent', fg: '#C5C2BA', pad: '0' });
+
+    return {
+      accentColor: T.accent,
+      winMin: this.winMin, winMax: this.winMax, winClose: this.winClose,
+      dockRef: this.dockRef, navRef: this.navRef,
+      gridCols: s.rightFull ? '0px 0px 1fr' : leftW + 'px minmax(0, 1fr) ' + Math.round(rightW) + 'px',
+
+      railHidden: hiddenView, railCompact: compactView, railExpanded: expandedView,
+      navBorder: hiddenView ? 'transparent' : '#1E1F22',
+      rail, startRailResize: this.startRailResize,
+      cycleRail: () => { if (this.store) this.store.getState().cycleRailMode(); },
+      leftToggleFg: s.railMode === 'hidden' ? '#6E6C66' : '#E6E4DE',
+      leftColW: s.railMode === 'expanded' ? 6 : s.railMode === 'compact' ? 3 : 0,
+      leftRailTitle: 'Left rail: ' + (s.railMode === 'expanded' ? 'expanded' : s.railMode === 'compact' ? 'icons' : 'hidden') + ' \u2014 click to cycle (\u2318\\)',
+
+      rightOpen: s.rightOpen || s.rightFull, rightClosed: !s.rightOpen && !s.rightFull,
+      startRightResize: this.startRightResize, startRightPull: this.startRightPull,
+
+      // ---- dashboard assistant ----
+      sessions, messages, sessionCount: sessMeta.length,
+      sessionChips,
+      modeName, modeMenuOpen: s.openMenu === 'mode',
+      modeBorder: s.openMenu === 'mode' ? '#3A3B40' : '#26272B',
+      modeFg: s.openMenu === 'mode' ? '#E6E4DE' : '#A5A29A',
+      toggleModeMenu: () => this.setState(st => ({ openMenu: st.openMenu === 'mode' ? null : 'mode' })),
+      modeList: MODES.map((label, i) => ({ label, check: i === s.modeIdx ? '✓' : '', fg: i === s.modeIdx ? '#E6E4DE' : '#C5C2BA', pick: () => this.setState({ modeIdx: i, openMenu: null }) })),
+      modelName, modelMenuOpen: s.openMenu === 'model',
+      modelBorder: s.openMenu === 'model' ? '#3A3B40' : '#26272B',
+      modelFg: s.openMenu === 'model' ? '#E6E4DE' : '#A5A29A',
+      toggleModelMenu: () => this.setState(st => ({ openMenu: st.openMenu === 'model' ? null : 'model', modelSearch: '' })),
+      modelSearch: s.modelSearch,
+      onModelSearch: (e) => this.setState({ modelSearch: e.target.value }),
+      modelList: MODELS.map((label, i) => ({ label, i })).filter(x => x.label.toLowerCase().indexOf(s.modelSearch.toLowerCase()) !== -1).map(x => ({ label: x.label, check: x.i === s.modelIdx ? '✓' : '', fg: x.i === s.modelIdx ? '#E6E4DE' : '#C5C2BA', pick: () => this.setState({ modelIdx: x.i, openMenu: null }) })),
+      effortName, effortMenuOpen: s.openMenu === 'effort',
+      effortBorder: s.openMenu === 'effort' ? '#3A3B40' : '#26272B',
+      effortFg: s.openMenu === 'effort' ? '#E6E4DE' : '#A5A29A',
+      toggleEffortMenu: () => this.setState(st => ({ openMenu: st.openMenu === 'effort' ? null : 'effort' })),
+      effortList: EFFORTS.map((label, i) => ({ label, check: i === s.effortIdx ? '✓' : '', fg: i === s.effortIdx ? '#E6E4DE' : '#C5C2BA', pick: () => this.setState({ effortIdx: i, openMenu: null }) })),
+      historyOpen: s.historyOpen,
+      historyFg: s.historyOpen ? '#E6E4DE' : '#A5A29A',
+      toggleHistory: () => this.setState(st => ({ historyOpen: !st.historyOpen })),
+      newAssistant: () => this.setState(st => {
+        const idx = 4 + st.newSessions.length;
+        const meta = { icon: '○', dot: '#E6E4DE', title: 'New assistant', meta: 'just now · you', state: 'NEW', stateFg: '#E6E4DE' };
+        return {
+          newSessions: [...st.newSessions, meta],
+          threads: { ...st.threads, [idx]: [{ role: 'divi', text: 'New assistant ready. What should I look into?' }] },
+          activeSession: idx, proposalResolved: null, historyOpen: true, replyText: '',
+        };
+      }),
+      sectionName: (s.sectionNames[apTitle] || (apTitle + ' Assistant')).toUpperCase(),
+      renamingSection: s.renamingSection,
+      notRenamingSection: !s.renamingSection,
+      sectionNameDraft: s.sectionNameDraft,
+      startRenameSection: () => this.setState({ renamingSection: true, sectionNameDraft: (s.sectionNames[apTitle] || (apTitle + ' Assistant')) }),
+      onSectionNameInput: (e) => this.setState({ sectionNameDraft: e.target.value }),
+      commitSectionName: () => this.setState(st => {
+        const v = (st.sectionNameDraft || '').trim();
+        const names = { ...st.sectionNames };
+        if (v) { names[apTitle] = v; } else { delete names[apTitle]; }
+        return { sectionNames: names, renamingSection: false };
+      }),
+      onSectionNameKey: (e) => { if (e.key === 'Enter') { e.target.blur(); } else if (e.key === 'Escape') { this.setState({ renamingSection: false }); } },
+      sectionInputRef: (el) => { if (el) { el.focus(); el.select(); } },
+      threadRef: (el) => { this._thread = el; },
+      showProposal: s.activeSession === 0 && s.proposalResolved === null,
+      approve: () => this.setState(st => ({ proposalResolved: 'approved', threads: { ...st.threads, 0: [...st.threads[0], { role: 'divi', text: '✓ Approved. Edit written to § Poliziano · 2 downstream copies updated.' }] } })),
+      reject: () => this.setState(st => ({ proposalResolved: 'rejected', threads: { ...st.threads, 0: [...st.threads[0], { role: 'divi', text: 'Rejected. I’ll leave § Poliziano unchanged and look for stronger evidence.' }] } })),
+      replyText: s.replyText,
+      onReplyInput: (e) => this.setState({ replyText: e.target.value }),
+      onReplyKey: (e) => { if (e.key === 'Enter') { e.preventDefault(); this.send(); } },
+      send: this.send, addCard: this.addCard,
+      inputBorder: s.replyText.trim() ? '#33343A' : '#1E1F22',
+      sendBg: s.replyText.trim() ? '#E6E4DE' : '#1E1F22',
+      sendFg: s.replyText.trim() ? '#0A0A0B' : '#6E6C66',
+      toggleRight: this.cycleRight,
+      rightToggleFg: (s.rightOpen || s.rightFull) ? '#E6E4DE' : '#6E6C66',
+      rightFillX: s.rightFull ? 0.5 : 11.5,
+      rightFillW: s.rightFull ? 15 : (s.rightOpen ? 4 : 0),
+      rightToggleFill: (s.rightOpen || s.rightFull) ? 'currentColor' : 'none',
+      rightRailTitle: 'Right rail: ' + (s.rightFull ? 'full screen' : s.rightOpen ? 'part open' : 'closed') + ' \u2014 click to cycle',
+      rightSnapping: s.rightSnap === 'close' || s.rightSnap === 'open',
+      rightSnapArrow: s.rightSnap === 'close' ? '→' : '←',
+      rightSnapLabel: s.rightSnap === 'close' ? 'RELEASE TO CLOSE' : 'RELEASE TO SNAP OPEN',
+      rightGhost: s.rightSnap === 'full',
+      rightGhostRight: Math.round(rightW) + 'px',
+      pinFg: pinned ? T.accent : T.faint,
+      pinTitle: pinned ? 'Pinned — rail keeps this view. Click to unpin (follows your selection).' : 'Unpinned — rail follows your selection. Click to pin the current view.',
+      togglePin: () => { if (this.store) this.store.getState().toggleRightPin(); },
+
+      openCatalog: () => this.goApplet('Catalog'),
+      openSettings: () => this.goApplet('Settings'),
+      openHome: () => this.setState({ diviOpen: true }),
+      diviOpen: s.diviOpen,
+      toggleDivi: () => this.setState(st => ({ diviOpen: !st.diviOpen })),
+      diviRef: this.diviRef,
+      diviTitle: s.diviOpen ? 'Divi is on — click to hide it and show the workspace' : 'Divi is off — click to show the dashboard over the workspace',
+      diviBtnBorder: s.diviOpen ? T.accent : '#26272B',
+      diviBtnBg: s.diviOpen ? 'rgba(134,163,140,0.14)' : 'transparent',
+      diviBtnFg: s.diviOpen ? T.accent : '#A5A29A',
+      cycleCorpus: this.cycleCorpus,
+      corpusLabel: corpusName,
+      reviewLabel: s.reviewCount + ' to review',
+      openReview: () => this.addApplet('Wiki'),
+      loadError: s.loadError,
+      layoutNote: s.ready ? 'dockview 2.0 · bespoke rails · layout saved' : 'loading dockview…',
+    };
+  }
+}
+
+</script>
+</body>
+</html>
