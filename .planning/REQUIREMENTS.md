@@ -118,7 +118,7 @@ Full reasoning and the evidence that forced it:
 |-------------|-------|------------|----------------|--------|
 | SPIKE-01 | Phase 8 *(deferred)* | P0 | Windows box | Deferred — planned, re-decide at Phase 15 |
 | FOUND-01 | Phase 9 | P1 | NixOS dev host | Pending |
-| FOUND-02 | Phase 9 | P1 | NixOS dev host | Pending |
+| FOUND-02 | Phase 9 | P4 | NixOS dev host | Complete — CI green 2026-08-04 |
 | FOUND-03 | Phase 9 | P1 | NixOS dev host | Pending |
 | SUB-01 | Phase 10 | P2 | Windows box | Pending |
 | SUB-02 | Phase 10 | P2 | Windows box | Pending |

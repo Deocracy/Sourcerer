@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Container Platform
 status: executing
-stopped_at: Completed 09-03-PLAN.md
-last_updated: "2026-08-04T19:13:47.787Z"
-last_activity: 2026-08-04 -- Completed 09-02-PLAN.md
+stopped_at: Completed 09-04-PLAN.md
+last_updated: "2026-08-04T20:38:00.000Z"
+last_activity: 2026-08-04 -- Completed 09-03-PLAN.md
 progress:
   total_phases: 12
   completed_phases: 0
   total_plans: 12
-  completed_plans: 3
-  percent: 0
+  completed_plans: 4
+  percent: 33
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 ## Current Position
 
 Phase: 9 (Flake Foundation & Assurance Chain) — EXECUTING
-Plan: 4 of 7
+Plan: 5 of 7
 Status: Ready to execute
-Last activity: 2026-08-04 -- Completed 09-02-PLAN.md
+Last activity: 2026-08-04 -- Completed 09-03-PLAN.md
 
 **Phase 8 is DEFERRED, not abandoned (2026-08-05).** It ships no application code; its only
 output is evidence for Phase 15's compiler and Phase 19's audit, so it was mis-slotted as a
@@ -98,6 +98,7 @@ Progress: [------------] 0/12 phases
 | Phase 09 P01 | 8min | 3 tasks | 4 files |
 | Phase 09 P02 | 20min | 3 tasks | 7 files |
 | Phase 09 P03 | 35min | 3 tasks tasks | 6 files files |
+| Phase 09 P04 | 65min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -177,6 +178,9 @@ Recent decisions affecting current work:
 - [Phase 09-02]: devShell shellHook strips mkShell's fabricated `$out="$PWD/outputs/out"` rpath entry from NIX_LDFLAGS — this repo's checkout path contains a space, which breaks the cc-wrapper's word-splitting of that rpath flag and fails every cargo build-script link step
 - [Phase 09-03]: Comments in core.nix/vm-variant.nix must not literally contain the plan's own forbidden-substring grep targets (e.g. 0.0.0.0, nixos-wsl) even in prose — Reworded to describe the constraint without the literal string, avoiding false-positive verification failures
 - [Phase 09-03]: Standalone nixosConfigurations.substrate-vm needs a real fileSystems/boot.loader.grub.device stanza to evaluate config.system.build.toplevel — A nixosTest node gets automatic qemu-vm scaffolding, a plain nixosSystem does not — added as an anonymous flake.nix module, not inside vm-variant.nix, preserving its D-15 imports = [ ./core.nix ]
+- [Phase 09-04]: Task 1 checkpoint resolved approve-both — Deocracy/Sourcerer public, master pushed and set default, placeholder main + stray claude/wiki-graph-llm-b11djf branches deleted
+- [Phase 09-04]: Drift-gate negative test must freeze the resolved toolchain (enter nix develop once, mutate the pin file inside that shell) rather than spawning a fresh nix develop per invocation — a fresh shell re-derives rustToolchain live from the same mutated rust-toolchain.toml via rust-overlay's fromRustupToolchainFile, so actual and expected can never diverge on the Nix side by construction
+- [Phase 09-04]: Fixed a real unhandled-rejection bug in src/host/ai.ts (ai()/loadSession() both construct Channel unguarded inside their Promise executor) rather than routing around it in the test file — surfaced by running npx vitest run in CI for the first time; both functions' own doc comments already promised callers never need a try/catch
 
 ### Roadmap Evolution
 
@@ -196,6 +200,7 @@ None yet.
 - [v2.0 Nix-native, 2026-08-04]: the OCI-image app layer is **retired as the default path** milestone-wide. Stale OCI language may still linger in `.planning/research/CONTAINER-PLATFORM-PLAN.md` (P0 spike-K row, P4/P5 bodies) — that file was NOT rewritten, only `CONTAINER-PLATFORM.md` §5 carries a supersession banner. Treat ROADMAP.md + REQUIREMENTS.md as authoritative where they disagree with the plan file.
 - [v2.0 Phase 19]: security baseline is thinner than this file implied — `01-SECURITY.md` is the only SECURITY.md in the repo (Phases 02-07 have none, including the Phase 07 Pi sidecar's real trust boundary), and `workflow.security_enforcement` is `false` so `/gsd-secure-phase` no-ops until flipped back. Worth settling before Phase 15/16 threat-modelling, not after.
 - [v2.0 calendar]: this milestone is wait-dominated (30-90 min closure builds, physical reboot UAT, clean-machine tests, Store certification queues in days). Plan counts hold; wall-clock roughly doubles vs v1.0.
+- [v2.0 Phase 9, 2026-08-04]: `Deocracy/Sourcerer` is now public — GitHub's Dependabot reports 30 open alerts (13 high, 17 medium) across the dependency graph, newly visible now that the repo went public. Not acted on this plan (09-04) per explicit instruction; worth a deliberate look before/alongside Plan 05's Attic cache work, not silently carried forward indefinitely.
 
 - [Phase 2 research flag]: Prototype pointer-event pattern + React 18 StrictMode-safe port strategy needs deep planning research before spec.
 - [Phase 1 verify]: Confirm PerMonitorV2 DPI awareness so 1px borders hold at 125%/150% scaling.
@@ -221,10 +226,10 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-04T19:13:47.782Z
-Stopped at: Completed 09-03-PLAN.md
+Last session: 2026-08-04T20:38:00.000Z
+Stopped at: Completed 09-04-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
 
-- Continue Phase 9 execution with 09-03-PLAN.md (Wave 2 — substrate core module + WSL/VM variants + seed nixosTest in flake checks)
+- Continue Phase 9 execution with 09-05-PLAN.md (Wave 3 — Attic cache on AWS EC2+S3, nonzero GC retention, scoped CI push token)
