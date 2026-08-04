@@ -113,7 +113,7 @@ Full phase details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 
 **Original plan label**: P1 · size M
 **Goal**: One flake and one CI pipeline that both build worlds read, so nothing reaches a user machine that CI did not prove
-**Depends on**: Phase 8 (informs nothing structurally, but K's findings land before the flake's app-unit skeleton)
+**Depends on**: Nothing. *(Previously listed Phase 8 — dropped 2026-08-05 when Phase 8 was deferred. That dependency was always soft: Spike K "informs nothing structurally", it only meant K's findings would land before the flake's app-unit skeleton. With K deferred, the app-unit skeleton is authored without a measured exemption set; the hardening directives it assumes are provisional until Phase 15 re-decides.)*
 **Execution host**: **NixOS dev host** (flake authoring, devShells, cache wiring). CI runs on GitHub Actions; the `windows-latest` Tauri job is the standing regression net between hands-on Windows sessions.
 **Requirements**: FOUND-01, FOUND-02, FOUND-03
 **Success Criteria** (what must be TRUE):
