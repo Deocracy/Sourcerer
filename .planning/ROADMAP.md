@@ -134,6 +134,7 @@ Full phase details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
   3. A substrate-integration nixosTest asserts the engine endpoints and goes green; endpoint-contract breakage fails CI
 **Notes**: **LightRAG is NOT a separate dependency** — it was disassembled into Databasise's own code; only vendored remnants remain, nothing to package separately. **OCR is NOT part of the engine closure** — it ships later as an installable applet through the Phase 15 app layer. Track 2 lives in the Databasise repo, so the no-worktrees rule (which binds only the shell tree) does not serialize it.
 **Descope trigger** (mandatory): any component fighting uv2nix > 3 days → run it as a digest-pinned engine-less OCI unit, no appeal. **This is the sole surviving OCI path in v2.0** under the 2026-08-04 Nix-native decision — first-party only, requires a written reason, and is tracked as debt to be replaced.
+**AI providers**: read `.planning/research/AI-PROVIDER-ARCHITECTURE.md` before planning — embeddings are hosted-default (open-source, self-hosted, own box) with the same pinned model as the local tier; check whether Databasise's embedding path can ride `onnxruntime`/`llama-cpp` before committing to the uv2nix fight.
 **Plans**: TBD
 
 ### Phase 14: Harness Relocation & First Engine-Backed Applet
@@ -147,7 +148,7 @@ Full phase details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
   2. The Windows-side Python sidecar is retired
   3. A wiki read-view applet renders live Databasise data through the seam
   4. The user can open a substrate status panel showing services, versions, and the current generation
-**Notes**: Re-read the `phase02-phase07-ownership-boundary` memory before planning this phase. The status panel deliberately pulls a Phase 18 slice forward — it is the cheapest visible value and the debugging UI every later phase wants.
+**Notes**: Re-read the `phase02-phase07-ownership-boundary` memory before planning this phase. The status panel deliberately pulls a Phase 18 slice forward — it is the cheapest visible value and the debugging UI every later phase wants. **AI providers**: `host.ai()` grows a provider concept here (hosted-default / local-override per capability) — read `.planning/research/AI-PROVIDER-ARCHITECTURE.md`.
 **Descope trigger**: harness relocation destabilizes assistant UX → harness stays host-side one more phase (the seam permits it), relocation re-queued; the wiki slice ships regardless.
 **Plans**: TBD
 **UI hint**: yes
@@ -163,7 +164,7 @@ Full phase details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
   2. The user installs Collabora from the catalog, edits a document in a pane, uninstalls, and a generation rollback restores the prior app set
   3. A `network:none` app demonstrably cannot reach the internet (asserted via the unit's netns) and a unit's `MemoryMax` demonstrably binds
   4. The user sees a computed security score at install time that honestly reflects nspawn/systemd depth (not gVisor)
-**Notes**: Structurally pre-ordered — **compiler and enforcement waves complete and are testable BEFORE any UI wave**. `gpu` is EXCLUDED from the v1 manifest schema (deferred to Platform v2's P14). Collabora's WOPI host is a real plan item, not a parenthetical. App install/update is a cached rebuild — a download, given Phase 9's cache. **Nix-native (2026-08-04):** both catalog apps are already packaged (`services.collabora-online` 25.04.9-4 cached at 13.8 MB; `services.jupyter`), so the compiler has one branch and no image path. Jupyter and spike 011's still-open fractional-DPI pane retest were both deferred here from Phase 8.
+**Notes**: Structurally pre-ordered — **compiler and enforcement waves complete and are testable BEFORE any UI wave**. `gpu` is EXCLUDED from the v1 manifest schema (deferred to Platform v2's P14). Collabora's WOPI host is a real plan item, not a parenthetical. App install/update is a cached rebuild — a download, given Phase 9's cache. **Nix-native (2026-08-04):** both catalog apps are already packaged (`services.collabora-online` 25.04.9-4 cached at 13.8 MB; `services.jupyter`), so the compiler has one branch and no image path. Jupyter and spike 011's still-open fractional-DPI pane retest were both deferred here from Phase 8. **AI providers**: Ollama is a planned catalog app (one-click, GPU variant selection, multi-GB runtime weight download → the manifest schema needs a declared-size fetch-and-verify concept, decided at schema design) — read `.planning/research/AI-PROVIDER-ARCHITECTURE.md`.
 **Descope trigger**: a catalog service resists the hardening baseline → widen its documented exemption set for that app class and record why (per Phase 8's method), rather than dropping the baseline globally. An app that is not in nixpkgs waits until it is packaged — it does not get an ad-hoc image path.
 **Plans**: TBD
 **UI hint**: yes
