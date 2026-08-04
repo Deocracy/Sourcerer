@@ -3,7 +3,7 @@ spike: 010
 name: nixos-wsl-substrate
 type: standard
 validates: "Given the prebuilt NixOS-WSL 2605.7.2 image, when imported as a private custom-named WSL distro and driven entirely via wsl.exe, then it boots, applies a config change with nixos-rebuild switch, and reverts it with --rollback — no terminal interaction inside the guest"
-verdict: PENDING
+verdict: VALIDATED
 related: [011-tauri-multiwebview]
 tags: [nixos-wsl, substrate, wsl, updater, rollback, container-platform, spike-A]
 ---
@@ -77,6 +77,17 @@ total wall-clock (excluding download) inside the ≤10-min UX budget.
 - **Attempt 3 (post-update):** same already-imported distro booted `boot-ok` on 2.7.11 —
   hypothesis CONFIRMED (image was fine; WSL was old). Unregistered and re-ran the full driver
   clean for honest end-to-end timings.
+
+## Source image provenance
+
+NixOS-WSL 2605.7.2 "Yearning Yarara" — `github.com/nix-community/NixOS-WSL` releases,
+asset `nixos.wsl`, sha256
+`e7180ad555fdcb8e1e057e2ef056de467603a5e502ff8531053738371be3f6b9`.
+
+The local `dist/nixos.wsl` (551 MB) was **deleted 2026-08-03** during the
+Windows→NixOS migration cleanup; `dist/` is gitignored, so neither the blob nor its
+`.sha256` sidecar was ever in git. Re-download and verify against the hash above if the
+WSL substrate work resumes on a Windows host.
 
 ## Results
 

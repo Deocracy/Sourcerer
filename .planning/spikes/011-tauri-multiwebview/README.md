@@ -3,7 +3,7 @@ spike: 011
 name: tauri-multiwebview
 type: standard
 validates: "Given a Tauri 2 window with the `unstable` feature, when a full-size shell webview and two external-origin child webviews are composed and one child's bounds are animated, then children render above the shell at DOM-aligned coordinates without jank, and the shell webview stays healthy"
-verdict: PENDING
+verdict: VALIDATED
 related: [010-nixos-wsl-substrate]
 tags: [tauri, multiwebview, unstable, panes, webview2, container-platform, spike-E]
 ---

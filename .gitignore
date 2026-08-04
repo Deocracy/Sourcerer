@@ -13,7 +13,8 @@ dist-ssr
 *.local
 
 # Rust / Tauri build artifacts
-src-tauri/target
+# Bare pattern: matches at any depth, so spike Rust builds are covered too.
+target/
 src-tauri/gen/schemas
 
 # Editor directories and files
@@ -26,3 +27,17 @@ src-tauri/gen/schemas
 *.njsproj
 *.sln
 *.sw?
+
+# Secrets — previously only sidecar/.gitignore covered .env.
+# v2.0 P2 adds real secrets plumbing (sops-nix + systemd LoadCredential).
+.env
+.env.*
+!.env.example
+
+# Per-machine Claude Code settings
+.claude/settings.local.json
+
+# Large downloaded images (spike 010's nixos.wsl was protected only by
+# happening to live under dist/)
+*.wsl
+*.vhdx
