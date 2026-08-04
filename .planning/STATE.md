@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Container Platform
-status: Context gathered — ready for `/gsd-plan-phase 8`
-stopped_at: Phase 8 context gathered; Nix-native rule adopted milestone-wide
-last_updated: "2026-08-04T05:35:17.318Z"
-last_activity: 2026-08-04 — Phase 8 discussed and rescoped; Nix-native decision adopted milestone-wide
+status: Ready to execute — Phase 8 planned (5 plans, 5 waves)
+stopped_at: Phase 8 planned; awaiting execution on the Windows box
+last_updated: "2026-08-05T00:00:00.000Z"
+last_activity: 2026-08-05 — Phase 8 researched, pattern-mapped and planned; 5 plans passed the checker first pass
 progress:
   total_phases: 12
   completed_phases: 0
-  total_plans: 0
+  total_plans: 5
   completed_plans: 0
   percent: 0
 ---
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 
 ## Current Position
 
-Phase: 8 — Spike K: Nix-Native Substrate Service (not started)
-Plan: —
-Status: Context gathered — ready for `/gsd-plan-phase 8`
-Last activity: 2026-08-04 — Phase 8 discussed and rescoped; Nix-native decision adopted milestone-wide
+Phase: 8 — Spike K: Nix-Native Substrate Service (planned, not started)
+Plan: 5 plans in 5 sequential waves (08-01 driver+preflight · 08-02 stock service+control · 08-03 hardening ladder · 08-04 declarative proof+reachability · 08-05 findings)
+Status: Ready to execute — run `/gsd-execute-phase 8` **on the Windows box**
+Last activity: 2026-08-05 — Phase 8 researched, pattern-mapped and planned; 5 plans passed the checker first pass
 Progress: [------------] 0/12 phases
 
 **Two-host reminder:** every v2.0 phase states its execution host in ROADMAP.md. NixOS is the dev host; the Windows box runs Phases 8, 10, 12, 14, 17 and the UAT legs of 11, 15, 18, 19. A phase whose UAT silently assumes the dev host will strand.
