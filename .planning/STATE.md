@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Container Platform
 status: executing
-stopped_at: Completed 09-05-PLAN.md
-last_updated: "2026-08-05T01:29:53.000Z"
+stopped_at: Completed 09-06-PLAN.md (flake substituter + gated publish job + runbook); publish job red pending infra deploy
+last_updated: "2026-08-05T03:47:41.087Z"
 last_activity: 2026-08-04 -- Completed 09-05-PLAN.md
 progress:
   total_phases: 12
   completed_phases: 0
   total_plans: 12
-  completed_plans: 5
-  percent: 42
+  completed_plans: 6
+  percent: 0
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 ## Current Position
 
 Phase: 9 (Flake Foundation & Assurance Chain) — EXECUTING
-Plan: 6 of 7
+Plan: 7 of 7
 Status: Ready to execute
 Last activity: 2026-08-04 -- Completed 09-05-PLAN.md
 
@@ -99,6 +99,7 @@ Progress: [------------] 0/12 phases
 | Phase 09 P02 | 20min | 3 tasks | 7 files |
 | Phase 09 P03 | 35min | 3 tasks tasks | 6 files files |
 | Phase 09 P04 | 65min | 3 tasks | 3 files |
+| Phase 09-flake-foundation-assurance-chain P06 | ~110min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -186,6 +187,9 @@ Recent decisions affecting current work:
 - [Phase 09-05]: Cache hostname is sourcerer-cache.deocracy.org, routed through the existing wp-ohio1 cloudflared tunnel (no new tunnel); out-of-plan addition sourcerer.deocracy.org (static placeholder, user request) folded into the same deploy to restart cloudflared only once
 - [Phase 09-05]: First deploy attempt crash-looped atticd — RS256 needs an RSA PEM keypair, not a random secret; fixed by switching to ATTIC_SERVER_TOKEN_HS256_SECRET_BASE64 and redeploying clean
 - [Phase 09-05]: Public HTTPS not yet verified — sourcerer-cache.deocracy.org and sourcerer.deocracy.org both need a Cloudflare DNS CNAME to the wp-ohio1 tunnel that this session had no credentials to create; cache itself verified working end-to-end over loopback (push + nonzero GC retention confirmed)
+- [Phase 09-06]: ATTIC_TOKEN (not ATTIC_PUSH_TOKEN) used for the publish job — real deployed secret name from Plan 05
+- [Phase 09-06]: Diagnosed and fixed atticd's missing api-endpoint (HTTP 405 on push over the Cloudflare tunnel); fix parked on Deocracy/nixos-hosting branch fix/attic-api-endpoint, pending human merge+deploy
+- [Phase 09-06]: Cache left private for reads (401 on anonymous pull) — public-cache flip requires the same blocked SSH access; documented as Known gap 2 in docs/CACHE-RUNBOOK.md
 
 ### Roadmap Evolution
 
@@ -203,13 +207,15 @@ None yet.
 - [v2.0 Phase 8]: the local `nixos.wsl` image was deleted 2026-08-03 — re-download NixOS-WSL 2605.7.2 and verify sha256 `e7180ad555fdcb8e1e057e2ef056de467603a5e502ff8531053738371be3f6b9`; re-verify the `SourcererSpike` distro is still registered on the Windows box (the "1 day of pure work" budget assumed it was warm).
 - [v2.0 AI, 2026-08-04]: spike B (GPU-in-WSL2) marked resolved on the user's report of a separate successful test — **the evidence location was never recorded**. Get the one-liner (which machine/distro, what ran) before Phase 15 plans the Ollama catalog app's GPU variants. Decision set: `.planning/research/AI-PROVIDER-ARCHITECTURE.md`.
 - [v2.0 Nix-native, 2026-08-04]: the OCI-image app layer is **retired as the default path** milestone-wide. Stale OCI language may still linger in `.planning/research/CONTAINER-PLATFORM-PLAN.md` (P0 spike-K row, P4/P5 bodies) — that file was NOT rewritten, only `CONTAINER-PLATFORM.md` §5 carries a supersession banner. Treat ROADMAP.md + REQUIREMENTS.md as authoritative where they disagree with the plan file.
-- [v2.0 Phase 19]: security baseline is thinner than this file implied — `01-SECURITY.md` is the only SECURITY.md in the repo (Phases 02-07 have none, including the Phase 07 Pi sidecar's real trust boundary), and `workflow.security_enforcement` is `false` so `/gsd-secure-phase` no-ops until flipped back. Worth settling before Phase 15/16 threat-modelling, not after.
+- [v2.0 Phase 19]: security baseline is thinner than this file implied — `01-SECURITY.md` is the only SECURITY.md in the repo (Phases 02-07 have , including the Phase 07 Pi sidecar's real trust boundary), and `workflow.security_enforcement` is `false` so `/gsd-secure-phase` no-ops until flipped back. Worth settling before Phase 15/16 threat-modelling, not after.
 - [v2.0 calendar]: this milestone is wait-dominated (30-90 min closure builds, physical reboot UAT, clean-machine tests, Store certification queues in days). Plan counts hold; wall-clock roughly doubles vs v1.0.
 - [v2.0 Phase 9, 2026-08-04]: `Deocracy/Sourcerer` is now public — GitHub's Dependabot reports 30 open alerts (13 high, 17 medium) across the dependency graph, newly visible now that the repo went public. Not acted on this plan (09-04) per explicit instruction; worth a deliberate look before/alongside Plan 05's Attic cache work, not silently carried forward indefinitely.
 
 - [Phase 2 research flag]: Prototype pointer-event pattern + React 18 StrictMode-safe port strategy needs deep planning research before spec.
 - [Phase 1 verify]: Confirm PerMonitorV2 DPI awareness so 1px borders hold at 125%/150% scaling.
 - [Scaffold]: Verify Databasise's `cargo run` vs `cargo tauri dev` launch landmine does not reproduce in a fresh scaffold.
+- Deocracy/nixos-hosting branch fix/attic-api-endpoint (commit 8ee38d4) needs human merge + ohio1 deploy to fix the CI publish job's HTTP 405
+- Sourcerer Attic cache is private for reads (401 on anonymous pull) — needs 'attic cache configure sourcerer --public' run against ohio1, requires SSH access this session's permissions denied
 
 ## Deferred Items
 
@@ -231,8 +237,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-05T01:29:53.000Z
-Stopped at: Completed 09-05-PLAN.md
+Last session: 2026-08-05T03:47:41.083Z
+Stopped at: Completed 09-06-PLAN.md (flake substituter + gated publish job + runbook); publish job red pending infra deploy
 Resume file: None
 
 ## Operator Next Steps

@@ -143,7 +143,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 09-06-PLAN.md — Cache substituter in flake + publish job gated on green + channel-maintenance runbook [wave 4]
+- [x] 09-06-PLAN.md — Cache substituter in flake + publish job gated on green + channel-maintenance runbook [wave 4]
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
@@ -348,7 +348,7 @@ Join points: 14 needs 10 + 13 · 19 needs 18 + 16
 | 6. Dashboard Assistant & Home | v1.0 | 8/8 | Complete | 2026-07-14 |
 | 7. Assistant Harness Core | v1.0 | 6/6 | Complete | 2026-07-08 |
 | 8. Spike K — Nix-Native Substrate Service | v2.0 | 0/TBD | Not started | - |
-| 9. Flake Foundation & Assurance Chain | v2.0 | 3/7 | In Progress|  |
+| 9. Flake Foundation & Assurance Chain | v2.0 | 6/7 | In Progress|  |
 | 10. Substrate Provisioning & Warden Seam | v2.0 | 0/TBD | Not started | - |
 | 11. Update Channel & Revert | v2.0 | 0/TBD | Not started | - |
 | 12. Distribution Packaging | v2.0 | 0/TBD | Not started | - |

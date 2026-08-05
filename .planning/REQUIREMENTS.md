@@ -12,7 +12,7 @@ Source: `.planning/research/CONTAINER-PLATFORM-PLAN.md` (verifier-revised) + `CO
 
 - [x] **FOUND-01**: Developer can clone the repo on a second machine, enter the dev shell, and build the substrate image from the binary cache without compiling
 - [x] **FOUND-02**: A red CI run (flake check, seed nixosTest, `windows-latest` Tauri job) blocks any publish
-- [ ] **FOUND-03**: Binary-cache hosting is decided, costed, and documented with a channel-maintenance runbook (cache is a production service from P2b on)
+- [x] **FOUND-03**: Binary-cache hosting is decided, costed, and documented with a channel-maintenance runbook (cache is a production service from P2b on)
 
 ### Substrate provisioning (SUB)
 
@@ -117,9 +117,9 @@ Full reasoning and the evidence that forced it:
 | Requirement | Phase | Plan label | Execution host | Status |
 |-------------|-------|------------|----------------|--------|
 | SPIKE-01 | Phase 8 *(deferred)* | P0 | Windows box | Deferred — planned, re-decide at Phase 15 |
-| FOUND-01 | Phase 9 | P1 | NixOS dev host | Pending |
-| FOUND-02 | Phase 9 | P4 | NixOS dev host | Complete — CI green 2026-08-04 |
-| FOUND-03 | Phase 9 | P1 | NixOS dev host | Pending |
+| FOUND-01 | Phase 9 | P6 | NixOS dev host | Wired, not fully live — substituter declared in flake.nix, but the cache is private for reads (401 on anonymous pull); see 09-06-SUMMARY.md Known Gaps |
+| FOUND-02 | Phase 9 | P4 | NixOS dev host | Complete — CI green 2026-08-04; publish job added P6, currently red pending an unrelated infra deploy (09-06-SUMMARY.md) |
+| FOUND-03 | Phase 9 | P6 | NixOS dev host | Documented — runbook + hosting decision complete; see 09-06-SUMMARY.md Known Gaps for the two live-operation caveats |
 | SUB-01 | Phase 10 | P2 | Windows box | Pending |
 | SUB-02 | Phase 10 | P2 | Windows box | Pending |
 | SUB-03 | Phase 10 | P2 | Windows box | Pending |
