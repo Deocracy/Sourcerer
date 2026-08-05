@@ -42,7 +42,53 @@ exist for this cache — it reuses `ohio1`'s existing ones. Marked `N/A
 --pull sourcerer`, then `gh secret set ATTIC_TOKEN --repo Deocracy/Sourcerer`
 with the resulting value. Never commit the token to either repo.
 
-## Known gap: the cache requires authentication for pulls, not just pushes
+## Known gap 1: push fails with HTTP 405 (diagnosed, fixed, not yet deployed)
+
+**`.github/workflows/ci.yml`'s `publish` job currently fails** at the `attic
+push` step with `Error: HTTP 405 Method Not Allowed:` (empty body). Diagnosed
+2026-08-05 while wiring the publish job (this plan, 09-06) — root cause is a
+missing `api-endpoint` setting in `modules/attic.nix` (infra repo), not a
+token, permission, or client-version problem:
+
+1. `atticd`'s config leaves `settings.api-endpoint` unset. When unset, atticd
+   naively synthesizes its own public API URL from the *inbound request it
+   receives*, per its own config template's warning ("shouldn't be used in
+   production!").
+2. The nginx↔atticd leg (`proxyPass = "http://127.0.0.1:8080"`) is plain
+   HTTP, and `recommendedProxySettings`'s `X-Forwarded-Proto` reflects
+   nginx's own (correct, but locally-plain-HTTP) scheme — not the HTTPS the
+   real client used at the Cloudflare edge. So atticd tells clients its API
+   lives at `http://sourcerer-cache.deocracy.org/`, not `https://`.
+3. `attic push` follows that delegated endpoint for its remaining calls
+   (`get-missing-paths`, `upload-path`). Cloudflare 301-redirects the
+   plain-HTTP request to HTTPS at the same path; `reqwest`'s default redirect
+   policy downgrades the follow-up POST/PUT to GET on that redirect — landing
+   on the *correct path* with the *wrong method*. Every `/_api/v1/*` route
+   then correctly (and unhelpfully) answers with a bare, bodyless 405.
+
+Reproduced directly: `curl -X POST http://sourcerer-cache.deocracy.org/_api/v1/get-missing-paths`
+returns a `301` to the `https://` equivalent of the *same path*; `curl -X GET`
+on that same HTTPS path (simulating the redirect-downgraded request) returns
+`405` with `Allow: POST` — matching the client's exact symptom.
+
+**Fix:** set `services.atticd.settings.api-endpoint =
+"https://sourcerer-cache.deocracy.org/";` explicitly, which short-circuits
+the synthesis path entirely regardless of what nginx/cloudflared forward.
+**Parked on `Deocracy/nixos-hosting`'s `fix/attic-api-endpoint` branch**
+(commit `8ee38d4`), not merged — this session's permission environment
+denied both SSH-based production mutation and merging to that repo's `main`
+(merging auto-deploys within ~30 minutes per that repo's own convention, so
+merging is deliberately a human decision, not an agent one).
+
+**To resolve:** review and merge `fix/attic-api-endpoint` into
+`Deocracy/nixos-hosting`'s `main`, wait for/trigger the deploy (`nixos-rebuild
+switch --flake .#ohio1 --target-host root@3.16.61.91`, or let the box's own
+auto-deploy pick it up), then re-run `Deocracy/Sourcerer`'s `publish` job
+(`gh run rerun <run-id> --failed` or push a new commit). Until then, the
+`publish` job is expected to stay red at the push step — `nix-checks` and
+`windows-tauri` are unaffected and green.
+
+## Known gap 2: the cache requires authentication for pulls, not just pushes
 
 **This is a real, currently-unresolved divergence from FOUND-01's "zero prior
 client setup" claim, and it should not be papered over.** Attic caches are
@@ -69,12 +115,8 @@ plan did not execute that command: it requires SSH access to the production
 re-run the `curl` check above to confirm `200` with a `StoreDir` body.**
 Nothing else in this runbook or in `flake.nix` needs to change once that one
 command runs — the substituter URL and public key are already final and
-correct.
-
-Until that happens, CI's `publish` job still works correctly (it
-authenticates via `ATTIC_TOKEN`, which is push+pull scoped), but a developer
-cloning the repo on a second machine will build the substrate image locally
-rather than pulling it.
+correct. This is independent of Known gap 1 above — fixing one does not fix
+the other.
 
 ## nixpkgs bump cadence (D-08)
 

@@ -67,16 +67,25 @@ jobs:
       # Deviations, for the correction.
       #
       # attic-client is pinned to the exact nixpkgs revision that built the
-      # deployed server (Deocracy/nixos-hosting's flake.lock nixpkgs input,
-      # attic-0-unstable-2025-09-24) rather than resolved via the floating
-      # `nixpkgs` flake registry entry. Attic is explicitly WIP upstream and
-      # its client/server API has moved between that revision and the
-      # registry's current nixpkgs-unstable snapshot (attic-0-unstable-
-      # 2026-07-06) — the newer client's push flow hit a route the older
-      # server doesn't register (HTTP 405), a real client/server protocol
-      # mismatch, not a token or config bug. Pinning both to the server's own
-      # revision keeps the protocol identical until the server itself is
-      # upgraded (see docs/CACHE-RUNBOOK.md's WIP caveat).
+      # deployed server (Deocracy/nixos-hosting's flake.lock nixpkgs input)
+      # rather than resolved via the floating `nixpkgs` flake registry entry —
+      # cheap protocol-drift insurance for a crate that is explicitly WIP
+      # upstream, kept even though it did not turn out to be this job's actual
+      # failure (see docs/CACHE-RUNBOOK.md's WIP caveat).
+      #
+      # THE REAL BUG (diagnosed, fixed, not yet deployed — see
+      # docs/CACHE-RUNBOOK.md "Known gap: push fails with HTTP 405"): atticd's
+      # `settings.api-endpoint` is unset on ohio1, so it naively synthesizes
+      # its own public API URL from the request it receives — which arrives
+      # over plain HTTP on the nginx↔atticd loopback leg, not the HTTPS the
+      # real client used. `attic push` follows that delegated http:// URL,
+      # Cloudflare 301-redirects it to https, and reqwest downgrades the
+      # follow-up POST/PUT to GET on the redirect — landing on the right path
+      # with the wrong method, which every route answers with a bare 405.
+      # Fix is parked on `Deocracy/nixos-hosting`'s `fix/attic-api-endpoint`
+      # branch (not merged — merging auto-deploys within 30 min); this job
+      # will keep failing at the push step until that branch is merged and
+      # `ohio1` is rebuilt.
       - run: |
           ATTIC="github:NixOS/nixpkgs/b6018f87da91d19d0ab4cf979885689b469cdd41#attic-client"
           nix run "$ATTIC" -- login sourcerer https://sourcerer-cache.deocracy.org "$ATTIC_TOKEN"
