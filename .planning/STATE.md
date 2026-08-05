@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Container Platform
 status: executing
-stopped_at: Completed 09-04-PLAN.md
-last_updated: "2026-08-04T20:38:00.000Z"
-last_activity: 2026-08-04 -- Completed 09-03-PLAN.md
+stopped_at: Completed 09-05-PLAN.md
+last_updated: "2026-08-05T01:29:53.000Z"
+last_activity: 2026-08-04 -- Completed 09-05-PLAN.md
 progress:
   total_phases: 12
   completed_phases: 0
   total_plans: 12
-  completed_plans: 4
-  percent: 33
+  completed_plans: 5
+  percent: 42
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-08-03)
 ## Current Position
 
 Phase: 9 (Flake Foundation & Assurance Chain) — EXECUTING
-Plan: 5 of 7
+Plan: 6 of 7
 Status: Ready to execute
-Last activity: 2026-08-04 -- Completed 09-03-PLAN.md
+Last activity: 2026-08-04 -- Completed 09-05-PLAN.md
 
 **Phase 8 is DEFERRED, not abandoned (2026-08-05).** It ships no application code; its only
 output is evidence for Phase 15's compiler and Phase 19's audit, so it was mis-slotted as a
@@ -181,6 +181,11 @@ Recent decisions affecting current work:
 - [Phase 09-04]: Task 1 checkpoint resolved approve-both — Deocracy/Sourcerer public, master pushed and set default, placeholder main + stray claude/wiki-graph-llm-b11djf branches deleted
 - [Phase 09-04]: Drift-gate negative test must freeze the resolved toolchain (enter nix develop once, mutate the pin file inside that shell) rather than spawning a fresh nix develop per invocation — a fresh shell re-derives rustToolchain live from the same mutated rust-toolchain.toml via rust-overlay's fromRustupToolchainFile, so actual and expected can never diverge on the Nix side by construction
 - [Phase 09-04]: Fixed a real unhandled-rejection bug in src/host/ai.ts (ai()/loadSession() both construct Channel unguarded inside their Promise executor) rather than routing around it in the test file — surfaced by running npx vitest run in CI for the first time; both functions' own doc comments already promised callers never need a try/catch
+- [Phase 09-05]: Task 1 checkpoint resolved with a DIRECTION CHANGE — Attic cache hosted on Deocracy's existing ohio1 production box (Deocracy/nixos-hosting repo) instead of dedicated AWS EC2+S3; no AWS credentials existed on this host and none were needed
+- [Phase 09-05]: atticd storage is local (root disk), not S3 — ohio1's S3 instance role is scoped to one unrelated backup bucket; migration note left in modules/attic.nix for when a dedicated cache-bucket IAM policy exists
+- [Phase 09-05]: Cache hostname is sourcerer-cache.deocracy.org, routed through the existing wp-ohio1 cloudflared tunnel (no new tunnel); out-of-plan addition sourcerer.deocracy.org (static placeholder, user request) folded into the same deploy to restart cloudflared only once
+- [Phase 09-05]: First deploy attempt crash-looped atticd — RS256 needs an RSA PEM keypair, not a random secret; fixed by switching to ATTIC_SERVER_TOKEN_HS256_SECRET_BASE64 and redeploying clean
+- [Phase 09-05]: Public HTTPS not yet verified — sourcerer-cache.deocracy.org and sourcerer.deocracy.org both need a Cloudflare DNS CNAME to the wp-ohio1 tunnel that this session had no credentials to create; cache itself verified working end-to-end over loopback (push + nonzero GC retention confirmed)
 
 ### Roadmap Evolution
 
@@ -226,10 +231,11 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-04T20:38:00.000Z
-Stopped at: Completed 09-04-PLAN.md
+Last session: 2026-08-05T01:29:53.000Z
+Stopped at: Completed 09-05-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
 
-- Continue Phase 9 execution with 09-05-PLAN.md (Wave 3 — Attic cache on AWS EC2+S3, nonzero GC retention, scoped CI push token)
+- Add two Cloudflare DNS CNAME records (sourcerer-cache.deocracy.org and sourcerer.deocracy.org, both to 06d1e9ae-d2ee-48f8-a91a-ce87f1ce718d.cfargotunnel.com, proxied) — the one remaining manual step from 09-05, needs Cloudflare dashboard/API access not available to this session
+- Continue Phase 9 execution with 09-06-PLAN.md (wire the flake's substituters/extra-trusted-public-keys to https://sourcerer-cache.deocracy.org/sourcerer, consuming the ATTIC_TOKEN/CACHE_URL/ATTIC_CACHE_PUBLIC_KEY secrets set on Deocracy/Sourcerer)

@@ -139,7 +139,7 @@ Plans:
 **Wave 3** *(blocked on Wave 2 completion)*
 
 - [x] 09-04-PLAN.md — Publish repo under Deocracy org + CI (flake check, windows-latest Tauri, drift gate) [wave 3, checkpoint]
-- [ ] 09-05-PLAN.md — Attic cache on AWS EC2+S3, nonzero GC retention, scoped CI push token [wave 3, checkpoint]
+- [x] 09-05-PLAN.md — Attic cache on Deocracy's ohio1 prod box (pivoted from AWS EC2+S3), nonzero GC retention, scoped CI push token [wave 3, checkpoint]
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
