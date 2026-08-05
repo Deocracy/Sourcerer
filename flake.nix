@@ -1,6 +1,20 @@
 {
   description = "Sourcerer: repo-root flake foundation (D-07) — pinned nixpkgs, the one dev shell serving both the Nix substrate world and the conventional Tauri build (D-16), and the near-empty public lib/overlay surface downstream repos consume (D-09)";
 
+  # FOUND-01: the Sourcerer Attic cache. A fresh clone's first `nix build`
+  # already knows where to pull from — Nix prompts once to accept a flake's
+  # `nixConfig` (or the caller passes `--accept-flake-config`, or is already
+  # in `trusted-users`); that one-time prompt is the entire client setup.
+  #
+  # This is a plain substituter URL + public key, nothing more — that is the
+  # property D-01 chose Attic for: replacing this one block is the entire
+  # migration path if the cache ever has to move off Attic/ohio1/AWS. Keep
+  # the coupling visible here, not buried in a README setup step.
+  nixConfig = {
+    extra-substituters = [ "https://sourcerer-cache.deocracy.org/sourcerer" ];
+    extra-trusted-public-keys = [ "sourcerer:M1yBgCsgFqzqQr6R/53Efq0JzZqPqbu+LmHOHYqpr0o=" ];
+  };
+
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05"; # D-08
     rust-overlay.url = "github:oxalica/rust-overlay";
