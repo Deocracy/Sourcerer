@@ -65,8 +65,21 @@ jobs:
       # secret ATTIC_TOKEN (not ATTIC_PUSH_TOKEN, which this plan's own
       # drafting assumed before the cache existed) — see this plan's SUMMARY,
       # Deviations, for the correction.
+      #
+      # attic-client is pinned to the exact nixpkgs revision that built the
+      # deployed server (Deocracy/nixos-hosting's flake.lock nixpkgs input,
+      # attic-0-unstable-2025-09-24) rather than resolved via the floating
+      # `nixpkgs` flake registry entry. Attic is explicitly WIP upstream and
+      # its client/server API has moved between that revision and the
+      # registry's current nixpkgs-unstable snapshot (attic-0-unstable-
+      # 2026-07-06) — the newer client's push flow hit a route the older
+      # server doesn't register (HTTP 405), a real client/server protocol
+      # mismatch, not a token or config bug. Pinning both to the server's own
+      # revision keeps the protocol identical until the server itself is
+      # upgraded (see docs/CACHE-RUNBOOK.md's WIP caveat).
       - run: |
-          nix run nixpkgs#attic-client -- login sourcerer https://sourcerer-cache.deocracy.org "$ATTIC_TOKEN"
-          nix run nixpkgs#attic-client -- push sourcerer ./result
+          ATTIC="github:NixOS/nixpkgs/b6018f87da91d19d0ab4cf979885689b469cdd41#attic-client"
+          nix run "$ATTIC" -- login sourcerer https://sourcerer-cache.deocracy.org "$ATTIC_TOKEN"
+          nix run "$ATTIC" -- push sourcerer ./result
         env:
           ATTIC_TOKEN: ${{ secrets.ATTIC_TOKEN }}
