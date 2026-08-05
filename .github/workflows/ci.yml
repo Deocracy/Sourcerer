@@ -43,3 +43,30 @@ jobs:
       - run: npx vitest run
       - run: npm run verify:fonts
       - run: npm run tauri build
+
+  # D-03: until Phase 11 builds the real update channel, pushing the built
+  # closure to the Attic cache IS the publish step for this project. `needs:`
+  # below is what makes "a red CI run blocks any publish" (FOUND-02) literally
+  # true rather than a policy statement — if a future check is added to this
+  # workflow, add it to this list too.
+  publish:
+    needs: [nix-checks, windows-tauri]
+    if: success() && github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: DeterminateSystems/nix-installer-action@v22
+      # The closure itself, not the tarball builder — the tarball builder
+      # needs root to run, and its inputs are already inside this closure.
+      - run: nix build .#substrate-system
+      # Plan 05 minted and stored this push-scoped token as the repository
+      # secret ATTIC_TOKEN (not ATTIC_PUSH_TOKEN, which this plan's own
+      # drafting assumed before the cache existed) — see this plan's SUMMARY,
+      # Deviations, for the correction.
+      - run: |
+          nix run nixpkgs#attic-client -- login sourcerer https://sourcerer-cache.deocracy.org "$ATTIC_TOKEN"
+          nix run nixpkgs#attic-client -- push sourcerer ./result
+        env:
+          ATTIC_TOKEN: ${{ secrets.ATTIC_TOKEN }}
