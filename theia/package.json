@@ -23,7 +23,9 @@
     "node": ">=22"
   },
   "devDependencies": {
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "@types/react": "18.3.31",
+    "@types/react-dom": "18.3.7"
   },
   "scripts": {
     "build:extensions": "yarn --cwd extensions/branding build",
