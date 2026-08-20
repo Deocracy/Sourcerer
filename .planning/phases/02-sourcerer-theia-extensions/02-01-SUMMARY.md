@@ -177,3 +177,7 @@ None -- no external service configuration required.
 
 ## Next Phase Readiness
 `scripts/lib/firefox-bidi.mjs` is ready for Plan 02 (which extends it with a screenshot helper for CUST-01) and for Plans 03/05 to import unchanged. The `extensions/*` workspace layout and `theia.frontend.config` key names are now load-bearing for the rest of the phase -- both `@sourcerer/customize` and `@sourcerer/tab-uris` (Plans 02+) follow the same package shape proven here. No blockers.
+
+## Self-Check: PASSED
+
+All 8 created/output files confirmed present on disk; both commits (`7703f20` task, `fe65acd` docs) confirmed in `git log`.
