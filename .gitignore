@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Theia / TypeScript build output
+lib/
+src-gen/
+gen-webpack*.js
+*.tsbuildinfo
+.eslintcache
+
+# Theia runtime
+plugins/
+.theia/
+
+# Electron packaging output
+applications/electron/dist/
+applications/electron/*.AppImage
+applications/electron/*.deb
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Nix build outputs / direnv state
+result
+result-*
+.direnv/
+
+# Editor
+.idea
+.DS_Store
+*.sw?
+
+# Per-machine Claude Code settings
+.claude/settings.local.json
