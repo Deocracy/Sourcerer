@@ -172,3 +172,7 @@ None - no external service configuration required. The plan's `user_setup` preco
 ---
 *Phase: 01-build-infrastructure*
 *Completed: 2026-08-20*
+
+## Self-Check: PASSED
+
+All 9 declared artifacts found on disk (`flake.nix`, `flake.lock`, `.envrc`, `.mozconfig`, `scripts/smoke-theia.sh`, `scripts/smoke-firefox.sh`, `scripts/toolchain-baseline.sh`, `toolchain-baseline.txt`, this SUMMARY). All 4 commit hashes (`a2920cc`, `bf29024`, `899325c`, `650e91a`) confirmed present in `git log --oneline --all`.
