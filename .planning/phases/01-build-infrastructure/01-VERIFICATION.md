@@ -117,3 +117,79 @@ The one open item is criterion 4: the claim that a second fresh clone reached bo
 
 _Verified: 2026-08-20T18:15:00Z_
 _Verifier: Claude (gsd-verifier)_
+
+---
+
+## Addendum — criterion 4 resolved after the verification pass
+
+**Status change: `human_needed` → GOAL ACHIEVED.**
+
+The verifier correctly declined to pass criterion 4: the scratch clone from
+plan 01-04 had already been deleted, so its evidence could not be inspected or
+reproduced. It also flagged a second, separate concern — that even taking the
+claim at face value, `docs/BUILD.md` substituted `mach configure` for a full
+`./mach build`, so no Firefox binary had ever been produced on a fresh clone.
+
+Both were closed by re-running the check independently rather than accepting
+the SUMMARY's word.
+
+### Run 1 — documented procedure, verbatim (chain of custody)
+
+Fresh clone at `/home/chris/coding/sourcerer-verify2`, every command taken
+from `docs/BUILD.md` "Verifying a fresh clone":
+
+| Step | Result |
+|---|---|
+| `./scripts/fetch-upstream.sh` | rc=0, 554s, 5.6 G, HEAD `468445e58d3acc7e4e059be99856daff1f2ae8f1` |
+| `./scripts/smoke-theia.sh` | rc=0 in 14s, node-pty spawn proof PASS |
+| `mach configure` | rc=0 in 63s, `Configure complete!` |
+| toolchain baseline diff | rc=0 — identical to `toolchain-baseline.txt` |
+| `mach bootstrap` invocations | 0 |
+
+The fresh clone's `upstream` HEAD matches the pinned tag's commit exactly
+(`git rev-parse refs/tags/FIREFOX_153_1_0esr_RELEASE^{commit}`). Zero
+undocumented steps were needed.
+
+### Run 2 — full build, closing the substitution gap
+
+The verifier's second concern was well founded, and the phase's own history
+proves it rather than merely suggesting it. Of the three toolchain defects
+plan 01-03 found, the `AS`/`LD` bintools-wrapper defect surfaced **during
+compilation** — on the first `.s` file, NSPR's `os_Linux_x86_64.s` — after
+configure had already succeeded. A configure-only check demonstrably would not
+have caught it, so `mach configure` is a fast proxy, not an equivalent.
+
+A full `./mach build` was therefore run on the same fresh clone:
+
+| Assertion | Result |
+|---|---|
+| `./mach build` | rc=0 in 3641s (~61 min) |
+| `mach bootstrap` invocations | 0 |
+| `objdir/dist/bin/firefox` | present, 2,419,424 bytes |
+| `--version` | `Mozilla Firefox 153.1.0esr` |
+| `objdir` size | 14 G |
+| repo `git status --porcelain` | empty — no build spill |
+| `upstream/` `git status --porcelain` | empty — Gecko untouched |
+
+Criterion 4 as literally written — "a second fresh clone reaches both of the
+above with the documented commands and no manual steps outside the shells" —
+is satisfied. `docs/BUILD.md` was corrected to describe the substitution
+honestly as a fast proxy and to record this full run.
+
+### Code-review findings closed since the verification pass
+
+`01-REVIEW.md` produced 1 Critical and 3 Warnings; all four are fixed and
+verified in both directions:
+
+- **CR-01** — `smoke-theia.sh` tracked the wrong PID, so an orphaned backend on
+  `:3000` could make a later run print PASS without proving the current build
+  boots. Fixed with `setsid` + process-group kill + a pre-flight refusal when
+  `:3000` is already bound. Verified: a normal run still exits 0 and leaves the
+  port free; with a decoy server planted on `:3000` the script now exits 1
+  where it previously reported PASS. (`0453251`)
+- **WR-01/02/03** — `fetch-upstream.sh` accepted a dirty `upstream/` as correct
+  (contradicting the "Gecko is never modified" hard rule), gave no remediation
+  for a broken checkout, and `MOZBUILD_STATE_PATH` was anchored to
+  invocation-time `$PWD`. All fixed and verified. (`64b104b`)
+
+The 3 Info items were accepted as-is and are recorded in `01-REVIEW.md`.
