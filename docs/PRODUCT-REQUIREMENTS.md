@@ -1,62 +1,91 @@
-# Sourcerer — Product Requirements (the Theia direction)
+# Sourcerer — Product Requirements
 
-Status: CONFIRMED 2026-08-19. Product-level requirements for the Theia-based
-Sourcerer. GUI design is explicitly out of scope until after v4.0 — the
-v4.0 GUI is default Theia, unchanged.
+Status: CONFIRMED 2026-08-19. Corrected 2026-08-19: an earlier draft of this
+document described v4.0 as an Electron build of Theia IDE and called the
+Firefox-fork substrate "abandoned". That decision was never made — the
+framing was a drafting error. The authoritative architecture is
+`docs/research/sourcerer-architecture.md` (same day), which replaces the
+earlier Electron plan. GUI design beyond what R1/R2 require is out of scope
+until after v4.0.
+
+**What Sourcerer is:** a Firefox-ESR fork under our own branding, hosting
+Theia IDE. In v4.0 **Theia is the only GUI** — the fork boots, supervises a
+bundled Theia backend on localhost, and presents Theia full-window. The
+custom browser GUI (unified tab strip, toolbar, panels) comes in post-4.0
+milestones, and v4.0's internals must be built so those milestones land
+without rework.
 
 **Milestone mapping:** `.planning/` tracks milestones, starting fresh at
-**v4.0 = Sourcerer 4.0** — the first shipped rebranded product, covering R1,
-R2, R3, R4 and R4a. Its opening work is the groundwork of R2: forking the
-theia-ide product template and getting it building and running on the NixOS
-host. Versions v1.0–v3.0 are the retired Tauri era, frozen with full git
-history at `/home/chris/Vibe Coding/Sourcerer-Archived`. The background
-research that informed this document is archived there under `docs/research/`;
-it was written against a since-abandoned Firefox-fork substrate, so treat any
-of its target-specific reasoning as void.
+**v4.0 = Sourcerer 4.0**, covering R1, R2, R3, R4 and R4a. In terms of the
+architecture sketch's build order, v4.0 is milestone 1 (fork boots under our
+branding) plus milestone 3's Theia integration (supervisor + Theia surface),
+with milestone 2's custom tab strip deferred — Theia full-window is the whole
+GUI. Versions v1.0–v3.0 are the retired Tauri era, frozen with full git
+history at `/home/chris/Vibe Coding/Sourcerer-Archived`. The research under
+`docs/research/` is **current and authoritative** for this direction —
+`sourcerer-architecture.md` above all.
 
 ## v4.0 requirements
 
-- **R1 — Rebrand.** The product is Eclipse Theia IDE renamed to
-  **Sourcerer**: application name, window title, icon/logo, welcome tab,
-  about dialog, installer name. No other GUI change from Theia default.
-  It replaces the earlier Tauri-based Sourcerer workbench as the product
-  carrying that name ("Power Browser" was a placeholder name).
-- **R2 — Own build.** We build and package it ourselves from Theia sources
-  (own npm workspace pinned to a Theia release), producing an installable
-  **Electron desktop app** — the same target as stock Theia IDE. Develop on
-  Linux; Windows/macOS packaging follows. The specific Theia tag to pin is
-  decided at build start (local sources are at v1.74.1).
-- **R3 — Extension-based internals.** Everything we add is our own Theia
-  extensions (`@sourcerer/*` packages) composed into the product. We do not fork
-  or patch Theia core; upstream Theia releases can be adopted by re-pinning.
-- **R4 — Incremental growth.** Parts are added as we go, each as a separate
-  extension, without rework of what came before. The internals must be
-  designed now to support the post-4.0 requirements below.
+- **R1 — Rebrand.** The product ships as **Sourcerer**: application name,
+  window title, icon/logo, installer name, plus Theia-side branding (welcome
+  tab, about dialog). A full rename is mandatory anyway — Mozilla trademark
+  rules require it for any distributed fork.
+- **R2 — Own build.** A Firefox-ESR fork we build and package ourselves,
+  structured Zen-style: `upstream/` (pinned ESR tag) + `patches/` +
+  `sourcerer/` (our tree), with CI that rebases on each ESR point release and
+  fails loudly on conflicts. Bundled Node runs the Theia **browser-target**
+  backend as a supervised child process on token-authenticated localhost
+  (`TheiaService.sys.mjs`: spawn, health-check, restart, kill on quit).
+  Theia loads full-window as the sole GUI. The Theia app is its own npm
+  workspace pinned to a Theia release (tag decided at build start; local
+  reference sources are v1.74.1), shipped as a versioned sidecar in lockstep
+  with the browser build. Develop on Linux; Windows/macOS packaging follows.
+- **R3 — Extension-based internals, both sides.**
+  - *Theia side:* everything we add is our own Theia extensions
+    (`@sourcerer/*` packages). We do not fork or patch Theia core; upstream
+    Theia releases are adopted by re-pinning.
+  - *Firefox side:* our code touches Firefox internals **only** through one
+    anti-corruption layer (`SourcererAPI.sys.mjs`), with every internal-API
+    touchpoint catalogued in `sourcerer/INTERNAL-APIS.md` and re-tested each
+    ESR update. Gecko itself is never modified.
+- **R4 — Incremental growth.** Parts are added as we go without rework of
+  what came before. The v4.0 internals must not preclude the post-4.0
+  requirements below — in particular the Theia surface must be embeddable
+  under a future chrome-owned tab model (the mirror/proxy bridge pattern),
+  not welded to full-window presentation.
 - **R4a — GUI customization bridge ships in v4.0.** One build-once Theia
   extension (`@sourcerer/customize`) exposing a runtime CSS layer
-  (userChrome.css equivalent) and a dev-flagged privileged JS layer, so all
-  post-4.0 GUI work (adding, changing, removing components) happens at
-  runtime without a rebuild. It changes nothing visually by default —
-  R1's "no GUI change" holds. Known limits accepted: webview interiors and
-  codicon glyphs — both to be re-verified against the Electron build when R4a
-  is planned. Heavier permanent features still land as compiled
-  `@sourcerer/*` extensions.
+  (userChrome.css equivalent) and a dev-flagged privileged JS layer, so
+  post-4.0 Theia GUI work happens at runtime without a rebuild. It changes
+  nothing visually by default. Known limits (webview interiors, codicon
+  glyphs) to be re-verified against the Firefox-hosted build when R4a is
+  planned.
 
-## Post-4.0 requirements (internals must not preclude them)
+## Post-4.0 requirements (v4.0 internals must not preclude them)
 
-- **R5 — Web browsing as first-class tabs** — web pages and editors as peers
-  in one tab model: URL bar, back/forward, web-view tabs. Achievable as a
-  compiled `@sourcerer/*` extension on the v4.0 base; does NOT include Firefox
-  extension support (that is R7 — WebExtensions need Firefox's toolkit host,
-  which no Theia extension can provide).
-- **R6 — Fully customizable GUI** — every visible element addable,
-  changeable, removable, ideally at runtime without a rebuild.
-- **R7 — Real-browser capabilities** — DRM playback, WebExtensions,
-  site isolation (the Firefox-fork research path).
-- **R8 — AI integration** — Theia AI is already in the framework; our own
-  agents/config later.
-- **R9 — Extension distribution** — plugin registry (self-hosted Open VSX)
+- **R5 — Web browsing as first-class tabs.** The unified tab strip: web pages
+  and Theia editors as peers in one chrome-owned tab model (architecture
+  sketch milestones 2 and 4 — `sourcerer.xhtml`, `TabModel`,
+  `@sourcerer/browser-bridge`).
+- **R6 — Fully customizable GUI.** Every visible element addable, changeable,
+  removable, ideally at runtime without a rebuild.
+- **R7 — Real-browser capabilities.** Widevine DRM, the WebExtensions host,
+  and per-site process isolation are **inherited from the Firefox substrate
+  on day one** — this is why the substrate is Firefox, not Electron. The
+  post-4.0 work is surfacing them in our GUI: re-hosted extension
+  buttons/popups, permission prompts, downloads (sketch milestone 5).
+- **R8 — AI integration.** Theia AI is already in the framework; the Firefox
+  AI Runtime (local inference from privileged JS) is inherited from the
+  substrate. Our own agents/config later.
+- **R9 — Extension distribution.** Plugin registry (self-hosted Open VSX)
   when third-party distribution matters.
+
+## Costs accepted with this direction
+
+Perpetual ESR rebase discipline (~4-week cadence, one major rebase per ESR
+year) · we own updater infrastructure and an update channel · v4.0 is a
+months-scale build, not a weeks-scale rebrand.
 
 ## Open items (not yet requirements)
 
@@ -66,8 +95,9 @@ of its target-specific reasoning as void.
 
 ## Explicitly out of scope for now
 
-- Any GUI change beyond the rename (R1). GUI components are a post-4.0
-  discussion. Earlier GUI sketches are archived, not decisions.
+- Any custom browser GUI in v4.0 — no tab strip, no toolbar, no panels.
+  Theia full-window is the entire v4.0 interface. Earlier GUI sketches are
+  archived, not decisions.
 - Choosing between internal-design options — internals that satisfy R3/R4
   and don't preclude R5–R9 can be designed pre-build, but that design is a
   separate document, not this one.

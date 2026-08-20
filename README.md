@@ -1,30 +1,36 @@
 # Sourcerer
 
-Sourcerer is Eclipse Theia IDE, rebranded and extended into a research
-workbench. Version 4.0 is the first shipped rebrand: the Theia IDE product
-template renamed, packaged as an Electron desktop app, with everything we add
-living in our own `@sourcerer/*` Theia extensions.
+Sourcerer is a Firefox-ESR fork under its own branding, hosting Eclipse Theia
+IDE. Version 4.0 ships Theia as the only GUI: the fork boots under the
+Sourcerer name, supervises a bundled Theia backend on localhost, and presents
+Theia full-window. The custom browser interface — a unified tab strip where
+web pages and editors are peers — comes in later milestones, and v4.0 is built
+so they land without rework.
 
 **Status:** pre-build. This repository was reset to a clean slate on 2026-08-19.
-Requirements live in [docs/PRODUCT-REQUIREMENTS.md](docs/PRODUCT-REQUIREMENTS.md).
+Requirements live in [docs/PRODUCT-REQUIREMENTS.md](docs/PRODUCT-REQUIREMENTS.md);
+the architecture is [docs/research/sourcerer-architecture.md](docs/research/sourcerer-architecture.md).
 
 ## What v4.0 is
 
-- **R1 — Rebrand.** Application name, window title, icon, welcome tab, about
-  dialog, installer name. No other GUI change from Theia default.
-- **R2 — Own build.** Built from Theia sources against a pinned release,
-  producing an installable Electron desktop app. Linux first.
-- **R3 — Extension-based internals.** Everything we add is a `@sourcerer/*`
-  Theia extension. Theia core is never forked or patched, so upstream releases
-  are adopted by re-pinning.
-- **R4 — Incremental growth.** Parts are added one extension at a time.
-- **R4a — GUI customization bridge.** One extension exposing a runtime CSS layer
-  and a dev-flagged privileged JS layer. Changes nothing visually by default.
+- **R1 — Rebrand.** Application name, window title, icon, installer name, and
+  Theia-side branding (welcome tab, about dialog).
+- **R2 — Own build.** A Zen-style Firefox-ESR fork (pinned ESR tag + patches +
+  our tree) with a bundled Node + Theia browser-target backend as a supervised
+  localhost sidecar. Theia loads full-window as the sole GUI. Linux first.
+- **R3 — Extension-based internals.** Theia-side additions are `@sourcerer/*`
+  Theia extensions — Theia core is never forked or patched. Firefox-side code
+  touches internals only through one anti-corruption layer.
+- **R4 — Incremental growth.** Parts are added without rework of what came
+  before; the future chrome-owned tab model must stay landable.
+- **R4a — GUI customization bridge.** One Theia extension exposing a runtime
+  CSS layer and a dev-flagged privileged JS layer. Changes nothing visually by
+  default.
 
-Post-4.0 requirements — web browsing as first-class tabs, full GUI
-customization, real-browser capabilities, AI integration, extension
-distribution — are recorded in the requirements document so the internals do
-not preclude them.
+Post-4.0 requirements — the unified tab strip, full GUI customization,
+surfacing the inherited real-browser capabilities (Widevine DRM, WebExtensions,
+site isolation), AI integration, extension distribution — are recorded in the
+requirements document so the internals do not preclude them.
 
 ## History
 
