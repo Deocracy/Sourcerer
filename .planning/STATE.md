@@ -4,16 +4,16 @@ milestone: v4.0
 milestone_name: milestone
 current_phase: 1
 current_phase_name: Build Infrastructure
-status: executing
-stopped_at: Completed 01-03-PLAN.md
-last_updated: "2026-08-20T17:51:59.824Z"
+status: verifying
+stopped_at: Completed 01-04-PLAN.md
+last_updated: "2026-08-20T18:08:19.282Z"
 last_activity: 2026-08-20
 last_activity_desc: Roadmap created, 26/26 v1 requirements mapped
 progress:
   total_phases: 1
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 # Project State
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 
 Phase: 1 (Build Infrastructure) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-08-20 — Phase 1 execution started
 
-Progress: [████████░░] 75%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -61,6 +61,7 @@ Progress: [████████░░] 75%
 | Phase 01 P01 | 10min | 3 tasks | 9 files |
 | Phase 01 P02 | 23min | 2 tasks | 5 files |
 | Phase 1 P3 | 2h18min | 2 tasks | 4 files |
+| Phase 01 P04 | 20min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -78,6 +79,8 @@ Recent decisions affecting current work:
 - [Phase ?]: firefox devShell now overrides stdenv to pkgs.llvmPackages.stdenv (clang) -- inputsFrom copies nativeBuildInputs/buildInputs from firefox-esr-153-unwrapped but not its own buildStdenv, and the real derivation builds under overrideCC llvmPackages.stdenv
 - [Phase ?]: firefox shellHook unsets AS/LD/NM/AR/RANLIB/OBJDUMP/OBJCOPY/READELF/SIZE/STRINGS/STRIP -- nixpkgs bintools-wrapper exports these as bare tool names, which Firefox's moz.configure treats as an explicit override and uses without routing ASFLAGS through the compiler driver
 - [Phase ?]: fetch-upstream.sh re-run identity check compares resolved commit SHAs, not git describe --tags --exact-match -- the mirror tags this release with both _RELEASE and _BUILD1 on the identical commit, and describe's tie-break is non-deterministic
+- [Phase ?]: docs/BUILD.md documents the --ignore-scripts + explicit drivelist node-gyp rebuild install sequence, with the audit reason, so it is never simplified back to a plain yarn install
+- [Phase ?]: scripts/fetch-upstream.sh is documented as run directly from the repo root (needs only git, already on host), not wrapped in nix develop .#firefox
 
 ### Pending Todos
 
@@ -99,6 +102,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-20T17:51:59.815Z
-Stopped at: Completed 01-03-PLAN.md
+Last session: 2026-08-20T18:08:19.273Z
+Stopped at: Completed 01-04-PLAN.md
 Resume file: None

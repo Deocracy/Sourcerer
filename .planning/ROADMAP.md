@@ -43,7 +43,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Native modules compile inside the `theia` shell against the single pinned Node 22 version — the node-gyp path is proven by a real build, not assumed
   4. A second fresh clone on the NixOS host reaches both of the above with the documented commands and no manual steps outside the shells
 
-**Plans**: 3/4 plans executed
+**Plans**: 4/4 plans executed
 
 Plans:
 **Wave 1**
@@ -57,7 +57,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 01-04-PLAN.md — `docs/BUILD.md` + README pointer, proven by a second fresh clone (success criterion 4)
+- [x] 01-04-PLAN.md — `docs/BUILD.md` + README pointer, proven by a second fresh clone (success criterion 4)
 
 ### Phase 2: Sourcerer Theia Extensions
 
@@ -145,7 +145,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 (2 and 3 may run in p
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Build Infrastructure | 3/4 | In Progress|  |
+| 1. Build Infrastructure | 4/4 | In Progress|  |
 | 2. Sourcerer Theia Extensions | 0/TBD | Not started | - |
 | 3. Branded Firefox Fork | 0/TBD | Not started | - |
 | 4. Full-Window Theia Shell | 0/TBD | Not started | - |
