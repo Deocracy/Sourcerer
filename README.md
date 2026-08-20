@@ -26,6 +26,10 @@ the architecture is [docs/research/sourcerer-architecture.md](docs/research/sour
 - **R4a — GUI customization bridge.** One Theia extension exposing a runtime
   CSS layer and a dev-flagged privileged JS layer. Changes nothing visually by
   default.
+- **R4b — Every Theia tab has a URL.** All widget types (settings, terminals,
+  chat views, …) become URI-addressable under their own schemes, opening
+  through `OpenerService` — the reusable prerequisite for the future unified
+  URL bar and tab strip.
 
 Post-4.0 requirements — the unified tab strip, full GUI customization,
 surfacing the inherited real-browser capabilities (Widevine DRM, WebExtensions,

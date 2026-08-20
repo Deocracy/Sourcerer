@@ -16,7 +16,7 @@ milestones, and v4.0's internals must be built so those milestones land
 without rework.
 
 **Milestone mapping:** `.planning/` tracks milestones, starting fresh at
-**v4.0 = Sourcerer 4.0**, covering R1, R2, R3, R4 and R4a. In terms of the
+**v4.0 = Sourcerer 4.0**, covering R1, R2, R3, R4, R4a and R4b. In terms of the
 architecture sketch's build order, v4.0 is milestone 1 (fork boots under our
 branding) plus milestone 3's Theia integration (supervisor + Theia surface),
 with milestone 2's custom tab strip deferred — Theia full-window is the whole
@@ -61,6 +61,20 @@ history at `/home/chris/Vibe Coding/Sourcerer-Archived`. The research under
   nothing visually by default. Known limits (webview interiors, codicon
   glyphs) to be re-verified against the Firefox-hosted build when R4a is
   planned.
+- **R4b — Every Theia tab has a URL (ships in v4.0).** Universal tab
+  addressability inside Theia: every widget type — settings, terminals, chat
+  views, and any other non-document widget — implements
+  `Navigatable.getResourceUri()` under its own scheme (`settings://`,
+  `terminal://`, `chat://`, …), with a `NavigatableWidgetOpenHandler`
+  registered per scheme so `OpenerService.open(uri)` creates or focuses the
+  widget. Addressing works both directions: a tab reports its URL, and a URL
+  opens its tab. Implemented as `@sourcerer/*` extension(s) on stable public
+  Theia APIs (decision D4 in
+  `docs/research/tab-management-research/05-theia-shell-customization.md`).
+  URL semantics per type (what the address encodes, whether it is typeable)
+  are decided during implementation — cheap now, miserable later. This is
+  the reusable prerequisite for the post-4.0 chrome URL bar and unified tab
+  strip (R5), and is identical work regardless of where that bar lands.
 
 ## Post-4.0 requirements (v4.0 internals must not preclude them)
 
