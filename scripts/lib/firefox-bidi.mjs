@@ -117,6 +117,79 @@ export async function waitFor(evaluate, expression, { timeoutMs = 15000, interva
 }
 
 /**
+ * Launch `objdir/dist/bin/firefox --headless --screenshot` against `url` and
+ * write a PNG to `outputPath`. This is a separate, simpler launch mode from
+ * `withFirefoxPage`'s BiDi one -- no remote agent, no socket, just
+ * `--screenshot` and wait for the process to exit -- kept a sibling export
+ * rather than bending the BiDi helper to do both. Plan 05's pixel comparison
+ * is the consumer; this file has no caller of its own.
+ *
+ * Shares the same cleanup discipline as `withFirefoxPage`: the process is
+ * killed if it outlives `timeoutMs`, and the temporary profile is removed
+ * unconditionally in a `finally`, on the success path, the timeout path, and
+ * on SIGINT.
+ */
+export async function captureScreenshot(url, outputPath, { windowSize = '800,600', timeoutMs = 15000 } = {}) {
+    if (!existsSync(FIREFOX_BIN)) {
+        throw new Error(
+            `firefox-bidi: ${FIREFOX_BIN} does not exist. Run the Phase 1 Firefox build first ` +
+            `(see docs/BUILD.md "Firefox half") -- a fresh clone has no objdir/ until that build runs.`
+        );
+    }
+
+    const profileDir = await mkdtemp(join(tmpdir(), 'sourcerer-firefox-bidi-'));
+    let sigintHandler;
+
+    const child = spawn(FIREFOX_BIN, [
+        '--headless',
+        '--profile', profileDir,
+        '--window-size', windowSize,
+        '--screenshot', outputPath,
+        url,
+    ], { stdio: ['ignore', 'ignore', 'pipe'] });
+
+    const cleanup = async () => {
+        if (sigintHandler) process.off('SIGINT', sigintHandler);
+        if (!child.killed && child.exitCode === null) {
+            child.kill('SIGTERM');
+            await new Promise(resolve => {
+                const timer = setTimeout(() => {
+                    if (child.exitCode === null) child.kill('SIGKILL');
+                    resolve();
+                }, 5000);
+                child.once('exit', () => { clearTimeout(timer); resolve(); });
+            });
+        }
+        await rm(profileDir, { recursive: true, force: true });
+    };
+
+    sigintHandler = () => {
+        cleanup().finally(() => process.exit(130));
+    };
+    process.on('SIGINT', sigintHandler);
+
+    try {
+        await new Promise((resolve, reject) => {
+            const timer = setTimeout(() => {
+                reject(new Error(`captureScreenshot: firefox did not exit within ${timeoutMs}ms`));
+            }, timeoutMs);
+            child.once('exit', code => {
+                clearTimeout(timer);
+                if (code === 0) resolve();
+                else reject(new Error(`captureScreenshot: firefox exited with code ${code}`));
+            });
+            child.once('error', err => {
+                clearTimeout(timer);
+                reject(err);
+            });
+        });
+        return outputPath;
+    } finally {
+        await cleanup();
+    }
+}
+
+/**
  * Launch `objdir/dist/bin/firefox` headless against `url`, connect over
  * WebDriver BiDi, and invoke `callback({ evaluate, waitFor })`. Guarantees
  * Firefox is killed and its temporary profile removed before returning or
