@@ -20,7 +20,7 @@ Requirements for v4.0. Each maps to roadmap phases.
 - [ ] **BRAND-02**: Full replacement `branding/` tree ships (icons, strings) containing no Mozilla trademark assets
 - [ ] **BRAND-03**: Profile directory is Sourcerer's own (falls out of `MOZ_APP_NAME`); verified to never touch `~/.mozilla/firefox` on a machine with real Firefox installed
 - [ ] **BRAND-04**: Auto-update is disabled and no Mozilla update or telemetry endpoint is reachable from a running build
-- [x] **BRAND-05**: Theia-side branding (welcome/getting-started widget, About dialog, window/tab title, favicon) ships as a `@sourcerer/*` extension via DI rebind — no Theia core patch
+- [ ] **BRAND-05**: Theia-side branding (welcome/getting-started widget, About dialog, window/tab title, favicon) ships as a `@sourcerer/*` extension via DI rebind — no Theia core patch
 - [ ] **BRAND-06**: Dev builds carry a visible indicator (title suffix or icon badge) distinguishing them from future packaged releases
 
 ### Sidecar Supervision
@@ -42,7 +42,7 @@ Requirements for v4.0. Each maps to roadmap phases.
 ### Customization Bridge (R4a)
 
 - [ ] **CUST-01**: `@sourcerer/customize` loads a runtime user CSS layer after Theia's own styles; empty by default with zero visual change
-- [x] **CUST-02**: The privileged JS layer is exposed only when a dev flag is set; with the flag off, no privileged binding exists at runtime
+- [ ] **CUST-02**: The privileged JS layer is exposed only when a dev flag is set; with the flag off, no privileged binding exists at runtime
 
 ### Universal Tab URIs (R4b)
 
@@ -112,9 +112,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | BUILD-01 | Phase 1 | Complete |
 | BUILD-02 | Phase 1 | Complete |
-| BRAND-05 | Phase 2 | Complete |
+| BRAND-05 | Phase 2 | Pending |
 | CUST-01 | Phase 2 | Pending |
-| CUST-02 | Phase 2 | Complete |
+| CUST-02 | Phase 2 | Pending |
 | URI-01 | Phase 2 | Pending |
 | URI-02 | Phase 2 | Pending |
 | URI-03 | Phase 2 | Pending |
