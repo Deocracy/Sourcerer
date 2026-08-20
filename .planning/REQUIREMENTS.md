@@ -96,13 +96,46 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (populated by roadmapper) | | |
+| BUILD-01 | Phase 1 | Pending |
+| BUILD-02 | Phase 1 | Pending |
+| BRAND-05 | Phase 2 | Pending |
+| CUST-01 | Phase 2 | Pending |
+| CUST-02 | Phase 2 | Pending |
+| URI-01 | Phase 2 | Pending |
+| URI-02 | Phase 2 | Pending |
+| URI-03 | Phase 2 | Pending |
+| URI-04 | Phase 2 | Pending |
+| BUILD-03 | Phase 3 | Pending |
+| BUILD-04 | Phase 3 | Pending |
+| BRAND-01 | Phase 3 | Pending |
+| BRAND-02 | Phase 3 | Pending |
+| BRAND-03 | Phase 3 | Pending |
+| BRAND-04 | Phase 3 | Pending |
+| BRAND-06 | Phase 3 | Pending |
+| SHELL-01 | Phase 4 | Pending |
+| SHELL-02 | Phase 4 | Pending |
+| SHELL-05 | Phase 4 | Pending |
+| SIDE-01 | Phase 4 | Pending |
+| SIDE-02 | Phase 4 | Pending |
+| SIDE-03 | Phase 4 | Pending |
+| SIDE-04 | Phase 5 | Pending |
+| SIDE-05 | Phase 5 | Pending |
+| SHELL-03 | Phase 5 | Pending |
+| SHELL-04 | Phase 5 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 26 total
-- Mapped to phases: 0
-- Unmapped: 26 ⚠️ (pending roadmap)
+- Mapped to phases: 26 ✓
+- Unmapped: 0
+
+**Per-phase counts:** Phase 1 = 2, Phase 2 = 7, Phase 3 = 7, Phase 4 = 6, Phase 5 = 4.
+
+**Placement notes:**
+
+- **BRAND-06** (dev-build indicator) sits in Phase 3, not Phase 2: the distinction it draws is between a dev build and a future *packaged release*, which is a Firefox build-configuration concern (app display name / icon variant), not a Theia-side one.
+- **SIDE-03** (health-check loop) sits in Phase 4, not Phase 5: its first clause gates first load, which SHELL-05's immediate-paint-then-swap behaviour depends on. Phase 5 owns the failure surfaces around it (orphan cleanup, exhausted-backoff error state), not the loop itself.
 
 ---
 *Requirements defined: 2026-08-19*
-*Last updated: 2026-08-19 after initial definition*
+*Last updated: 2026-08-20 — traceability populated during roadmap creation*
