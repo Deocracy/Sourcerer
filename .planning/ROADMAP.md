@@ -23,7 +23,7 @@ or freezing. v4.0 is done when it is daily-drivable on the NixOS host.
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Build Infrastructure** - Nix flake with `theia` and `firefox` dev shells; both halves build from a clean checkout on the NixOS host
+- [x] **Phase 1: Build Infrastructure** - Nix flake with `theia` and `firefox` dev shells; both halves build from a clean checkout on the NixOS host (completed 2026-08-20)
 - [ ] **Phase 2: Sourcerer Theia Extensions** - `@sourcerer/*` extensions deliver branding, the inert customization seam, and a URI for every tab
 - [ ] **Phase 3: Branded Firefox Fork** - Vendored ESR fork rebranded to Sourcerer, building in minutes via artifact builds, trademark- and telemetry-free
 - [ ] **Phase 4: Full-Window Theia Shell** - `sourcerer.xhtml` + `SourcererAPI` + `TheiaService`: one window, Theia is the entire UI, backend spawned and token-gated
@@ -43,7 +43,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Native modules compile inside the `theia` shell against the single pinned Node 22 version — the node-gyp path is proven by a real build, not assumed
   4. A second fresh clone on the NixOS host reaches both of the above with the documented commands and no manual steps outside the shells
 
-**Plans**: 4/4 plans executed
+**Plans**: 4/4 plans complete
 
 Plans:
 **Wave 1**
@@ -145,7 +145,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 (2 and 3 may run in p
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Build Infrastructure | 4/4 | In Progress|  |
+| 1. Build Infrastructure | 4/4 | Complete   | 2026-08-20 |
 | 2. Sourcerer Theia Extensions | 0/TBD | Not started | - |
 | 3. Branded Firefox Fork | 0/TBD | Not started | - |
 | 4. Full-Window Theia Shell | 0/TBD | Not started | - |

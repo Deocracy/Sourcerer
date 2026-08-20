@@ -1,14 +1,22 @@
 ---
 phase: 01-build-infrastructure
 verified: 2026-08-20T18:15:00Z
-status: human_needed
-score: 4/4 must-haves verified (criterion 4 verified via non-reproducible evidence — see caveat)
+status: passed
+resolved: 2026-08-20T19:28:33Z
+score: 4/4 must-haves verified — criterion 4 closed by independent re-execution, see Addendum
 behavior_unverified: 0
 overrides_applied: 0
 human_verification:
-  - test: "Re-run a genuinely fresh clone of the repo (git clone . <space-free-path>) and follow docs/BUILD.md's 'Verifying a fresh clone' section exactly, including the mach configure substitution documented there."
-    expected: "fetch-upstream.sh, smoke-theia.sh, mach configure, and the toolchain-baseline diff all succeed with zero undocumented manual steps, matching the 01-04-SUMMARY.md figures (463s clone, 14.9s smoke-theia, 65.6s mach configure)."
-    why_human: "The verifier's task instructions explicitly forbid re-running the ~54min full mach build, and the fresh-clone scratch directory from 01-04's own verification run was already deleted before this verification pass began. The claim rests entirely on 01-04-SUMMARY.md's prose; it could not be independently re-executed or its artifacts inspected. This is the single unverified link in the phase."
+  - test: "Re-run a genuinely fresh clone of the repo (git clone . <space-free-path>) and follow docs/BUILD.md's 'Verifying a fresh clone' section exactly."
+    expected: "fetch-upstream.sh, smoke-theia.sh, mach configure, and the toolchain-baseline diff all succeed with zero undocumented manual steps."
+    why_human: "The fresh-clone scratch directory from 01-04's own run was deleted before the verification pass, so the claim rested on 01-04-SUMMARY.md's prose alone."
+    outcome: PERFORMED
+    result: "Re-executed independently at /home/chris/coding/sourcerer-verify2. fetch-upstream rc=0 554s/5.6G with upstream HEAD 468445e58d3acc7e4e059be99856daff1f2ae8f1 matching the pinned tag's commit exactly; smoke-theia rc=0 in 14s incl. node-pty spawn proof; mach configure rc=0 in 63s; toolchain baseline diff rc=0 identical; 0 mach bootstrap invocations; 0 undocumented steps."
+  - test: "Full ./mach build on the fresh clone — the literal reading of criterion 4, which the verifier was instructed not to run."
+    expected: "A launchable stock Firefox produced on a second fresh clone with no manual steps outside the shells."
+    why_human: "docs/BUILD.md substituted mach configure for a full build, so no Firefox binary had ever been produced on a fresh clone. The substitution's stated rationale was disproven by this phase's own history: the AS/LD bintools-wrapper defect surfaced during compilation on NSPR's os_Linux_x86_64.s, after configure had already succeeded."
+    outcome: PERFORMED
+    result: "mach build rc=0 in 3641s; 14G objdir; 0 mach bootstrap invocations; objdir/dist/bin/firefox present at 2,419,424 bytes reporting 'Mozilla Firefox 153.1.0esr'; git status --porcelain empty in both the repo and upstream/. Scratch clone removed afterwards."
 ---
 
 # Phase 1: Build Infrastructure Verification Report
