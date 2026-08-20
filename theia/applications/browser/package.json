@@ -3,11 +3,6 @@
   "name": "sourcerer-theia-browser-app",
   "version": "1.74.1",
   "theia": {
-    "frontend": {
-      "config": {
-        "applicationName": "Sourcerer (dev)"
-      }
-    },
     "backend": {
       "config": {
         "frontendConnectionTimeout": 3000
