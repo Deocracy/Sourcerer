@@ -110,11 +110,21 @@ unambiguous.
 - **D-25:** Default preferences ship `security.workspace.trust.enabled: false`.
   Without it, day one is a modal workspace-trust gate.
 
-- **D-26:** `@vscode/ripgrep` (via `@theia/file-search`) is pointed at the
-  nixpkgs `rg` binary rather than allowed to run its postinstall download.
-  Same class of problem Phase 1 already solved for `drivelist` — see
-  `docs/BUILD.md`'s `--ignore-scripts` install sequence, which this must
-  extend rather than bypass.
+- **D-26:** ~~`@vscode/ripgrep` is pointed at the nixpkgs `rg` binary rather
+  than allowed to run its postinstall download.~~ **Superseded 2026-08-20 by
+  Phase 2 research — the premise was stale.** At the pinned resolution
+  (`@vscode/ripgrep@1.18.0`, via `@theia/file-search`) the package has **no
+  `scripts` field at all**; it now ships 12 `os`/`cpu`-gated
+  `optionalDependencies` platform packages, and Yarn Classic already skips the
+  11 that do not match the host. `--ignore-scripts` therefore does nothing for
+  this package and no install-time gate is needed.
+
+  If avoiding the prebuilt binary blob is still wanted on NixOS, the remaining
+  option is a **post-install file swap**, not an install-time flag — `rgPath`
+  is a hardcoded module export, not DI-injectable and not preference-driven.
+  Treat that as optional hardening, not a phase requirement. `docs/BUILD.md`'s
+  existing `--ignore-scripts` sequence still applies to the packages Phase 1
+  identified and must not be simplified away.
 
 - **D-27:** `@theia/ai-chat-ui`'s widget is rebound with
   `isExtractable = false` so it cannot escape into a secondary window the
@@ -257,13 +267,32 @@ unambiguous.
 
   | Scheme | Status | Covers | Path means |
   |---|---|---|---|
-  | `view:` | new | every singleton / stable-id docked or panel view: `problems`, `explorer-view-container`, `outline-view`, `search-view-container`, `scm-view-container`, `debug`, `debug-console`, `disassembly-view-widget`, `test-view-container`, `test-result-widget`, `test-output-view`, `callhierarchy`, `typehierarchy`, `keybindings`, `chat-view`, `ai-config`, `bulkedit`, `plugins`, `vsx-extensions-view-container`, `welcome`, plus plugin-contributed view containers | the widget / view-container id exactly as Theia spells it — the same string in the persisted layout's `constructionOptions.factoryId` |
+  | `view:` | new | every singleton / stable-id docked or panel view — **authoritative table is `02-RESEARCH.md` §"FactoryId Table", not this list** (see correction note below) | the widget / view-container id exactly as Theia spells it — the same string in the persisted layout's `constructionOptions.factoryId` |
   | `settings:` | new | the Settings widget (`settings_widget`) | empty = the widget; non-empty = a preference id, delegated verbatim to Theia's already-bound `PreferenceOpenHandler` |
   | `terminal:` | new | terminal widgets — the only genuinely multi-instance type | a short lowercase user-facing name that **is** the instance identity |
   | `output:` | exists | output channels | `OutputUri` + `OutputContribution` already ship as an `OpenHandler`; only `getResourceUri` is missing |
   | `preference:` | exists | settings deep links | `preference-open-handler.ts` already claims it at priority 500 |
   | `vscode-extension:` | exists | the extension detail editor | `VSXExtensionEditorManager` is already a `WidgetOpenHandler` on it |
   | `webview:` | new, session-scoped | plugin-contributed webview panels | `<viewType>/<panelId>` — **documented as not restore-safe** |
+
+  > **Correction, 2026-08-20 (Phase 2 research).** The `view:` path list
+  > originally written here carried five wrong strings and omitted one shipped
+  > widget. Verified against source: `typehierarchy` → **`theia-typehierarchy`**
+  > (`typehierarchy-tree-widget.tsx:97`); `keybindings` →
+  > **`keybindings.view.widget`** (`keybindings-widget.tsx:105`); `chat-view` →
+  > **`chat-view-widget`** (`chat-view-widget.tsx:43`); `ai-config` →
+  > **`ai-configuration`** (`ai-configuration-widget.tsx:34`); and
+  > **`ai-sessions-widget`** (`ai-sessions-widget.tsx:33`, a standalone
+  > left-panel tab shipped by `@theia/ai-ide`) was missing entirely — URI-03
+  > requires it to have an address. The planner MUST transcribe
+  > `02-RESEARCH.md` §"FactoryId Table", which cites file:line for every entry,
+  > and must not re-derive from this decision's prose.
+  >
+  > Also confirmed there: plugin-contributed view containers need no lookup
+  > table at all. `ViewContainerWidget.id` is assigned straight from
+  > `options.id` (`view-container.ts:185`), and that id already equals
+  > `plugin-view-container:<viewContainerId>` — so the widget's own `.id` **is**
+  > the `view:` path.
 
   `view:` was chosen over a namespaced `sourcerer-view:` because URI-04's
   whole point is typeability and no collision exists — verified, the tree's
