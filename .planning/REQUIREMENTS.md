@@ -20,7 +20,7 @@ Requirements for v4.0. Each maps to roadmap phases.
 - [ ] **BRAND-02**: Full replacement `branding/` tree ships (icons, strings) containing no Mozilla trademark assets
 - [ ] **BRAND-03**: Profile directory is Sourcerer's own (falls out of `MOZ_APP_NAME`); verified to never touch `~/.mozilla/firefox` on a machine with real Firefox installed
 - [ ] **BRAND-04**: Auto-update is disabled and no Mozilla update or telemetry endpoint is reachable from a running build
-- [ ] **BRAND-05**: Theia-side branding (welcome/getting-started widget, About dialog, window/tab title, favicon) ships as a `@sourcerer/*` extension via DI rebind — no Theia core patch
+- [x] **BRAND-05**: Theia-side branding (welcome/getting-started widget, About dialog, window/tab title, favicon) ships as a `@sourcerer/*` extension via DI rebind — no Theia core patch
 - [ ] **BRAND-06**: Dev builds carry a visible indicator (title suffix or icon badge) distinguishing them from future packaged releases
 
 ### Sidecar Supervision
@@ -112,7 +112,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | BUILD-01 | Phase 1 | Complete |
 | BUILD-02 | Phase 1 | Complete |
-| BRAND-05 | Phase 2 | Pending |
+| BRAND-05 | Phase 2 | Complete |
 | CUST-01 | Phase 2 | Pending |
 | CUST-02 | Phase 2 | Complete |
 | URI-01 | Phase 2 | Complete |
