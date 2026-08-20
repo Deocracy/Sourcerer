@@ -124,12 +124,36 @@ nix develop .#firefox --command bash -c 'cd upstream && MOZCONFIG=../.mozconfig 
 diff <(nix develop .#firefox --command bash scripts/toolchain-baseline.sh) toolchain-baseline.txt
 ```
 
-The Firefox step substitutes `./mach configure` for a second full `./mach
-build`: configure exercises the same toolchain-detection path (rustc,
-cargo, cbindgen, the WASM-sandboxing opt-out, libclang discovery) in
-minutes, which is exactly the surface an undocumented setup step would
-break, while a second multi-hour compile would only re-prove what the
-first full build already proved. Any command that a fresh clone needs but
-this document does not list is treated as a documentation failure, not a
-footnote — it gets added here and re-verified, not just noted in a
-summary.
+The Firefox step above uses `./mach configure` as a **fast proxy**, not as
+an equivalent. Configure covers most of the toolchain-detection path
+(rustc, cargo, cbindgen, the WASM-sandboxing opt-out, libclang discovery)
+in about a minute, so it is the right routine check.
+
+Be clear about what it does not cover. Of the three toolchain defects
+found while building this phase, one — nixpkgs' bintools-wrapper
+exporting `AS`/`LD`/etc., which broke `moz.configure`'s assembler flag
+routing — surfaced only **during compilation**, on the first `.s` file
+(NSPR's `os_Linux_x86_64.s`), long after configure had succeeded. A
+configure-only check would have passed straight over it. Treat a green
+configure as "the documented setup is probably complete", not as proof
+that a fresh clone builds.
+
+The full check has been run once, end to end, on a genuinely fresh clone:
+
+```
+git clone . <fresh-space-free-path>
+cd <fresh-space-free-path>
+./scripts/fetch-upstream.sh                                     # 554s, 5.6G
+./scripts/smoke-theia.sh                                        # 14s, PASS
+nix develop .#firefox --command bash -c 'cd upstream && MOZCONFIG=../.mozconfig ./mach build'
+```
+
+Result: exit 0 in 3641s (~61 min), 14G objdir, zero `mach bootstrap`
+invocations, `objdir/dist/bin/firefox --version` reporting
+`Mozilla Firefox 153.1.0esr`, and `git status` clean in both the repo and
+`upstream/`. Re-run the full build rather than just configure whenever
+anything in `flake.nix`, `.mozconfig`, or the toolchain pin changes.
+
+Any command that a fresh clone needs but this document does not list is
+treated as a documentation failure, not a footnote — it gets added here
+and re-verified, not just noted in a summary.
