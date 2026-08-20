@@ -583,10 +583,27 @@ unambiguous.
      the exact `153.1.0esr` build that becomes Sourcerer tests the real
      substrate, which makes these scripts reusable as Phase 4/5 integration
      tests rather than throwaway.
-  2. **Zero dependencies.** Node 24 exposes a global `WebSocket`, so the BiDi
-     client is ~40 lines of stdlib. Nothing is added to `theia/package.json`,
-     so nothing new can drift against the exact-pin discipline (D-19), and
-     criterion 2's "diff against the pinned release" stays clean.
+  2. **Zero dependencies.** The **pinned** `nodejs_22` exposes a global
+     `WebSocket`, so the BiDi client is ~40 lines of stdlib. Nothing is added
+     to `theia/package.json`, so nothing new can drift against the exact-pin
+     discipline (D-19), and criterion 2's "diff against the pinned release"
+     stays clean.
+
+     **Re-verified 2026-08-20 against the pinned toolchain, not the host's:**
+     the first probe ran under the system Node (v24.19.0), which is *not* what
+     Phase 1 D-16 pins. Re-run inside `nix develop .#theia`:
+     `node --version` → **`v22.23.2`**, `typeof WebSocket` → **`function`**,
+     and all six assertion shapes returned identical results. The
+     zero-dependency claim therefore holds under the toolchain this project
+     actually ships, not merely under a newer host Node. Had it not, the
+     honest fallback was `ws` — which would have cost this decision its second
+     reason, so the check was worth running rather than assuming.
+
+     Also disproven while checking: `objdir/dist/bin/firefox` does **not**
+     require `nix develop .#firefox` to run. Both probes launched it from a
+     plain shell and from the `theia` shell; `--headless`, `--screenshot` and
+     the Remote Agent all worked in each. The harness does not need to
+     shell-hop.
   3. **NixOS.** Playwright downloads generic-Linux browser ELFs that do not
      run on NixOS without `nixpkgs.playwright-driver` +
      `PLAYWRIGHT_BROWSERS_PATH` + `PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS`
