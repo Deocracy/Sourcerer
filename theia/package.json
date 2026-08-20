@@ -1,7 +1,8 @@
 {
   "private": true,
   "workspaces": [
-    "applications/*"
+    "applications/*",
+    "extensions/*"
   ],
   "resolutions": {
     "@theia/cli": "1.74.1",
@@ -21,8 +22,12 @@
     "yarn": ">=1.7.0 <2",
     "node": ">=22"
   },
+  "devDependencies": {
+    "typescript": "~5.9.3"
+  },
   "scripts": {
-    "build": "yarn --cwd applications/browser build",
+    "build:extensions": "yarn --cwd extensions/branding build",
+    "build": "yarn build:extensions && yarn --cwd applications/browser build",
     "start": "yarn --cwd applications/browser start"
   }
 }

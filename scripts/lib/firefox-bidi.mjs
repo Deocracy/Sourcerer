@@ -1,0 +1,204 @@
+// scripts/lib/firefox-bidi.mjs
+//
+// Zero-dependency WebDriver BiDi driver for `objdir/dist/bin/firefox`, the
+// Firefox build this repo already produces (Phase 1). Per D-69: not
+// Playwright, not Puppeteer, not geckodriver -- the pinned `nodejs_22`
+// exposes a global `WebSocket`, so this file imports no package, only Node
+// built-ins and globals.
+//
+// Dev-shell note, settled live on this host 2026-08-20: `objdir/dist/bin/
+// firefox --version` was run both from a plain shell and from inside
+// `nix develop .#theia` and returned `Mozilla Firefox 153.1.0esr` in both,
+// with no shared-library error. The binary does NOT require
+// `nix develop .#firefox` to run, so this driver spawns it directly rather
+// than through a `nix develop .#firefox --command` wrapper.
+//
+// Process hygiene is a hard requirement, not a nicety (D-69): every caller
+// goes through `withFirefoxPage`, whose `finally` always kills the spawned
+// Firefox and removes its temporary profile directory -- on the success
+// path, on a thrown assertion, and on SIGINT. Phase 5's whole subject is
+// orphaned processes; this harness must not manufacture that failure mode.
+
+import { spawn } from 'node:child_process';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createServer } from 'node:net';
+import { existsSync } from 'node:fs';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = join(__dirname, '..', '..');
+export const FIREFOX_BIN = join(REPO_ROOT, 'objdir', 'dist', 'bin', 'firefox');
+
+const BIDI_LINE_RE = /WebDriver BiDi listening on (ws:\/\/127\.0\.0\.1:\d+)/;
+
+async function freePort() {
+    return new Promise((resolve, reject) => {
+        const srv = createServer();
+        srv.on('error', reject);
+        srv.listen(0, '127.0.0.1', () => {
+            const { port } = srv.address();
+            srv.close(() => resolve(port));
+        });
+    });
+}
+
+function waitForBiDiUrl(child) {
+    return new Promise((resolve, reject) => {
+        let buf = '';
+        const onData = chunk => {
+            buf += chunk.toString('utf8');
+            const m = buf.match(BIDI_LINE_RE);
+            if (m) {
+                child.stderr.off('data', onData);
+                child.off('exit', onExit);
+                resolve(m[1]);
+            }
+        };
+        const onExit = code => {
+            child.stderr.off('data', onData);
+            reject(new Error(`firefox exited (code ${code}) before printing its BiDi listening line; stderr so far:\n${buf}`));
+        };
+        child.stderr.on('data', onData);
+        child.once('exit', onExit);
+        child.once('error', reject);
+    });
+}
+
+class BiDiClient {
+    constructor(ws) {
+        this.ws = ws;
+        this.nextId = 1;
+        this.pending = new Map();
+        ws.addEventListener('message', event => {
+            let msg;
+            try {
+                msg = JSON.parse(event.data);
+            } catch {
+                return;
+            }
+            const pending = this.pending.get(msg.id);
+            if (!pending) return;
+            this.pending.delete(msg.id);
+            if (msg.type === 'error') {
+                pending.reject(new Error(`BiDi error: ${msg.error} -- ${msg.message}`));
+            } else {
+                pending.resolve(msg);
+            }
+        });
+    }
+
+    send(method, params) {
+        const id = this.nextId++;
+        return new Promise((resolve, reject) => {
+            this.pending.set(id, { resolve, reject });
+            this.ws.send(JSON.stringify({ id, method, params }));
+        });
+    }
+}
+
+/**
+ * Poll `evaluate(expression)` until it returns a truthy value or the
+ * timeout elapses. Used to wait for `window.theia?.container` to exist --
+ * the page is a single-page app and the container appears after load, not
+ * on first paint.
+ */
+export async function waitFor(evaluate, expression, { timeoutMs = 15000, intervalMs = 100 } = {}) {
+    const deadline = Date.now() + timeoutMs;
+    for (;;) {
+        const value = await evaluate(expression);
+        if (value) return value;
+        if (Date.now() >= deadline) {
+            throw new Error(`waitFor timed out after ${timeoutMs}ms waiting for truthy: ${expression}`);
+        }
+        await new Promise(r => setTimeout(r, intervalMs));
+    }
+}
+
+/**
+ * Launch `objdir/dist/bin/firefox` headless against `url`, connect over
+ * WebDriver BiDi, and invoke `callback({ evaluate, waitFor })`. Guarantees
+ * Firefox is killed and its temporary profile removed before returning or
+ * throwing, including on SIGINT.
+ */
+export async function withFirefoxPage(url, callback) {
+    if (!existsSync(FIREFOX_BIN)) {
+        throw new Error(
+            `firefox-bidi: ${FIREFOX_BIN} does not exist. Run the Phase 1 Firefox build first ` +
+            `(see docs/BUILD.md "Firefox half") -- a fresh clone has no objdir/ until that build runs.`
+        );
+    }
+
+    const profileDir = await mkdtemp(join(tmpdir(), 'sourcerer-firefox-bidi-'));
+    const port = await freePort();
+
+    const child = spawn(FIREFOX_BIN, [
+        '--headless',
+        '--profile', profileDir,
+        `--remote-debugging-port=${port}`,
+        '--remote-allow-hosts', '127.0.0.1',
+        url,
+    ], { stdio: ['ignore', 'ignore', 'pipe'] });
+
+    let ws;
+    let client;
+    let sigintHandler;
+
+    const cleanup = async () => {
+        if (sigintHandler) process.off('SIGINT', sigintHandler);
+        if (ws) {
+            try { ws.close(); } catch { /* already closed */ }
+        }
+        if (!child.killed && child.exitCode === null) {
+            child.kill('SIGTERM');
+            await new Promise(resolve => {
+                const timer = setTimeout(() => {
+                    if (child.exitCode === null) child.kill('SIGKILL');
+                    resolve();
+                }, 5000);
+                child.once('exit', () => { clearTimeout(timer); resolve(); });
+            });
+        }
+        await rm(profileDir, { recursive: true, force: true });
+    };
+
+    sigintHandler = () => {
+        cleanup().finally(() => process.exit(130));
+    };
+    process.on('SIGINT', sigintHandler);
+
+    try {
+        const wsUrl = await waitForBiDiUrl(child);
+        ws = new WebSocket(`${wsUrl}/session`);
+        await new Promise((resolve, reject) => {
+            ws.addEventListener('open', resolve, { once: true });
+            ws.addEventListener('error', reject, { once: true });
+        });
+
+        client = new BiDiClient(ws);
+        await client.send('session.new', { capabilities: {} });
+        const tree = await client.send('browsingContext.getTree', {});
+        const context = tree.result.contexts[0].context;
+
+        const evaluate = async expression => {
+            const result = await client.send('script.evaluate', {
+                expression,
+                target: { context },
+                awaitPromise: true,
+            });
+            return result.result.result.value;
+        };
+
+        return await callback({ evaluate, waitFor: (expr, opts) => waitFor(evaluate, expr, opts) });
+    } finally {
+        if (ws && client && ws.readyState === WebSocket.OPEN) {
+            try {
+                await Promise.race([client.send('session.end', {}), new Promise(r => setTimeout(r, 2000))]);
+            } catch {
+                // best-effort -- cleanup() below still kills the process regardless
+            }
+        }
+        await cleanup();
+    }
+}

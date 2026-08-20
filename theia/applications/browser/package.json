@@ -7,9 +7,16 @@
       "config": {
         "frontendConnectionTimeout": 3000
       }
+    },
+    "frontend": {
+      "config": {
+        "applicationName": "Sourcerer",
+        "sourcererPrivilegedJs": false
+      }
     }
   },
   "dependencies": {
+    "@sourcerer/branding": "0.1.0",
     "@theia/core": "1.74.1",
     "@theia/editor": "1.74.1",
     "@theia/filesystem": "1.74.1",
