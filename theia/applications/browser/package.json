@@ -29,7 +29,9 @@
     "@theia/preferences": "1.74.1",
     "@theia/process": "1.74.1",
     "@theia/terminal": "1.74.1",
-    "@theia/workspace": "1.74.1"
+    "@theia/workspace": "1.74.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
   },
   "devDependencies": {
     "@theia/cli": "1.74.1"
