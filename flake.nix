@@ -26,7 +26,7 @@
             pkgs.xorg.libxkbfile
           ];
           shellHook = ''
-            echo "Sourcerer theia shell ready. Next: cd theia && yarn install && yarn build && yarn start"
+            echo "Sourcerer theia shell ready. Next: cd theia && yarn install && yarn build && yarn start" >&2
           '';
         };
 
@@ -34,7 +34,7 @@
           inputsFrom = [ pkgs.firefox-esr-153-unwrapped ];
           shellHook = ''
             export MOZBUILD_STATE_PATH="$PWD/.mozbuild"
-            echo "Sourcerer firefox shell ready. This shell already supplies the full Gecko toolchain (rustc, cargo, cbindgen) -- no separate toolchain setup is needed. Next: scripts/fetch-upstream.sh, then cd upstream && MOZCONFIG=../.mozconfig ./mach build"
+            echo "Sourcerer firefox shell ready. This shell already supplies the full Gecko toolchain (rustc, cargo, cbindgen) -- no separate toolchain setup is needed. Next: scripts/fetch-upstream.sh, then cd upstream && MOZCONFIG=../.mozconfig ./mach build" >&2
           '';
         };
       };
