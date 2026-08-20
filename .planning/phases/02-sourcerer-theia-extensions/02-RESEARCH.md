@@ -4,6 +4,42 @@
 **Domain:** Eclipse Theia 1.74.1 extension composition, DI rebind mechanics, URI/OpenHandler subsystem
 **Confidence:** HIGH
 
+> ## ⚠ SUPERSEDED IN PART — read this before §6, §"Package Legitimacy Audit", §"Environment Availability", or §"Validation Architecture"
+>
+> **CONTEXT.md decision D-69 (2026-08-20) replaces every Playwright-based
+> mechanism in this document.** The headless harness is the Firefox this repo
+> already builds — `objdir/dist/bin/firefox` (153.1.0esr) — driven in
+> `--headless` mode via `--screenshot` and WebDriver BiDi over Node 24's
+> global `WebSocket`. **No npm test dependency is added.**
+>
+> Specifically superseded here:
+> - **§6's** `import { chromium } from 'playwright'` script shape → use the
+>   BiDi driver shape transcribed in D-69. §6's *substantive* finding survives
+>   unchanged and is still authoritative: the DI token **must** be created with
+>   `Symbol.for('SourcererPrivilegedJs')`, never a bare `Symbol()`, or it is
+>   unretrievable from an out-of-bundle evaluation context. That constraint
+>   applies identically under BiDi `script.evaluate`.
+> - **§"Package Legitimacy Audit"** — the `[SUS]` rows for `playwright` and
+>   `@playwright/test` are moot; neither package is installed. The audit's
+>   other rows stand. (`@modelcontextprotocol/sdk` remains transitively forced
+>   by `@theia/ai-mcp` per D-19 and was never a choice.)
+> - **§"Environment Availability"** — the `playwright` "missing dependency"
+>   row is void. The replacement is already present and was built by Phase 1.
+> - **§"Validation Architecture"** — superseded by `02-VALIDATION.md`, which
+>   was rewritten against D-69.
+> - **§"Alternatives Considered"** — the "Playwright vs puppeteer" row is moot;
+>   neither is used.
+>
+> D-69 verified all six required assertion shapes live on this host before the
+> switch: `--screenshot` capture, `document.title`, `link[rel=icon]` type, the
+> `/Theia|Eclipse/i` body check, and `container.isBound(Symbol.for(...))` in
+> both the `true` and `false` branches.
+>
+> Everything else in this document — the FactoryId table (§4), the API
+> signatures (§3), the install/build procedure (§1), the extension package
+> shape (§2), and §5's criterion-2 diff mechanism — is unaffected and remains
+> authoritative.
+
 <user_constraints>
 ## User Constraints (from CONTEXT.md)
 

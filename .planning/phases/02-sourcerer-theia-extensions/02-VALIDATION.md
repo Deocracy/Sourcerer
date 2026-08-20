@@ -19,16 +19,27 @@ created: 2026-08-20
 
 | Property | Value |
 |----------|-------|
-| **Framework** | None yet. Phase 1 shipped shell smoke tests (`scripts/smoke-theia.sh`, `scripts/smoke-firefox.sh`); no JS/TS test runner exists in `theia/`. Wave 0 adds plain Node/TS assertion scripts plus `playwright` (bare, not `@playwright/test`) for the in-page checks. |
-| **Config file** | none — Wave 0 installs `playwright` only |
-| **Quick run command** | `scripts/verify-uri-roundtrip.mjs --scheme <scheme>` (Wave 0 deliverable) |
+| **Framework** | None, and none is installed. Phase 1 shipped shell smoke tests (`scripts/smoke-theia.sh`, `scripts/smoke-firefox.sh`). Wave 0 adds plain Node `.mjs` assertion scripts that drive **the Firefox this repo already builds** (`objdir/dist/bin/firefox`, 153.1.0esr) in headless mode over WebDriver BiDi — see CONTEXT.md **D-69**. |
+| **Browser driver** | `objdir/dist/bin/firefox --headless`, plus `--screenshot`/`--window-size` for image capture and `--remote-debugging-port` for BiDi. **Zero npm dependencies** — Node 24's global `WebSocket` is the BiDi client. |
+| **Config file** | none — nothing to install |
+| **Quick run command** | `node scripts/verify-uri-roundtrip.mjs --scheme <scheme>` (Wave 0 deliverable) |
 | **Full suite command** | `scripts/verify-phase-02.sh` (Wave 0 deliverable — runs the URI round-trip table, the dev-flag-off check, and the core-diff check in sequence) |
-| **Estimated runtime** | ~60–120 seconds (dominated by one Theia backend boot + one headless page load) |
+| **Estimated runtime** | ~60–120 seconds (dominated by one Theia backend boot + one headless Firefox launch) |
+
+**Why the Firefox we build, not Playwright** (D-69, proven live 2026-08-20):
+v4.0 ships a Firefox fork, so a Chromium-based harness would prove Theia works
+in an engine Sourcerer does not ship; driving the exact `153.1.0esr` build makes
+these scripts reusable as Phase 4/5 integration tests. It also adds no
+dependency — keeping `theia/package.json` clean matters because criterion 2
+diffs the workspace against the pinned Theia release. And Playwright's
+downloaded browser binaries do not run on NixOS without
+`nixpkgs.playwright-driver` / `nix-ld` workarounds, on the only platform v4.0
+targets.
 
 **Why plain scripts, not a test framework:** this phase needs a handful of
-assertion scripts, not a suite. `@playwright/test`'s fixtures and reporters are
-overhead the scope does not justify. Revisit only if the check count grows past
-what a single shell driver reads cleanly.
+assertion scripts, not a suite. Fixtures and reporters are overhead the scope
+does not justify. Revisit only if the check count grows past what a single
+shell driver reads cleanly.
 
 ---
 
@@ -53,9 +64,9 @@ mechanisms so the planner can attach the right `<verify>` to each task.
 
 | Requirement | Behavior proved | Test Type | Automated Command | File Exists | Status |
 |---|---|---|---|---|---|
-| BRAND-05 | Welcome widget, About dialog, window/tab title and favicon carry Sourcerer identity; no `Theia`/`Eclipse` string in user-visible chrome | automated string-presence + manual visual | Playwright asserting `page.content()` in the About dialog and welcome widget does not match `/Theia\|Eclipse/i`; favicon `<link rel="icon">` present and non-empty | ❌ W0 | ⬜ pending |
-| CUST-01 | Absent/empty `customize.css` → zero visual change; populated file → visible restyle, hot-reloaded | automated screenshot diff | Playwright screenshot compare across three states: no file, empty file, file with one high-specificity rule | ❌ W0 | ⬜ pending |
-| CUST-02 | Dev flag off → the privileged binding does not exist | automated | `scripts/verify-dev-flag-off.ts` — asserts `window.theia.container.isBound(Symbol.for('SourcererPrivilegedJs')) === false` in the page, against a **release-configured `theia build`**, served from `lib/` not `src-gen/` | ❌ W0 | ⬜ pending |
+| BRAND-05 | Welcome widget, About dialog, window/tab title and favicon carry Sourcerer identity; no `Theia`/`Eclipse` string in user-visible chrome | automated string-presence + manual visual | BiDi `script.evaluate` asserting `/Theia\|Eclipse/i.test(document.body.innerText)` is `false` in the About dialog and welcome widget; `document.title` equals the configured `applicationName`; `link[rel="icon"]` present with a non-empty `href` — **all four shapes proven working in the D-69 probe** | ❌ W0 | ⬜ pending |
+| CUST-01 | Absent/empty `customize.css` → zero visual change; populated file → visible restyle, hot-reloaded | automated screenshot diff | `firefox --headless --window-size 800,600 --screenshot` across three states: no file, empty file, file with one high-specificity rule. **Open detail:** confirm whether byte-hash equality is stable across two captures of an unchanged page; if not, decode raw pixels with python3 `zlib`+`struct` rather than adding an image library (D-69) | ❌ W0 | ⬜ pending |
+| CUST-02 | Dev flag off → the privileged binding does not exist | automated | `scripts/verify-dev-flag-off.mjs` — asserts `window.theia.container.isBound(Symbol.for('SourcererPrivilegedJs')) === false` via BiDi `script.evaluate` in the running page, against a **release-configured `theia build`**, served from `lib/` not `src-gen/`. Ships a positive control (`--expect-bound`) so a vacuous pass is detectable. Both branches proven in the D-69 probe | ❌ W0 | ⬜ pending |
 | URI-01 | `settings:` opens or focuses the Settings widget and the tab reports that address | automated | D-53 round-trip: `registry.uriOf(await open(u)).toString(true) === u`, **plus** `widgetManager.getWidgets('settings_widget').length === 1` after opening via both the menu and the URI | ❌ W0 | ⬜ pending |
 | URI-02 | `terminal:t1` round-trips; a stale name creates a fresh shell under that name | automated | Same D-53 pattern against `TERMINAL_WIDGET_FACTORY_ID`, plus a stale-name case asserting a new widget appears rather than an error | ❌ W0 | ⬜ pending |
 | URI-03 | Every widget in RESEARCH §4's FactoryId table has a working `view:` address | automated, table-driven | One parameterized script iterating the §4 table, D-53's round-trip assertion per row. **Must include `ai-sessions-widget`** — the entry missing from CONTEXT.md D-43. | ❌ W0 | ⬜ pending |
@@ -68,16 +79,28 @@ mechanisms so the planner can attach the right `<verify>` to each task.
 
 ## Wave 0 Requirements
 
-- [ ] `yarn add --dev playwright && npx playwright install chromium` inside the
-      `theia` Nix dev shell — the only framework install this phase needs
-- [ ] `scripts/verify-dev-flag-off.ts` — covers CUST-02. Fully specified in
-      RESEARCH §6, including the `Symbol.for('SourcererPrivilegedJs')`
-      requirement (a bare `Symbol()` token is unretrievable from outside the
-      bundle's module graph, so `page.evaluate` could never see it)
+**No framework install.** D-69 replaced the Playwright line that used to head
+this list — the harness drives `objdir/dist/bin/firefox`, which Phase 1 already
+built. Nothing is added to `theia/package.json`.
+
+- [ ] `scripts/lib/firefox-bidi.mjs` — the shared driver: launch
+      `objdir/dist/bin/firefox --headless --profile <tmp>
+      --remote-debugging-port=<port> --remote-allow-hosts 127.0.0.1`, poll
+      **stderr** for `WebDriver BiDi listening on ws://…` (do not sleep),
+      connect with Node's global `WebSocket`, then
+      `session.new` → `browsingContext.getTree` → `script.evaluate`. Must kill
+      Firefox and remove the temp profile in a `finally` — Phase 5's subject is
+      orphaned processes and the harness must not create any. Driver shape is
+      transcribed from D-69, which proved it on this host.
+- [ ] `scripts/verify-dev-flag-off.mjs` — covers CUST-02, on top of the driver.
+      Keeps RESEARCH §6's `Symbol.for('SourcererPrivilegedJs')` requirement: a
+      bare `Symbol()` token is unretrievable from outside the bundle's module
+      graph, so `script.evaluate` could never see it. Ships the
+      `--expect-bound` positive control.
 - [ ] `scripts/diff-theia-core.sh` — covers criterion 2. Fully specified in
-      RESEARCH §5 mechanism 2
+      RESEARCH §5 mechanism 2 (unaffected by D-69 — no browser involved)
 - [ ] `scripts/verify-uri-roundtrip.mjs` — table-driven off RESEARCH §4,
-      covers URI-01 through URI-03's round-trip clause
+      covers URI-01 through URI-03's round-trip clause, on top of the driver
 - [ ] `scripts/verify-phase-02.sh` — the sequencing driver for the above
 
 ---
