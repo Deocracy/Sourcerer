@@ -37,7 +37,7 @@ if [ "$BOOTSTRAP_COUNT" -ne 0 ]; then
   exit 1
 fi
 
-VERSION_OUTPUT="$(nix develop "$REPO_ROOT#firefox" --command bash -c "cd '$UPSTREAM_DIR' && ./mach run --version")"
+VERSION_OUTPUT="$(nix develop "$REPO_ROOT#firefox" --command bash -c "cd '$UPSTREAM_DIR' && MOZCONFIG='$MOZCONFIG_FILE' ./mach run --version")"
 if ! echo "$VERSION_OUTPUT" | grep -q '153.1.0esr'; then
   echo "smoke-firefox: FAIL -- './mach run --version' did not report 153.1.0esr" >&2
   exit 1
