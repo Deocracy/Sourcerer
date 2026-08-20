@@ -1,0 +1,42 @@
+{
+  "private": true,
+  "name": "sourcerer-theia-browser-app",
+  "version": "1.74.1",
+  "theia": {
+    "frontend": {
+      "config": {
+        "applicationName": "Sourcerer (dev)",
+        "preferences": {
+          "files.enableTrash": false,
+          "security.workspace.trust.enabled": false
+        }
+      }
+    },
+    "backend": {
+      "config": {
+        "frontendConnectionTimeout": 3000
+      }
+    }
+  },
+  "dependencies": {
+    "@theia/core": "1.74.1",
+    "@theia/editor": "1.74.1",
+    "@theia/filesystem": "1.74.1",
+    "@theia/markers": "1.74.1",
+    "@theia/messages": "1.74.1",
+    "@theia/monaco": "1.74.1",
+    "@theia/navigator": "1.74.1",
+    "@theia/preferences": "1.74.1",
+    "@theia/process": "1.74.1",
+    "@theia/terminal": "1.74.1",
+    "@theia/workspace": "1.74.1"
+  },
+  "devDependencies": {
+    "@theia/cli": "1.74.1"
+  },
+  "scripts": {
+    "rebuild": "theia rebuild:browser --cacheRoot ../..",
+    "build": "yarn -s rebuild && theia build --app-target=browser --mode development",
+    "start": "theia start"
+  }
+}
