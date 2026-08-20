@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 1
 current_phase_name: Build Infrastructure
 status: executing
-stopped_at: Completed 01-02-PLAN.md
-last_updated: "2026-08-20T15:35:25.215Z"
+stopped_at: Completed 01-03-PLAN.md
+last_updated: "2026-08-20T17:51:59.824Z"
 last_activity: 2026-08-20
 last_activity_desc: Roadmap created, 26/26 v1 requirements mapped
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 4
-  completed_plans: 2
+  completed_plans: 3
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 ## Current Position
 
 Phase: 1 (Build Infrastructure) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-08-20 — Phase 1 execution started
 
-Progress: [█████░░░░░] 50%
+Progress: [████████░░] 75%
 
 ## Performance Metrics
 
@@ -60,6 +60,7 @@ Progress: [█████░░░░░] 50%
 |------|----------|-------|-------|
 | Phase 01 P01 | 10min | 3 tasks | 9 files |
 | Phase 01 P02 | 23min | 2 tasks | 5 files |
+| Phase 1 P3 | 2h18min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,9 @@ Recent decisions affecting current work:
 - [Phase ?]: shellHook banners write to stderr, not stdout, so nix develop --command output stays machine-parseable for scripts like toolchain-baseline.sh
 - [Phase ?]: Added react/react-dom 18.3.1 (exact) to theia/applications/browser/package.json -- @theia/core's peer dependency, missing from the researched 11-package set (RESEARCH.md Open Question 1)
 - [Phase ?]: node-pty D-10 proof is a real PTY spawn-and-echo test, not theia rebuild:browser or a build/Release/pty.node file check -- both are false signals for this package (it ships prebuilds/ only)
+- [Phase ?]: firefox devShell now overrides stdenv to pkgs.llvmPackages.stdenv (clang) -- inputsFrom copies nativeBuildInputs/buildInputs from firefox-esr-153-unwrapped but not its own buildStdenv, and the real derivation builds under overrideCC llvmPackages.stdenv
+- [Phase ?]: firefox shellHook unsets AS/LD/NM/AR/RANLIB/OBJDUMP/OBJCOPY/READELF/SIZE/STRINGS/STRIP -- nixpkgs bintools-wrapper exports these as bare tool names, which Firefox's moz.configure treats as an explicit override and uses without routing ASFLAGS through the compiler driver
+- [Phase ?]: fetch-upstream.sh re-run identity check compares resolved commit SHAs, not git describe --tags --exact-match -- the mirror tags this release with both _RELEASE and _BUILD1 on the identical commit, and describe's tie-break is non-deterministic
 
 ### Pending Todos
 
@@ -95,6 +99,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-20T15:35:25.207Z
-Stopped at: Completed 01-02-PLAN.md
+Last session: 2026-08-20T17:51:59.815Z
+Stopped at: Completed 01-03-PLAN.md
 Resume file: None
