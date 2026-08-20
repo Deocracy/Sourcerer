@@ -3,7 +3,7 @@ phase: 1
 slug: build-infrastructure
 # status lifecycle: draft (seeded by plan-phase) → validated (set by validate-phase §6)
 status: draft
-nyquist_compliant: false
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-08-20
 ---
@@ -42,9 +42,16 @@ contract; the planner and `/gsd-validate-phase` fill the per-task rows.
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| TBD | 01 | 0 | — | — | N/A | fixture | `test -x scripts/smoke-theia.sh && test -x scripts/smoke-firefox.sh` | ❌ W0 | ⬜ pending |
-| TBD | TBD | TBD | BUILD-01 | — | N/A | smoke | `scripts/smoke-theia.sh` | ❌ W0 | ⬜ pending |
-| TBD | TBD | TBD | BUILD-02 | — | N/A | smoke | `scripts/smoke-firefox.sh` | ❌ W0 | ⬜ pending |
+| 01-01-T1 | 01 | 1 | BUILD-01, BUILD-02 | — | N/A | smoke | `nix flake check && nix develop .#theia --command node --version \| grep -q '^v22\.' && nix develop .#firefox --command cbindgen --version` | ✅ this task | ⬜ pending |
+| 01-01-T2 | 01 | 1 | — | — | N/A | fixture | `bash -n scripts/smoke-theia.sh && bash -n scripts/smoke-firefox.sh && test -x scripts/smoke-theia.sh && test -x scripts/smoke-firefox.sh && test "$(wc -l < .mozconfig)" -eq 4` | ✅ this task (W0) | ⬜ pending |
+| 01-01-T3 | 01 | 1 | BUILD-02 | — | N/A | regression | `diff <(nix develop .#firefox --command bash scripts/toolchain-baseline.sh) toolchain-baseline.txt` | ✅ this task | ⬜ pending |
+| 01-02-CP | 02 | 2 | BUILD-01 | pkg-legitimacy | Twelve `@theia/*` packages returned `SUS (too-new)`; blocking human confirmation before first install | manual gate | none — `checkpoint:human-verify`, `gate="blocking-human"`, not auto-approvable | n/a | ⬜ pending |
+| 01-02-T1 | 02 | 2 | BUILD-01 | — | N/A | source assertion | `node -e '…exact-1.74.1 pin + 11-dep + 12-resolution check…' && test ! -d theia/applications/electron` | ✅ this task | ⬜ pending |
+| 01-02-T2 | 02 | 2 | BUILD-01 | — | N/A | smoke | `scripts/smoke-theia.sh` | ✅ 01-01-T2 | ⬜ pending |
+| 01-03-T1 | 03 | 2 | BUILD-02 | — | N/A | smoke | `./scripts/fetch-upstream.sh && test "$(git -C upstream describe --tags --exact-match HEAD)" = "FIREFOX_153_1_0esr_RELEASE"` | ✅ this task | ⬜ pending |
+| 01-03-T2 | 03 | 2 | BUILD-02 | — | N/A | smoke (manual-only runtime) | `scripts/smoke-firefox.sh` — hours; the acceptance run, never a per-commit gate | ✅ 01-01-T2 | ⬜ pending |
+| 01-04-T1 | 04 | 3 | BUILD-01, BUILD-02 | — | N/A | source assertion | `test -f docs/BUILD.md && grep -q 'nix develop .#theia' docs/BUILD.md && grep -q '^## Building' README.md` | ✅ this task | ⬜ pending |
+| 01-04-T2 | 04 | 3 | BUILD-01, BUILD-02 | — | N/A | smoke (fresh clone) | fresh clone → `./scripts/fetch-upstream.sh && ./scripts/smoke-theia.sh && nix develop .#firefox --command bash -c 'cd upstream && MOZCONFIG=../.mozconfig ./mach configure'` | ✅ 01-01-T2 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -71,11 +78,11 @@ contract; the planner and `/gsd-validate-phase` fill the per-task rows.
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 60s for the quick check; full Firefox compile documented as manual-only above
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies — every row in the map above carries one; `01-02-CP` is the sole exception and is a blocking human package-legitimacy gate, which has no automatable equivalent by design
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references — `scripts/smoke-theia.sh`, `scripts/smoke-firefox.sh`, and `.mozconfig` are all created by plan 01-01 Task 2, before any task depends on them
+- [x] No watch-mode flags
+- [x] Feedback latency < 60s for the quick check; full Firefox compile documented as manual-only above and planned as a single acceptance task (`01-03-T2`), not a per-commit gate
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** planner-seeded 2026-08-20; `wave_0_complete` flips when plan 01-01 Task 2 lands.
