@@ -46,10 +46,24 @@ Requirements for v4.0. Each maps to roadmap phases.
 
 ### Universal Tab URIs (R4b)
 
-- [ ] **URI-01**: The settings widget implements `Navigatable.getResourceUri()` under `settings://` with a registered open handler — `OpenerService.open()` opens or focuses it
-- [ ] **URI-02**: Terminal widgets implement the same contract under `terminal://` (per-instance addressing semantics documented)
-- [ ] **URI-03**: Every other non-document widget type shipped in v4.0 (e.g. Theia AI chat view) gets its own scheme, `Navigatable` implementation, and open handler — no tab without a URI
+- [ ] **URI-01**: The settings widget has an address under `settings:` with a registered open handler — `OpenerService.open()` opens or focuses it, and the tab reports that address
+- [ ] **URI-02**: Terminal widgets implement `Navigatable.getResourceUri()` under `terminal:` (per-instance addressing semantics documented)
+- [ ] **URI-03**: Every other non-document widget type shipped in v4.0 (e.g. Theia AI chat view) has an address under a registered scheme with an open handler — no tab without a URI
 - [ ] **URI-04**: These URIs are typeable/copy-pasteable, with per-scheme semantics (what the path encodes, open-vs-focus behavior) documented
+
+> **Amended 2026-08-20** (Phase 2 discussion, decision D-38 in
+> `.planning/phases/02-sourcerer-theia-extensions/02-CONTEXT.md`). URI-01 and
+> URI-03 previously required each widget to *implement
+> `Navigatable.getResourceUri()`*. That is unachievable for the widget URI-01
+> names: `NavigatableWidget.is()` requires `arg instanceof BaseWidget`
+> (`navigatable-types.ts:41`) and is the variant Theia's tab bar calls, while
+> `PreferencesWidget extends` Lumino `Panel` (`preference-widget.tsx:35`).
+> The requirement now asks for an **address per tab**, delivered by a
+> `factoryId → URI` registry; `Navigatable` is implemented only on Terminal
+> (URI-02), where the widget is a `BaseWidget`. The canonical URI form is the
+> opaque `scheme:path`, not `scheme://` — the authority component is
+> lower-cased on serialization and Theia widget ids are not uniformly
+> lowercase. `settings://` normalizes to `settings:` either way.
 
 ## v2 Requirements
 
