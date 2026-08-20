@@ -39,7 +39,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Developer runs `nix develop .#firefox` and builds the pinned `FIREFOX_153_1_0esr_RELEASE` tag into a launchable stock Firefox, never invoking `mach bootstrap`
   3. Native modules compile inside the `theia` shell against the single pinned Node 22 version — the node-gyp path is proven by a real build, not assumed
   4. A second fresh clone on the NixOS host reaches both of the above with the documented commands and no manual steps outside the shells
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Tracer: both dev shells enter on the real host; Wave 0 smoke harness, `.mozconfig`, and the D-13 toolchain baseline
+- [ ] 01-02-PLAN.md — Stock Theia 1.74.1 yarn workspace; `node-pty` compiled against pinned Node 22; IDE boots at localhost (BUILD-01)
+- [ ] 01-03-PLAN.md — `upstream/` materialized at `FIREFOX_153_1_0esr_RELEASE`; full non-artifact Gecko compile launches (BUILD-02)
+- [ ] 01-04-PLAN.md — `docs/BUILD.md` + README pointer, proven by a second fresh clone (success criterion 4)
 
 ### Phase 2: Sourcerer Theia Extensions
 **Goal**: The standalone Theia app is Sourcerer-branded, exposes an inert customization seam, and gives every tab a URL — entirely via `@sourcerer/*` extensions with Theia core untouched.
@@ -115,7 +121,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 (2 and 3 may run in p
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Build Infrastructure | 0/TBD | Not started | - |
+| 1. Build Infrastructure | 0/4 | Planned | - |
 | 2. Sourcerer Theia Extensions | 0/TBD | Not started | - |
 | 3. Branded Firefox Fork | 0/TBD | Not started | - |
 | 4. Full-Window Theia Shell | 0/TBD | Not started | - |
