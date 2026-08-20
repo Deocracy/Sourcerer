@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 1
 current_phase_name: Build Infrastructure
 status: executing
-stopped_at: Phase 1 context gathered
-last_updated: "2026-08-20T08:24:19.140Z"
+stopped_at: Completed 01-01-PLAN.md
+last_updated: "2026-08-20T08:35:47.114Z"
 last_activity: 2026-08-20
 last_activity_desc: Roadmap created, 26/26 v1 requirements mapped
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 4
-  completed_plans: 0
+  completed_plans: 1
 ---
 
 # Project State
@@ -27,12 +27,12 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 
 ## Current Position
 
-Phase: 1 of 5 (Build Infrastructure)
-Plan: 0 of TBD in current phase
+Phase: 1 (Build Infrastructure) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-08-20 — Roadmap created, 26/26 v1 requirements mapped
+Last activity: 2026-08-20 — Phase 1 execution started
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [███░░░░░░░] 25%
 
 ## Performance Metrics
 
@@ -54,6 +54,11 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: —
 
 *Updated after each plan completion*
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 01 P01 | 10min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -65,6 +70,7 @@ Recent decisions affecting current work:
 - Roadmap: Nix flake is its own phase (not folded into 2/3) — the NixOS Firefox toolchain is the project's highest unknown and blocks both tracks
 - Roadmap: research's 7 phases compressed to 5 (standard granularity) — xhtml gut + TheiaService merged into Phase 4; both are "the window shows Theia"
 - Roadmap: UI hints suppressed on all phases — CLAUDE.md forbids GUI work beyond the rename in v4.0
+- [Phase ?]: shellHook banners write to stderr, not stdout, so nix develop --command output stays machine-parseable for scripts like toolchain-baseline.sh
 
 ### Pending Todos
 
@@ -86,6 +92,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-20T07:40:32.471Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-build-infrastructure/01-CONTEXT.md
+Last session: 2026-08-20T08:35:47.106Z
+Stopped at: Completed 01-01-PLAN.md
+Resume file: None
