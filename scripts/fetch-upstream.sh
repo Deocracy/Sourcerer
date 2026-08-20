@@ -18,14 +18,37 @@ if [ -d "$UPSTREAM_DIR" ]; then
   # (observed picking BUILD1 over RELEASE on this exact commit). Resolving the
   # pinned tag's own ref and diffing commit hashes is unambiguous regardless of
   # how many other tags share that commit.
+  if ! git -C "$UPSTREAM_DIR" rev-parse --git-dir >/dev/null 2>&1; then
+    echo "fetch-upstream: FAIL -- $UPSTREAM_DIR exists but is not a git checkout." >&2
+    echo "  Most likely an interrupted clone. Remove it and re-run:" >&2
+    echo "    rm -rf '$UPSTREAM_DIR' && '${BASH_SOURCE[0]}'" >&2
+    exit 1
+  fi
+
   HEAD_SHA="$(git -C "$UPSTREAM_DIR" rev-parse HEAD 2>/dev/null || true)"
   TAG_SHA="$(git -C "$UPSTREAM_DIR" rev-parse "refs/tags/$TAG^{commit}" 2>/dev/null || true)"
-  if [ -n "$HEAD_SHA" ] && [ "$HEAD_SHA" = "$TAG_SHA" ]; then
-    echo "fetch-upstream: upstream/ already at $TAG, nothing to do"
-    exit 0
+
+  if [ -z "$HEAD_SHA" ] || [ "$HEAD_SHA" != "$TAG_SHA" ]; then
+    echo "fetch-upstream: FAIL -- upstream/ HEAD (${HEAD_SHA:-<unresolvable>}) is not $TAG (${TAG_SHA:-<tag not present>})." >&2
+    echo "  Remove it and re-run to re-materialize at the pinned tag:" >&2
+    echo "    rm -rf '$UPSTREAM_DIR' && '${BASH_SOURCE[0]}'" >&2
+    exit 1
   fi
-  echo "fetch-upstream: FAIL -- upstream/ exists but HEAD ($HEAD_SHA) is not $TAG ($TAG_SHA)" >&2
-  exit 1
+
+  # HEAD matching the tag is necessary but not sufficient: a modified working
+  # tree is still the wrong source. CLAUDE.md's hard rule is that Gecko is never
+  # modified, and BUILD-03's rebase procedure assumes upstream/ is pristine, so
+  # report a dirty tree rather than silently declaring it correct (D-01, D-02).
+  if [ -n "$(git -C "$UPSTREAM_DIR" status --porcelain 2>/dev/null)" ]; then
+    echo "fetch-upstream: FAIL -- upstream/ is at $TAG but its working tree is dirty." >&2
+    echo "  Gecko source must never be modified. Inspect with:" >&2
+    echo "    git -C '$UPSTREAM_DIR' status --porcelain" >&2
+    echo "  Then discard the changes, or remove upstream/ and re-run this script." >&2
+    exit 1
+  fi
+
+  echo "fetch-upstream: upstream/ already at $TAG and clean, nothing to do"
+  exit 0
 fi
 
 SECONDS=0
