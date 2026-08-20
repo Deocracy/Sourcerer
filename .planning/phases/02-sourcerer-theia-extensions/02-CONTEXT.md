@@ -546,6 +546,80 @@ unambiguous.
   `node_modules/@theia/*` against a freshly-resolved install of the same
   pinned versions.
 
+- **D-69:** **The headless verification harness is the Firefox we already
+  build — `objdir/dist/bin/firefox` — driven over WebDriver BiDi. Not
+  Playwright, not Puppeteer, not geckodriver.** No new npm dependency is added
+  to the `theia` workspace for testing.
+  — **Reversibility:** reversible — the harness is a few plain `.mjs` scripts;
+  swapping the driver later touches only them.
+
+  **Supersedes** RESEARCH.md §6's Playwright-based mechanism, its
+  "Environment Availability" row for the `playwright` package, and its
+  `[SUS]` package-legitimacy gate for `playwright` / `@playwright/test`
+  (the gate becomes moot — there is no package to vet).
+
+  **Verified live on this host, 2026-08-20**, against the Phase 1 build
+  (`Mozilla Firefox 153.1.0esr`). Every assertion Phase 2 needs was executed
+  end to end, not reasoned about:
+
+  | Phase 2 check | Mechanism | Probe result |
+  |---|---|---|
+  | CUST-01 screenshot | `--headless --window-size 800,600 --screenshot <path>` | 800×600 PNG written, valid magic bytes |
+  | BRAND-05 title | BiDi `script.evaluate` → `document.title` | `"Sourcerer"` |
+  | BRAND-05 favicon | `(document.querySelector('link[rel="icon"]')||{}).type` | `"image/svg+xml"` |
+  | BRAND-05 no-Theia | `/Theia\|Eclipse/i.test(document.body.innerText)` | `false` |
+  | **CUST-02 negative** | `window.theia.container.isBound(Symbol.for('SourcererPrivilegedJs'))` | `false` |
+  | **CUST-02 positive control** | `window.theia.container.isBound(Symbol.for('Present'))` | `true` |
+
+  Flags confirmed present in `objdir/dist/bin/firefox --help`: `--headless`,
+  `--screenshot [<path>]`, `--window-size`, `--remote-debugging-port`,
+  `--remote-allow-hosts`, `--remote-allow-origins`,
+  `--remote-allow-system-access`, `--marionette`, `--profile`,
+  `--new-instance`.
+
+  **Why this and not Playwright — three independent reasons:**
+  1. **Right engine.** v4.0 ships a Firefox fork. A harness driving headless
+     Chromium proves Theia works in an engine Sourcerer does not ship. Driving
+     the exact `153.1.0esr` build that becomes Sourcerer tests the real
+     substrate, which makes these scripts reusable as Phase 4/5 integration
+     tests rather than throwaway.
+  2. **Zero dependencies.** Node 24 exposes a global `WebSocket`, so the BiDi
+     client is ~40 lines of stdlib. Nothing is added to `theia/package.json`,
+     so nothing new can drift against the exact-pin discipline (D-19), and
+     criterion 2's "diff against the pinned release" stays clean.
+  3. **NixOS.** Playwright downloads generic-Linux browser ELFs that do not
+     run on NixOS without `nixpkgs.playwright-driver` +
+     `PLAYWRIGHT_BROWSERS_PATH` + `PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS`
+     or `nix-ld`. RESEARCH.md's Wave 0 line
+     (`yarn add --dev playwright && npx playwright install chromium`) does not
+     account for that friction on the only delivery platform v4.0 targets.
+
+  **Proven driver shape — transcribe this, do not re-derive it.** Launch:
+
+  ```
+  objdir/dist/bin/firefox --headless --profile <tmpdir> \
+    --remote-debugging-port=<port> --remote-allow-hosts 127.0.0.1 <url>
+  ```
+
+  The Remote Agent writes `WebDriver BiDi listening on ws://127.0.0.1:<port>`
+  to **stderr** — poll for that line rather than sleeping. Then connect to
+  `ws://127.0.0.1:<port>/session` with Node's global `WebSocket` and issue, in
+  order: `session.new` (`{capabilities:{}}`) → `browsingContext.getTree` (take
+  `contexts[0].context`) → `script.evaluate`
+  (`{expression, target:{context}, awaitPromise:true}`), reading the result at
+  `result.result.value`. Close with `session.end`. Correlate responses by the
+  `id` field; a response with `type === 'error'` carries `error` and `message`.
+
+  **Still to settle at implementation time (not a blocker):** comparing two
+  PNGs for CUST-01. Byte-hash equality may be flaky if Firefox writes varying
+  metadata; if it is, decode raw pixels with python3 `zlib` + `struct` (~15
+  dependency-free lines) rather than adding an image library. Check which is
+  needed by taking two screenshots of an unchanged page and diffing them.
+
+  **Process hygiene:** every harness script must kill its Firefox and remove
+  its temp profile in a `finally`. Phase 5's whole subject is orphaned
+  processes — the test harness must not create them.
+
 ### Claude's Discretion
 
 The user did not specify these; treat the leanings as defaults, not
