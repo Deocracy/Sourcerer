@@ -57,7 +57,11 @@
           (pkgs.mkShell.override { stdenv = pkgs.llvmPackages.stdenv; }) {
             inputsFrom = [ pkgs.firefox-esr-153-unwrapped ];
             shellHook = ''
-              export MOZBUILD_STATE_PATH="$PWD/.mozbuild"
+              # Anchor to the repo root, not invocation-time $PWD: entering the
+              # shell from a subdirectory would otherwise scatter build state
+              # into that subdirectory instead of the repo-contained path a
+              # fresh clone expects. Falls back to $PWD outside a git checkout.
+              export MOZBUILD_STATE_PATH="$(git rev-parse --show-toplevel 2>/dev/null || echo "$PWD")/.mozbuild"
               # nixpkgs' bintools-wrapper setup hook exports AS/LD/NM/AR/RANLIB/
               # OBJDUMP/OBJCOPY/READELF/SIZE/STRINGS/STRIP as bare tool names, for
               # classic autotools `./configure` scripts. Firefox's own
