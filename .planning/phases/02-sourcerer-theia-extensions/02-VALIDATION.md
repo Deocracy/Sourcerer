@@ -20,7 +20,7 @@ created: 2026-08-20
 | Property | Value |
 |----------|-------|
 | **Framework** | None, and none is installed. Phase 1 shipped shell smoke tests (`scripts/smoke-theia.sh`, `scripts/smoke-firefox.sh`). Wave 0 adds plain Node `.mjs` assertion scripts that drive **the Firefox this repo already builds** (`objdir/dist/bin/firefox`, 153.1.0esr) in headless mode over WebDriver BiDi — see CONTEXT.md **D-69**. |
-| **Browser driver** | `objdir/dist/bin/firefox --headless`, plus `--screenshot`/`--window-size` for image capture and `--remote-debugging-port` for BiDi. **Zero npm dependencies** — Node 24's global `WebSocket` is the BiDi client. |
+| **Browser driver** | `objdir/dist/bin/firefox --headless`, plus `--screenshot`/`--window-size` for image capture and `--remote-debugging-port` for BiDi. **Zero npm dependencies** — the pinned `nodejs_22` (**v22.23.2**, verified inside `nix develop .#theia`) exposes a global `WebSocket`, which is the BiDi client. The binary also runs fine outside the `firefox` dev shell, so the harness does not shell-hop. |
 | **Config file** | none — nothing to install |
 | **Quick run command** | `node scripts/verify-uri-roundtrip.mjs --scheme <scheme>` (Wave 0 deliverable) |
 | **Full suite command** | `scripts/verify-phase-02.sh` (Wave 0 deliverable — runs the URI round-trip table, the dev-flag-off check, and the core-diff check in sequence) |
