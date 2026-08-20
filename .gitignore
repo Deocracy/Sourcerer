@@ -12,10 +12,10 @@ gen-webpack*.js
 plugins/
 .theia/
 
-# Electron packaging output
-applications/electron/dist/
-applications/electron/*.AppImage
-applications/electron/*.deb
+# Firefox fork build spill (D-01 containment)
+upstream/
+objdir/
+.mozbuild/
 
 # Logs
 *.log
