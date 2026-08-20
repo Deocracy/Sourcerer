@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: milestone
-current_phase: 1
-current_phase_name: Build Infrastructure
-status: completed
-stopped_at: Phase 2 context gathered
-last_updated: "2026-08-20T21:57:49.191Z"
+current_phase: 2
+current_phase_name: Sourcerer Theia Extensions
+status: executing
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-08-20T22:45:57.030Z"
 last_activity: 2026-08-20
 last_activity_desc: Roadmap created, 26/26 v1 requirements mapped
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 11
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # Project State
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-19)
 
 **Core value:** A daily-drivable IDE whose substrate is a real browser (DRM, WebExtensions, site isolation inherited from Firefox), built so every later plan lands as an addition, never a rework.
-**Current focus:** Phase 1 — Build Infrastructure
+**Current focus:** Phase 2 — Sourcerer Theia Extensions
 
 ## Current Position
 
-Phase: 1 (Build Infrastructure) — EXECUTING
-Plan: 4 of 4
-Status: phase-1-complete
-Last activity: 2026-08-20 — Phase 1 execution started
+Phase: 2 (Sourcerer Theia Extensions) — EXECUTING
+Plan: 2 of 7
+Status: Ready to execute
+Last activity: 2026-08-20 — Phase 2 execution started
 
-Progress: [██████████] 100%
+Progress: [█████░░░░░] 45%
 
 ## Performance Metrics
 
@@ -62,6 +62,7 @@ Progress: [██████████] 100%
 | Phase 01 P02 | 23min | 2 tasks | 5 files |
 | Phase 1 P3 | 2h18min | 2 tasks | 4 files |
 | Phase 01 P04 | 20min | 2 tasks | 2 files |
+| Phase 02 P01 | 45min | 1 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,10 @@ Recent decisions affecting current work:
 - [Phase ?]: fetch-upstream.sh re-run identity check compares resolved commit SHAs, not git describe --tags --exact-match -- the mirror tags this release with both _RELEASE and _BUILD1 on the identical commit, and describe's tie-break is non-deterministic
 - [Phase ?]: docs/BUILD.md documents the --ignore-scripts + explicit drivelist node-gyp rebuild install sequence, with the audit reason, so it is never simplified back to a plain yarn install
 - [Phase ?]: scripts/fetch-upstream.sh is documented as run directly from the repo root (needs only git, already on host), not wrapped in nix develop .#firefox
+- [Phase ?]: 02-01: @sourcerer/branding tsconfig.json uses the full theia-ide base.tsconfig.json compilerOptions (skipLibCheck, lib:[...,dom], declaration) -- the abbreviated set fails tsc -b on @theia/core's own .d.ts files
+- [Phase ?]: 02-01: verify-branding.mjs polls for the favicon link itself, not just window.theia.container -- container is assigned before onStart contributions run, so a container-only wait races the DOM mutation
+- [Phase ?]: 02-01: .gitignore's Theia build-output lib/ rule anchored to theia/**/lib/ -- the unanchored form also silently excluded scripts/lib/ (hand-written source)
+- [Phase ?]: 02-01: sourcererPrivilegedJs read in-page via Object.getOwnPropertySymbols(window) -- FrontendApplicationConfigProvider stores config behind a bare Symbol(), no fixed lookup key or DI token exists externally
 
 ### Pending Todos
 
@@ -102,6 +107,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-20T20:54:38.223Z
-Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-sourcerer-theia-extensions/02-CONTEXT.md
+Last session: 2026-08-20T22:45:57.021Z
+Stopped at: Completed 02-01-PLAN.md
+Resume file: None
