@@ -73,16 +73,27 @@ nix develop "$REPO_ROOT#theia" --command node -e '
   }, 1500);
 '
 
+# Refuse to start if anything already holds :3000. Without this the health
+# check below can be satisfied by a leftover server from an earlier aborted
+# run, so the script would print PASS without ever proving THIS build boots.
+if curl -sf http://localhost:3000 >/dev/null 2>&1; then
+  echo "smoke-theia: FAIL -- something is already listening on :3000 (stale run?). Kill it and re-run." >&2
+  exit 1
+fi
+
 SERVER_PID=""
 cleanup() {
   if [ -n "$SERVER_PID" ]; then
-    kill "$SERVER_PID" 2>/dev/null || true
+    # Signal the whole process group: yarn does not exec-replace itself when
+    # running a package script, so the Node backend actually holding :3000 is a
+    # grandchild of the tracked PID and would survive a plain `kill $SERVER_PID`.
+    kill -- "-$SERVER_PID" 2>/dev/null || kill "$SERVER_PID" 2>/dev/null || true
     wait "$SERVER_PID" 2>/dev/null || true
   fi
 }
 trap cleanup EXIT
 
-nix develop "$REPO_ROOT#theia" --command yarn --cwd applications/browser start &
+setsid nix develop "$REPO_ROOT#theia" --command yarn --cwd applications/browser start &
 SERVER_PID=$!
 
 DEADLINE=$((SECONDS + 60))
