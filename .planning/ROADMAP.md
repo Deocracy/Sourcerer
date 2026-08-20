@@ -72,7 +72,33 @@ Plans:
   4. Copying the URI off a settings tab, a terminal tab, or the AI chat view and passing it to `OpenerService.open()` opens or focuses that exact tab — no shipped widget type reports an empty resource URI
   5. Per-scheme semantics (what the path encodes, open-vs-focus behaviour) are documented and the URIs can be typed by hand
 
-**Plans**: TBD
+**Plans**: 7 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 02-01-PLAN.md — Tracer: first `@sourcerer/*` extension end-to-end (workspace glob, `theiaExtensions` discovery, branded title + favicon, headless proof)
+
+**Wave 2**
+
+- [ ] 02-02-PLAN.md — Wave 0 verification harness: core-diff, dev-flag-off, URI round-trip, phase driver
+- [ ] 02-03-PLAN.md — Branding completion: Sourcerer welcome widget and About dialog by rebind
+
+**Wave 3**
+
+- [ ] 02-04-PLAN.md — Package set 11 → 49, install audit, first-boot AI layout rebinds, BUILD.md
+
+**Wave 4**
+
+- [ ] 02-05-PLAN.md — `@sourcerer/customize`: user CSS layer and the flag-gated privileged JS layer
+
+**Wave 5**
+
+- [ ] 02-06-PLAN.md — `@sourcerer/tab-uris`: registry plus the `view:` and `settings:` open handler
+
+**Wave 6**
+
+- [ ] 02-07-PLAN.md — `terminal:` addressing, existing-scheme coverage, and `docs/URI-SCHEMES.md`
 
 ### Phase 3: Branded Firefox Fork
 
