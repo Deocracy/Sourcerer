@@ -2,7 +2,9 @@
 node_modules/
 
 # Theia / TypeScript build output
-lib/
+# Anchored under theia/ so this doesn't also swallow scripts/lib/, which is
+# hand-written source (the shared BiDi driver), not build output.
+theia/**/lib/
 src-gen/
 gen-webpack*.js
 gen-esbuild*.mjs
