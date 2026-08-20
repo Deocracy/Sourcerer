@@ -5,11 +5,7 @@
   "theia": {
     "frontend": {
       "config": {
-        "applicationName": "Sourcerer (dev)",
-        "preferences": {
-          "files.enableTrash": false,
-          "security.workspace.trust.enabled": false
-        }
+        "applicationName": "Sourcerer (dev)"
       }
     },
     "backend": {
