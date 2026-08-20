@@ -42,13 +42,13 @@ Requirements for v4.0. Each maps to roadmap phases.
 ### Customization Bridge (R4a)
 
 - [ ] **CUST-01**: `@sourcerer/customize` loads a runtime user CSS layer after Theia's own styles; empty by default with zero visual change
-- [ ] **CUST-02**: The privileged JS layer is exposed only when a dev flag is set; with the flag off, no privileged binding exists at runtime
+- [x] **CUST-02**: The privileged JS layer is exposed only when a dev flag is set; with the flag off, no privileged binding exists at runtime
 
 ### Universal Tab URIs (R4b)
 
-- [ ] **URI-01**: The settings widget has an address under `settings:` with a registered open handler — `OpenerService.open()` opens or focuses it, and the tab reports that address
-- [ ] **URI-02**: Terminal widgets implement `Navigatable.getResourceUri()` under `terminal:` (per-instance addressing semantics documented)
-- [ ] **URI-03**: Every other non-document widget type shipped in v4.0 (e.g. Theia AI chat view) has an address under a registered scheme with an open handler — no tab without a URI
+- [x] **URI-01**: The settings widget has an address under `settings:` with a registered open handler — `OpenerService.open()` opens or focuses it, and the tab reports that address
+- [x] **URI-02**: Terminal widgets implement `Navigatable.getResourceUri()` under `terminal:` (per-instance addressing semantics documented)
+- [x] **URI-03**: Every other non-document widget type shipped in v4.0 (e.g. Theia AI chat view) has an address under a registered scheme with an open handler — no tab without a URI
 - [ ] **URI-04**: These URIs are typeable/copy-pasteable, with per-scheme semantics (what the path encodes, open-vs-focus behavior) documented
 
 > **Amended 2026-08-20** (Phase 2 discussion, decision D-38 in
@@ -114,10 +114,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BUILD-02 | Phase 1 | Complete |
 | BRAND-05 | Phase 2 | Pending |
 | CUST-01 | Phase 2 | Pending |
-| CUST-02 | Phase 2 | Pending |
-| URI-01 | Phase 2 | Pending |
-| URI-02 | Phase 2 | Pending |
-| URI-03 | Phase 2 | Pending |
+| CUST-02 | Phase 2 | Complete |
+| URI-01 | Phase 2 | Complete |
+| URI-02 | Phase 2 | Complete |
+| URI-03 | Phase 2 | Complete |
 | URI-04 | Phase 2 | Pending |
 | BUILD-03 | Phase 3 | Pending |
 | BUILD-04 | Phase 3 | Pending |

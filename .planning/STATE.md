@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 2
 current_phase_name: Sourcerer Theia Extensions
 status: executing
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-08-20T22:45:57.030Z"
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-08-20T23:15:16.761Z"
 last_activity: 2026-08-20
 last_activity_desc: Roadmap created, 26/26 v1 requirements mapped
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 11
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 ## Current Position
 
 Phase: 2 (Sourcerer Theia Extensions) — EXECUTING
-Plan: 2 of 7
+Plan: 3 of 7
 Status: Ready to execute
 Last activity: 2026-08-20 — Phase 2 execution started
 
-Progress: [█████░░░░░] 45%
+Progress: [██████░░░░] 55%
 
 ## Performance Metrics
 
@@ -63,6 +63,7 @@ Progress: [█████░░░░░] 45%
 | Phase 1 P3 | 2h18min | 2 tasks | 4 files |
 | Phase 01 P04 | 20min | 2 tasks | 2 files |
 | Phase 02 P01 | 45min | 1 tasks | 13 files |
+| Phase 02 P02 | 45min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 02-01: verify-branding.mjs polls for the favicon link itself, not just window.theia.container -- container is assigned before onStart contributions run, so a container-only wait races the DOM mutation
 - [Phase ?]: 02-01: .gitignore's Theia build-output lib/ rule anchored to theia/**/lib/ -- the unanchored form also silently excluded scripts/lib/ (hand-written source)
 - [Phase ?]: 02-01: sourcererPrivilegedJs read in-page via Object.getOwnPropertySymbols(window) -- FrontendApplicationConfigProvider stores config behind a bare Symbol(), no fixed lookup key or DI token exists externally
+- [Phase ?]: 02-02: verify-uri-roundtrip.mjs resolves Theia DI services (OpenerService, WidgetManager, TabUriRegistry) via Inversify _bindingDictionary reflection and a minimal URI shim, since the real classes are unreachable from an external BiDi evaluation context -- an informal contract Plan 06/07 must not break with an instanceof URI check
+- [Phase ?]: 02-02: bash trap cleanup EXIT INT TERM does not terminate a script on INT/TERM (bash resumes after a non-EXIT trap returns unless it exits) -- verify-phase-02.sh splits into trap cleanup EXIT plus trap 'cleanup; exit N' INT TERM
 
 ### Pending Todos
 
@@ -107,6 +110,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-20T22:45:57.021Z
-Stopped at: Completed 02-01-PLAN.md
+Last session: 2026-08-20T23:15:16.752Z
+Stopped at: Completed 02-02-PLAN.md
 Resume file: None
