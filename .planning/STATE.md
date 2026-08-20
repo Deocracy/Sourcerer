@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 2
 current_phase_name: Sourcerer Theia Extensions
 status: executing
-stopped_at: Completed 02-02-PLAN.md
-last_updated: "2026-08-20T23:15:16.761Z"
+stopped_at: Completed 02-03-PLAN.md
+last_updated: "2026-08-20T23:40:13.715Z"
 last_activity: 2026-08-20
 last_activity_desc: Roadmap created, 26/26 v1 requirements mapped
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 11
-  completed_plans: 6
+  completed_plans: 7
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 ## Current Position
 
 Phase: 2 (Sourcerer Theia Extensions) — EXECUTING
-Plan: 3 of 7
+Plan: 4 of 7
 Status: Ready to execute
 Last activity: 2026-08-20 — Phase 2 execution started
 
-Progress: [██████░░░░] 55%
+Progress: [██████░░░░] 64%
 
 ## Performance Metrics
 
@@ -64,6 +64,7 @@ Progress: [██████░░░░] 55%
 | Phase 01 P04 | 20min | 2 tasks | 2 files |
 | Phase 02 P01 | 45min | 1 tasks | 13 files |
 | Phase 02 P02 | 45min | 3 tasks | 5 files |
+| Phase 02 P03 | 55min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -89,6 +90,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 02-01: sourcererPrivilegedJs read in-page via Object.getOwnPropertySymbols(window) -- FrontendApplicationConfigProvider stores config behind a bare Symbol(), no fixed lookup key or DI token exists externally
 - [Phase ?]: 02-02: verify-uri-roundtrip.mjs resolves Theia DI services (OpenerService, WidgetManager, TabUriRegistry) via Inversify _bindingDictionary reflection and a minimal URI shim, since the real classes are unreachable from an external BiDi evaluation context -- an informal contract Plan 06/07 must not break with an instanceof URI check
 - [Phase ?]: 02-02: bash trap cleanup EXIT INT TERM does not terminate a script on INT/TERM (bash resumes after a non-EXIT trap returns unless it exits) -- verify-phase-02.sh splits into trap cleanup EXIT plus trap 'cleanup; exit N' INT TERM
+- [Phase ?]: Added @types/react@18.3.31 and @types/react-dom@18.3.7 as devDependencies (type-only, exact-pinned) -- react ships no bundled types and @theia/core lists both as optional peers Yarn Classic never auto-installs; approved by the coordinator after independent verification, per the phase's no-new-dependency stop-and-report rule.
+- [Phase ?]: Welcome widget verification resolves SourcererWelcomeViewContribution directly and calls openView({reveal:true}) rather than the toggle command -- toggleView() closes an already-open main-area widget instead of re-revealing it, and a fresh headless profile always has it open via initializeLayout() already.
 
 ### Pending Todos
 
@@ -110,6 +113,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-20T23:15:16.752Z
-Stopped at: Completed 02-02-PLAN.md
+Last session: 2026-08-20T23:40:13.708Z
+Stopped at: Completed 02-03-PLAN.md
 Resume file: None
