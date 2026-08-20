@@ -36,6 +36,13 @@ surfacing the inherited real-browser capabilities (Widevine DRM, WebExtensions,
 site isolation), AI integration, extension distribution — are recorded in the
 requirements document so the internals do not preclude them.
 
+## Building
+
+Two Nix dev shells build the two halves: `nix develop .#theia` for the
+Theia sidecar, `nix develop .#firefox` for the Firefox-ESR fork. The repo
+must live at a space-free path. See [docs/BUILD.md](docs/BUILD.md) for the
+exact commands, measured durations, and a fresh-clone verification.
+
 ## History
 
 Versions 1.0–3.0 were a bespoke Tauri 2 + React desktop shell. That work is
