@@ -4,16 +4,16 @@ milestone: v4.0
 milestone_name: milestone
 current_phase: 2
 current_phase_name: Sourcerer Theia Extensions
-status: executing
-stopped_at: Completed 02-06-PLAN.md
-last_updated: "2026-08-21T02:17:21.667Z"
+status: verifying
+stopped_at: Completed 02-07-PLAN.md
+last_updated: "2026-08-21T02:55:19.978Z"
 last_activity: 2026-08-20
 last_activity_desc: Roadmap created, 26/26 v1 requirements mapped
 progress:
   total_phases: 2
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 11
-  completed_plans: 10
+  completed_plans: 11
 ---
 
 # Project State
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 
 Phase: 2 (Sourcerer Theia Extensions) — EXECUTING
 Plan: 7 of 7
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-08-20 — Phase 2 execution started
 
-Progress: [█████████░] 91%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -68,6 +68,7 @@ Progress: [█████████░] 91%
 | Phase 02 P04 | 45min | 3 tasks | 7 files |
 | Phase 02 P05 | ~2h | 3 tasks | 12 files |
 | Phase 02 P06 | 40min | 3 tasks | 12 files |
+| Phase 02 P07 | 90min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -102,6 +103,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 02-06: TabUriRegistry discovers view: targets at runtime from AbstractViewContribution instances (cross-checked against the static coverage table), not a hard-coded lookup -- turns a mis-transcribed table id into a startup console.error instead of a silent no-op
 - [Phase ?]: 02-06: AbstractViewContribution.openView()'s return value is unreliable for a view: URI target when viewContainerId differs from widgetId -- it resolves via viewId (the container's part), not effectiveWidgetId (the container); ViewUriOpenHandler re-fetches the widget by name after calling openView() for its side effect
 - [Phase ?]: 02-06: AI chat widget non-extractable (D-27) fix checks for an already-created widget via WidgetManager.getWidgets() in addition to subscribing to onDidCreateWidget -- another AI contribution's own onStart can create the widget first, and onDidCreateWidget only fires once, on first creation
+- [Phase ?]: 02-07: TerminalUriOpenHandler and SourcererOutputOpenHandler stay bare OpenHandlers, not WidgetOpenHandler subclasses -- WidgetOpenHandler.doOpen defaults an unattached widget's area to 'main', wrong for Terminal's real 'bottom' default; delegating to each widget's own in-tree contribution reuses Theia's already-correct placement logic
+- [Phase ?]: 02-07: fixed a live bug in @theia/output's own OutputContribution.open() -- it validated the output: scheme and then discarded the channel, never selecting it; opening output:B after output:A left selectedChannel pinned on A
+- [Phase ?]: 02-07: terminalIdentityOptions({created,id,title} all equal) is a single shared helper used by both the auto-mint path and the terminal-open-handler's stale-name fresh-shell path -- WidgetManager dedups on stableJsonStringify({factoryId,options}), so any drift between the two call sites would fork a duplicate widget
 
 ### Pending Todos
 
@@ -123,6 +127,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-21T02:17:21.658Z
-Stopped at: Completed 02-06-PLAN.md
+Last session: 2026-08-21T02:55:19.969Z
+Stopped at: Completed 02-07-PLAN.md
 Resume file: None

@@ -49,7 +49,7 @@ Requirements for v4.0. Each maps to roadmap phases.
 - [x] **URI-01**: The settings widget has an address under `settings:` with a registered open handler — `OpenerService.open()` opens or focuses it, and the tab reports that address
 - [x] **URI-02**: Terminal widgets implement `Navigatable.getResourceUri()` under `terminal:` (per-instance addressing semantics documented)
 - [x] **URI-03**: Every other non-document widget type shipped in v4.0 (e.g. Theia AI chat view) has an address under a registered scheme with an open handler — no tab without a URI
-- [ ] **URI-04**: These URIs are typeable/copy-pasteable, with per-scheme semantics (what the path encodes, open-vs-focus behavior) documented
+- [x] **URI-04**: These URIs are typeable/copy-pasteable, with per-scheme semantics (what the path encodes, open-vs-focus behavior) documented
 
 > **Amended 2026-08-20** (Phase 2 discussion, decision D-38 in
 > `.planning/phases/02-sourcerer-theia-extensions/02-CONTEXT.md`). URI-01 and
@@ -118,7 +118,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | URI-01 | Phase 2 | Complete |
 | URI-02 | Phase 2 | Complete |
 | URI-03 | Phase 2 | Complete |
-| URI-04 | Phase 2 | Pending |
+| URI-04 | Phase 2 | Complete |
 | BUILD-03 | Phase 3 | Pending |
 | BUILD-04 | Phase 3 | Pending |
 | BRAND-01 | Phase 3 | Pending |
