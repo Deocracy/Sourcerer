@@ -8,6 +8,7 @@ import { TabUriRegistry } from './tab-uri-registry';
 import { ViewUriOpenHandler } from './view-open-handler';
 import { SourcererTerminalFrontendContribution, SourcererTerminalWidget } from './terminal-naming-contribution';
 import { TerminalUriOpenHandler } from './terminal-open-handler';
+import { SourcererOutputOpenHandler, SourcererWebviewOpenHandler } from './existing-scheme-coverage';
 
 /**
  * Registers an `OpenHandler` after the app's first `OpenerService.open()`
@@ -64,6 +65,19 @@ export default new ContainerModule((bind, _unbind, isBound, rebind) => {
 
     bind(TerminalUriOpenHandler).toSelf().inSingletonScope();
     bind(OpenHandler).toService(TerminalUriOpenHandler);
+
+    // D-51 carve-out 1 fix (existing-scheme-coverage.ts's own header has
+    // the full story): @theia/output's own OutputContribution.open()
+    // discards the URI's channel, found live. Priority 1000 clears its
+    // 200 and delegates the actual reveal to it once the channel is
+    // selected.
+    bind(SourcererOutputOpenHandler).toSelf().inSingletonScope();
+    bind(OpenHandler).toService(SourcererOutputOpenHandler);
+
+    // D-43's session-scoped fourth scheme -- reuses WidgetManager's own
+    // dedup, no restore machinery added (D-51 carve-out 4).
+    bind(SourcererWebviewOpenHandler).toSelf().inSingletonScope();
+    bind(OpenHandler).toService(SourcererWebviewOpenHandler);
 
     // D-27: the AI chat widget must never escape into a secondary window
     // -- the future unified tab strip has no way to model a chrome-owned

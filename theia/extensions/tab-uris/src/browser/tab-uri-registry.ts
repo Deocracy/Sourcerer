@@ -5,9 +5,13 @@ import {
 import { CommandContribution, ContributionProvider } from '@theia/core';
 import URI from '@theia/core/lib/common/uri';
 import { TerminalWidgetFactoryOptions, TERMINAL_WIDGET_FACTORY_ID } from '@theia/terminal/lib/browser/terminal-widget-impl';
+import { OutputChannelManager } from '@theia/output/lib/browser/output-channel';
+import { OutputUri } from '@theia/output/lib/common/output-uri';
+import { OutputWidget } from '@theia/output/lib/browser/output-widget';
 import {
     PLUGIN_VIEW_CONTAINER_FACTORY_ID, SETTINGS_WIDGET_FACTORY_ID, SOURCERER_VIEW_FACTORY_IDS
 } from './view-factory-table';
+import { extensionDetailUriOf, webviewUriOf } from './existing-scheme-coverage';
 
 /**
  * The `factoryId <-> URI` registry (D-38). Its exported shape is the
@@ -32,6 +36,9 @@ export class TabUriRegistry {
 
     @inject(WidgetManager)
     protected readonly widgetManager: WidgetManager;
+
+    @inject(OutputChannelManager)
+    protected readonly outputChannelManager: OutputChannelManager;
 
     private _index: Map<string, AbstractViewContribution<Widget>> | undefined;
 
@@ -135,6 +142,25 @@ export class TabUriRegistry {
             const options = description.options as Partial<TerminalWidgetFactoryOptions> | undefined;
             const name = options?.created ?? widget.id;
             return new URI('terminal:' + name);
+        }
+        if (factoryId === OutputWidget.ID) {
+            // D-51 carve-out 1: the output widget is a singleton with no
+            // per-channel construction options (its own WidgetFactory
+            // takes none) -- the address has to come from the *active*
+            // channel, not from `description.options`. `undefined` here
+            // means no channel has ever been shown, which cannot happen
+            // for an already-existing widget the tab bar could call this
+            // on.
+            const channel = this.outputChannelManager.selectedChannel;
+            return channel ? OutputUri.create(channel.name) : undefined;
+        }
+        const extensionDetailUri = extensionDetailUriOf(factoryId, description.options);
+        if (extensionDetailUri) {
+            return extensionDetailUri;
+        }
+        const webviewUri = webviewUriOf(factoryId, description.options);
+        if (webviewUri) {
+            return webviewUri;
         }
         if (factoryId === PLUGIN_VIEW_CONTAINER_FACTORY_ID) {
             // The widget's own `.id` already equals the full `view:` path
