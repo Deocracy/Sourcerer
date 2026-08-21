@@ -42,7 +42,15 @@ findings:
   warning: 3
   info: 2
   total: 8
-status: issues_found
+status: fixed
+fixed: 2026-08-21
+fix_summary: >
+  All 3 Critical and all 3 Warning findings fixed and verified (see
+  per-finding Status lines below and 02-REVIEW-FIX.md). Both Info
+  findings (IN-01, IN-02) are unchanged -- out of the fix pass's scope
+  and neither was one-line/risk-free. Full gate green:
+  `scripts/verify-phase-02.sh --build` 5/5 checks, 23/23 URI
+  round-trip rows, exit code 0.
 ---
 
 # Phase 2: Code Review Report
@@ -93,6 +101,19 @@ tracing against the actual Theia v1.74.1 source.
 ### CR-01: `view:plugin-view-container:<id>` never attaches the widget to the shell on first open
 
 **File:** `theia/extensions/tab-uris/src/browser/view-open-handler.ts:74-84`
+
+**Status:** Fixed. Delegates to `PluginViewRegistry.openViewContainer(viewContainerId)`
+instead of the bare `getOrCreateWidget` + `activateWidget` sequence (commit
+`fix(02): CR-01 attach plugin view containers on first URI open`). Verified
+its `toViewContainerIdentifier` produces the identical
+`{id, progressLocationId}` shape `TabUriRegistry.createWidgetOptions`
+already returns, so this cannot fork the widget under D-46's dedup key.
+`verify-uri-roundtrip.mjs`'s D-53 acceptance check is also strengthened
+with an explicit (bounded-poll) `widget.isAttached` assertion on every row,
+per this finding's own note that the round-trip check alone doesn't catch
+this bug class (commits `fix(02): CR-01 ...` and the `CR-01 follow-up`
+commit, the latter fixing a false-failure the stricter check itself
+introduced on 6 rows -- found live, see 02-REVIEW-FIX.md).
 
 **Issue:** For a plugin-contributed view container, `openView()` bypasses
 `PluginViewRegistry.openViewContainer()` (the real Theia code path, which
@@ -160,6 +181,11 @@ placement logic.
 
 **File:** `scripts/lib/firefox-bidi.mjs:69-99`
 
+**Status:** Fixed. `BiDiClient` now rejects every pending request when the
+WebSocket closes or errors, and every `send()` carries a 20s default
+timeout (commit `fix(02): CR-02 reject in-flight BiDi requests on socket
+close/timeout`).
+
 **Issue:** `BiDiClient.send()` registers a pending `{resolve, reject}` pair
 keyed by request id and only ever settles it from the `ws.addEventListener('message', ...)`
 handler (lines 74-89). There is no `ws.addEventListener('close', ...)` or
@@ -224,10 +250,33 @@ Additionally worth adding to `withFirefoxPage`: a `child.on('exit', ...)`
 listener re-armed after the initial `waitForBiDiUrl` handshake, so a Firefox
 death is detected and surfaced even faster than the request timeout.
 
+**Skipped (not implemented):** the `child.on('exit', ...)` listener suggested
+above -- CR-02's close/error rejection plus the per-request timeout already
+make a mid-session death fail fast and loudly; adding a third detection path
+for the same event would be unrequested extra surface. Add if a real gap in
+detection latency shows up in practice.
+
 ### CR-03: Racing SIGINT handlers in `verify-customize-inert.mjs` can orphan the Firefox process and leak its profile directory
 
 **File:** `scripts/verify-customize-inert.mjs:80-84`, racing against
 `scripts/lib/firefox-bidi.mjs:236-257`
+
+**Status:** Fixed. Root-caused in the shared driver rather than patched only
+in the caller: `withFirefoxPage`'s own SIGINT handler no longer calls
+`process.exit()` itself (it sets `process.exitCode = 130` and runs
+`cleanup()`, letting the natural `try/finally` unwind deterministically once
+CR-02's close-triggered rejection propagates); `verify-customize-inert.mjs`
+now just records that SIGINT arrived and lets its existing `finally` (where
+`restore()` already lived) run naturally instead of racing a second
+`process.exit()` (commit `fix(02): CR-03 make SIGINT teardown deterministic,
+not racing`). **Proven with a real SIGINT, not just asserted:** sent SIGINT
+mid-run against the built app (twice, at different points) and confirmed no
+`objdir/dist/bin/firefox` process and no `/tmp/sourcerer-firefox-bidi-*`
+profile directory survive, exit code 130, full teardown in ~1.7s. Also fixed
+a gap found live while proving this: a `send()` issued after the socket
+already closed (e.g. a `screenshot()` call following a plain `setTimeout`
+sleep) previously hung for its own 20s timeout instead of rejecting
+immediately, since `close`/`error` only fire once.
 
 **Issue:** `verify-customize-inert.mjs` registers its own `SIGINT` listener
 (to restore `customize.css` to its pre-run state) in addition to the one
@@ -304,6 +353,13 @@ actually finished unwinding rather than racing it.
 
 **File:** `theia/extensions/customize/tsconfig.json`, `theia/extensions/customize/package.json:6`, `theia/package.json:69`
 
+**Status:** Fixed. Added `"references": [{ "path": "../tab-uris" }]` to
+`extensions/customize/tsconfig.json` (commit `fix(02): WR-01 add tsc project
+reference for customize -> tab-uris`). Verified live: cleaned both
+packages' `lib/` output, ran `yarn build` inside `extensions/customize`
+alone with no manual pre-build of `tab-uris`, and `tsc -b` built `tab-uris`
+first automatically.
+
 **Issue:** `@sourcerer/customize` imports `@sourcerer/tab-uris/lib/browser/tab-uri-registry`
 (`customize-frontend-module.ts:5`, `customize-privileged-js-contribution.ts:5`)
 and declares it as a `dependencies` entry, meaning `@sourcerer/tab-uris` must
@@ -351,6 +407,11 @@ becomes redundant rather than load-bearing.
 
 **File:** `theia/extensions/branding/src/browser/sourcerer-welcome-widget.tsx:34-43`
 
+**Status:** Fixed. `doInit()` now wraps its `await` in `try`/`catch`/`finally`,
+matching the pattern used by `CustomizeCssContribution.applyCss()` and
+`CustomizePrivilegedJsContribution.run()` (commit `fix(02): WR-02 catch
+rejection in SourcererWelcomeWidget.doInit()`).
+
 **Issue:**
 
 ```ts
@@ -397,6 +458,14 @@ protected async doInit(): Promise<void> {
 ### WR-03: `parseWebviewPath`'s no-slash fallback can silently create a second, mismatched widget instead of resolving to an existing one
 
 **File:** `theia/extensions/tab-uris/src/browser/existing-scheme-coverage.ts:73-81`
+
+**Status:** Fixed via the loud-failure option. `SourcererWebviewOpenHandler.open()`
+now resolves a bare `webview:<id>` address against already-open panels by
+`id` alone and throws if none matches, rather than falling through to
+`getOrCreateWidget` with an under-specified `{id}`-only options object
+(commit `fix(02): WR-03 loud failure for under-specified webview: address`).
+`docs/URI-SCHEMES.md` documents the new behaviour since it changes what a
+hand-typed degenerate address does.
 
 **Issue:** `webviewUriOf()` (the canonical widget→URI direction) always
 emits the two-segment form `webview:<viewId>/<id>` when `viewId` is present
@@ -446,6 +515,10 @@ rather than minting a new, empty widget.
 
 **File:** `scripts/lib/firefox-bidi.mjs:132-190`
 
+**Status:** Not fixed -- out of this fix pass's scope (Info items were
+skipped unless one-line/risk-free; removing ~60 lines of dead process-
+management code is neither).
+
 **Issue:** `captureScreenshot()` is exported but has no caller anywhere in
 `scripts/` — its own header comment says so explicitly ("this file has no
 caller of its own") and explains it was tried for the CUST-01 pixel-diff use
@@ -468,6 +541,9 @@ question answerable without reading the whole header.
 ### IN-02: `sourcererPrivilegedJs: false` is redundant given D-62's "missing key behaves as off" rule
 
 **File:** `theia/applications/browser/package.json:14`
+
+**Status:** Not fixed -- out of this fix pass's scope. The finding itself
+says "no action required... not a defect."
 
 **Issue:** `customize-frontend-module.ts:21` gates the privileged-JS binding
 on `FrontendApplicationConfigProvider.get()['sourcererPrivilegedJs'] === true`,
