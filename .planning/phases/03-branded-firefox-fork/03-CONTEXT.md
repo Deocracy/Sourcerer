@@ -247,14 +247,25 @@ command line, mozconfig, **and** branding confvars alike.
   the 21 update-named files from C-5. A criterion that can only ever fail is not
   a criterion.
 
-- **D-80:** **`MOZ_APP_VENDOR` is patched to `"Sourcerer"`** —
+- **D-80:** **`MOZ_APP_VENDOR` is patched to `"Deocracy"`** —
   `upstream/browser/moz.configure:14`. Yields the profile at
-  `~/.config/sourcerer/sourcerer`, `application.ini` `Vendor=Sourcerer`, and
-  `--version` printing `Sourcerer 153.1.0`. Without it: profile at
-  `~/.config/mozilla/sourcerer`, `Vendor=Mozilla`, and `--version` printing
-  `Mozilla Sourcerer 153.1.0` — BRAND-03's literal wording is satisfied either
-  way, but BRAND-01's about:support identity fields are not. No surveyed fork
-  ships with vendor still Mozilla.
+  `~/.config/deocracy/sourcerer`, `application.ini` `Vendor=Deocracy`, and
+  `--version` printing `Deocracy Sourcerer 153.1.0`.
+  **Amended 2026-08-21 after research.** D-80 originally set vendor to
+  `"Sourcerer"`. `DumpVersion()` prints vendor then name unconditionally
+  (`toolkit/xre/nsAppRunner.cpp:2247-2249`), so vendor and basename both being
+  `Sourcerer` yields the doubled `Sourcerer Sourcerer 153.1.0`. Vendor is the
+  organisation and basename is the product — the split Mozilla itself uses
+  (`Vendor=Mozilla`, `Name=Firefox`) — and `Deocracy` matches the repo remote
+  (`github.com/Deocracy/Sourcerer`) and the `org.deocracy` distribution id.
+  Same one patched line, no extra cost.
+  **Criterion 1's `--version` checklist item must expect `Deocracy Sourcerer
+  153.1.0`,** and its profile-path check `~/.config/deocracy/sourcerer`.
+  Without any vendor patch: profile at `~/.config/mozilla/sourcerer`,
+  `Vendor=Mozilla`, `--version` printing `Mozilla Sourcerer 153.1.0` —
+  BRAND-03's literal wording is satisfied either way, but BRAND-01's
+  about:support identity fields are not. No surveyed fork ships with vendor
+  still Mozilla.
   Same file, same hunk as D-78 and D-86, so the **marginal rebase cost is zero
   extra files**. LibreWolf (`patches/moz-configure.patch`) and Zen
   (`src/toolkit/moz-configure.patch`) both patch the equivalent — in the
@@ -286,8 +297,10 @@ command line, mozconfig, **and** branding confvars alike.
 ### Endpoint and telemetry removal (BRAND-04)
 
 - **D-83:** **Remote Settings stays; `firefox.settings.services.mozilla.com` is a
-  named, documented carve-out** in BRAND-04's allowlist, with its 6-hour polling
-  cadence recorded. There is no third option: `services/settings/Utils.sys.mjs:52-84`
+  named, documented carve-out** in BRAND-04's allowlist, with its 24-hour polling
+  cadence recorded (`services.settings.poll_interval` = 86400,
+  `modules/libpref/init/all.js:1745` — the 6-hour figure sometimes quoted is
+  `app.normandy.run_interval_seconds`, which D-84 disables anyway). There is no third option: `services/settings/Utils.sys.mjs:52-84`
   **refuses any `services.settings.server` override off Nightly**, so the only
   alternative is the `DisableRemoteSettingsAndAcceptSecurityConsequences` policy —
   which also stops CRLite certificate-revocation data, intermediate-certificate
@@ -302,7 +315,10 @@ command line, mozconfig, **and** branding confvars alike.
   autoconfig.**
   - Build-time, folded into the **same `browser/moz.configure` hunk** as D-78 and
     D-80 (marginal cost: zero extra files): `imply_option("MOZ_NORMANDY", False)`
-    and `MOZ_SERVICES_HEALTHREPORT`. Code that is not compiled cannot be
+    **and `imply_option("MOZ_SERVICES_HEALTHREPORT", False)`** — confirmed safe
+    2026-08-21: the flag is referenced only by a telemetry pref gate
+    (`modules/libpref/init/all.js:3734`) and by `MOZ_DATA_REPORTING`
+    (`toolkit/moz.configure:3498`); nothing functional depends on it. Code that is not compiled cannot be
     re-enabled at runtime. `.mozconfig` already carries `--disable-updater`;
     `--disable-crashreporter` joins it.
   - Runtime defaults: our own branding pref file. Note the filename is
@@ -390,8 +406,8 @@ defaults, not constraints.
   applied, a rebuilt binary reporting Sourcerer), then a Wave-0 red-by-design
   verification harness, then the feature plans. Both patterns are recorded in
   `02-LEARNINGS.md` and both paid off there.
-- **`--with-distribution-id` value.** Research used `org.deocracy` as a
-  placeholder. Leaning: confirm before it lands in `application.ini`.
+- **`--with-distribution-id` value.** Settled: `org.deocracy`, consistent with
+  D-80's `MOZ_APP_VENDOR=Deocracy`.
 
 </decisions>
 
