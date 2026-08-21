@@ -1,0 +1,97 @@
+{
+  "$comment": "BRAND-04 (D-83..D-88): the single machine-readable source of truth for every endpoint this build is allowed to contact and every pref that gates an unattended callout. Read directly by scripts/verify-endpoints.sh layers 1 and 3. D-85: any host observed at runtime that is absent from `hosts`, or any host present here with disposition `deny`, is a FAILURE -- Mozilla or not. Any pref in `prefs` whose installed value differs from `expect` is a FAILURE. A host or pref absent from this file fails the check rather than being silently ignored.",
+  "hosts": [
+    {
+      "host": "firefox.settings.services.mozilla.com",
+      "disposition": "allow",
+      "reason": "D-83: Remote Settings. services/settings/Utils.sys.mjs:52-84 refuses any services.settings.server override off Nightly, and the only alternative (DisableRemoteSettingsAndAcceptSecurityConsequences) also stops CRLite certificate-revocation data, intermediate-certificate preloading, and tracking-protection list updates -- unacceptable on a substrate whose entire pitch is that it is a real browser. Polling cadence is services.settings.poll_interval = 86400 (24 hours, modules/libpref/init/all.js:1745) -- NOT the 6-hour figure, which belongs to app.normandy.run_interval_seconds and is moot since Normandy is compiled out (D-84)."
+    },
+    {
+      "host": "content-signature-2.cdn.mozilla.net",
+      "disposition": "allow",
+      "reason": "D-83 carve-out, same feature: Remote Settings verifies each downloaded collection against a content-signature certificate chain fetched from this host (security.content.signer.root_hash's CDN). Observed live in this session's real layer-3 run alongside firefox.settings.services.mozilla.com -- an omission from the allowlist's first draft, not a new decision; it is structurally part of the one feature D-83 already carves out."
+    },
+    {
+      "host": "firefox-settings-attachments.cdn.mozilla.net",
+      "disposition": "allow",
+      "reason": "D-83 carve-out, same feature: Remote Settings' attachment CDN, used for large collection blobs (e.g. CRLite's own data, one of the reasons D-83 keeps Remote Settings on at all). Observed live in this session's real layer-3 run; same status as content-signature-2.cdn.mozilla.net above."
+    },
+    {
+      "host": "aus5.mozilla.org",
+      "disposition": "deny",
+      "reason": "Mozilla's AUS (Application Update Service) host. The updater is disabled (--disable-updater, already in .mozconfig) and media.gmp-manager.url / extensions.systemAddon.update.url are blanked (D-84/D-86) so this build never has a reason to resolve it."
+    },
+    {
+      "host": "normandy.cdn.mozilla.net",
+      "disposition": "deny",
+      "reason": "Normandy/Shield CDN (app.normandy.api_url, modules/libpref/init/all.js:2866). D-84: imply_option(\"MOZ_NORMANDY\", False) in the browser/moz.configure hunk compiles the entire subsystem, and every app.normandy.* pref that would name this host, out of the build -- code that is not compiled cannot be re-enabled at runtime."
+    },
+    {
+      "host": "incoming.telemetry.mozilla.org",
+      "disposition": "deny",
+      "reason": "toolkit.telemetry.server (modules/libpref/init/all.js:534). D-84: imply_option(\"MOZ_SERVICES_HEALTHREPORT\", False) in the same hunk, alongside MOZ_NORMANDY, removes the compiled telemetry-reporting code path this pref would otherwise feed."
+    },
+    {
+      "host": "detectportal.firefox.com",
+      "disposition": "deny",
+      "reason": "captivedetect.canonicalURL (modules/libpref/init/all.js:3279). Captive-portal detection is not part of this phase's BRAND-04 waiver set (D-85, D-86) -- disabled via network.captive-portal-service.enabled rather than left on, since there is no DRM/security-parity rationale for it the way there is for CRLite or Safe Browsing."
+    },
+    {
+      "host": "push.services.mozilla.com",
+      "disposition": "deny",
+      "reason": "dom.push.serverURL (modules/libpref/init/all.js:3197). No feature in this phase's scope (no Theia-side work ships until Phase 4) depends on Web Push; disabled rather than waived."
+    },
+    {
+      "host": "contile.services.mozilla.com",
+      "disposition": "deny",
+      "reason": "browser.topsites.contile.endpoint (browser/app/profile/firefox.js:1827) -- Mozilla Tiles Service, sponsored New Tab content. Disabled via browser.topsites.contile.enabled; not a DRM/security-parity concern."
+    },
+    {
+      "host": "location.services.mozilla.com",
+      "disposition": "deny",
+      "reason": "browser.region.network.url (modules/libpref/init/all.js:3094) -- Mozilla's region-lookup service, used for search-engine/locale defaults. Not a DRM/security-parity concern; disabled rather than waived."
+    },
+    {
+      "host": "edgedl.me.gvt1.com",
+      "disposition": "allow",
+      "reason": "D-86: Google's Widevine CDM download host. DRM is deliberately kept working -- the in-tree widevinecdm.json (toolkit/content/gmp-sources/widevinecdm.json) fetches the CDM from this host with no Mozilla host involved. Per C-4 this costs nothing at startup: media.eme.enabled defaults false on Linux (modules/libpref/init/StaticPrefList.yaml:12162-12175), so GMPUtils.isPluginHidden filters Widevine out of the idle-task check entirely."
+    },
+    {
+      "host": "safebrowsing.google.com",
+      "disposition": "allow",
+      "reason": "D-85: Google Safe Browsing v2 API (browser.safebrowsing.provider.google.updateURL/gethashURL/reportURL, modules/libpref/init/all.js:3389-3391). Deliberate waiver, not an inherited default -- malware and phishing protection stay on for the same reason D-83 keeps Remote Settings: this substrate's entire pitch is that it is a real browser."
+    },
+    {
+      "host": "safebrowsing.googleapis.com",
+      "disposition": "allow",
+      "reason": "D-85: Google Safe Browsing v4 API (browser.safebrowsing.provider.google4.updateURL/gethashURL/dataSharingURL, modules/libpref/init/all.js:3400-3407). Same waiver as safebrowsing.google.com above -- the v2 and v4 endpoints are two hosts for the one waived feature."
+    },
+    {
+      "host": "ciscobinary.openh264.org",
+      "disposition": "deny",
+      "reason": "D-87: Cisco's OpenH264 codec download host (toolkit/content/gmp-sources/openh264.json). This is the one genuinely unattended download at startup on stock Firefox (media.gmp-gmpopenh264.enabled defaults true unconditionally, browser/app/profile/firefox.js:2393-2394) -- disabled via media.gmp-gmpopenh264.enabled = false."
+    }
+  ],
+  "prefs": [
+    {
+      "name": "media.gmp-manager.url",
+      "expect": "",
+      "reason": "D-86: blanked so the GMP manager never contacts aus5.mozilla.org for a plugin manifest. Widevine's own CDM fetch (widevinecdm.json's fileUrl, edgedl.me.gvt1.com) does not depend on this pref. media.gmp-manager.allowLocalSources deliberately stays true (D-86) and is not tracked here -- it is a fallback flag, not an unattended-callout gate."
+    },
+    {
+      "name": "extensions.systemAddon.update.url",
+      "expect": "",
+      "reason": "D-84: blanked so a system-addon update check, if one ever ran, would have nowhere to send it. Belt-and-braces alongside extensions.systemAddon.update.enabled below."
+    },
+    {
+      "name": "extensions.systemAddon.update.enabled",
+      "expect": false,
+      "reason": "D-87: kills the system-addon callout before AddonManager.sys.mjs ever reads the update URL -- lazier and more robust than blanking the URL alone."
+    },
+    {
+      "name": "media.gmp-gmpopenh264.enabled",
+      "expect": false,
+      "reason": "D-87: OpenH264 is visible and enabled unconditionally on stock Firefox (browser/app/profile/firefox.js:2393-2394) and is the one genuinely unattended download at the 20s idle-task mark (C-4). Disabled outright."
+    }
+  ]
+}
