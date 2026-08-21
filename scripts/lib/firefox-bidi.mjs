@@ -87,12 +87,30 @@ class BiDiClient {
                 pending.resolve(msg);
             }
         });
+        // CR-02: without these, a Firefox crash mid-session leaves every
+        // in-flight send() pending forever -- the socket closes (or stops
+        // producing messages) but nothing ever settles the pending promise,
+        // which also silently defeats waitFor()'s own timeoutMs (it only
+        // checks its deadline after an `await evaluate(...)` returns).
+        const failAll = err => {
+            for (const { reject } of this.pending.values()) reject(err);
+            this.pending.clear();
+        };
+        ws.addEventListener('close', () => failAll(new Error('BiDi WebSocket closed (browser likely died)')));
+        ws.addEventListener('error', err => failAll(new Error(`BiDi WebSocket error: ${err.message || err}`)));
     }
 
-    send(method, params) {
+    send(method, params, { timeoutMs = 20000 } = {}) {
         const id = this.nextId++;
         return new Promise((resolve, reject) => {
-            this.pending.set(id, { resolve, reject });
+            const timer = setTimeout(() => {
+                this.pending.delete(id);
+                reject(new Error(`BiDi request '${method}' timed out after ${timeoutMs}ms`));
+            }, timeoutMs);
+            this.pending.set(id, {
+                resolve: v => { clearTimeout(timer); resolve(v); },
+                reject: e => { clearTimeout(timer); reject(e); },
+            });
             this.ws.send(JSON.stringify({ id, method, params }));
         });
     }
