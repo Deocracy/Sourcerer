@@ -23,5 +23,6 @@
     "sourceMap": true,
     "composite": true
   },
+  "references": [{ "path": "../tab-uris" }],
   "include": ["src"]
 }
