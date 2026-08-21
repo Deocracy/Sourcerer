@@ -46,19 +46,22 @@ created: 2026-08-21
 
 ## Per-Task Verification Map
 
-*Filled by `gsd-planner` — one row per task, referencing the plan and wave it
-belongs to. The requirement→behaviour mapping below is the contract the planner
-must satisfy; task IDs do not exist yet.*
+*Filled by `gsd-planner` 2026-08-21. Task IDs are `{plan}-T{task}`. A row with
+two IDs means the check is **authored** in the first and driven **green** in the
+second — the Wave-0 red-by-design split.*
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| *(pending planner)* | — | — | BUILD-03 | — | N/A | integration | `bash scripts/apply-patches.sh` against a scratch clone with one patch pre-adopted | ❌ W0 | ⬜ pending |
-| *(pending planner)* | — | — | BUILD-04 | — | N/A | unit | `bash scripts/check-patch-surface.sh` | ❌ W0 | ⬜ pending |
-| *(pending planner)* | — | — | BRAND-01 | — | N/A | smoke | `node scripts/verify-branding-identity.mjs` | ❌ W0 | ⬜ pending |
-| *(pending planner)* | — | — | BRAND-02 | — | N/A | static | `find sourcerer/branding -iname "*.icns" -o -iname "Assets.car" -o -iname "*.VisualElementsManifest.xml"` → must be empty | ❌ W0 | ⬜ pending |
-| *(pending planner)* | — | — | BRAND-03 | — | Profile isolation from a co-installed real Firefox | smoke | exact-path `strace` on `$HOME/.mozilla/firefox` | ❌ W0 | ⬜ pending |
-| *(pending planner)* | — | — | BRAND-04 | — | No Mozilla update/telemetry endpoint outside the documented allowlist | smoke (3 layers) | static pref grep · exact-path `strace` · `MOZ_LOG=nsHostResolver:5` | ❌ W0 | ⬜ pending |
-| *(pending planner)* | — | — | BRAND-06 | — | N/A | smoke | compare identity output between `--with-branding=…/dev` and `…/release` builds | ❌ W0 | ⬜ pending |
+| 03-01-T1 → 03-02-T3 | 03-01, 03-02 | 1, 2 | BUILD-03 | — | N/A | integration | `bash scripts/apply-patches.sh --self-test` (mktemp git fixture with one patch pre-adopted; no 1.1 GB clone) | ❌ W0 | ⬜ pending |
+| 03-04-T1 → 03-04-T3 | 03-04 | 3 | BUILD-03 | — | N/A | integration | `bash scripts/fetch-upstream.sh --self-test` · `bash scripts/rebase-upstream.sh --tag <TAG> --dry-run` · a real `gh workflow run` | ❌ W0 | ⬜ pending |
+| 03-01-T2 | 03-01 | 1 | BUILD-04 | — | N/A | unit | `bash scripts/check-patch-surface.sh && bash scripts/check-patch-surface.sh --self-test` | ❌ W0 | ⬜ pending |
+| 03-06-T1 | 03-06 | 5 | BUILD-04 | — | N/A | manual (timing) | three tier measurements on this host, recorded in `docs/BUILD.md` with command, units and date | ❌ W0 | ⬜ pending |
+| 03-02-T1 → 03-05-T2/T3 | 03-02, 03-05 | 2, 4 | BRAND-01 | — | N/A | smoke | `node scripts/verify-branding-identity.mjs [--bin …] [--config-status …] [--desktop …]`, plus `--positive-control <surface>` | ❌ W0 | ⬜ pending |
+| 03-01-T1, 03-05-T1 | 03-01, 03-05 | 1, 4 | BRAND-02 | — | N/A | static | `find sourcerer/branding -iname "*.icns" -o -iname "*.ico" -o -iname "Assets.car" -o -iname "*.VisualElementsManifest.xml"` → must be empty | ❌ W0 | ⬜ pending |
+| 03-02-T2 → 03-03-T2 | 03-02, 03-03 | 2, 3 | BRAND-03 | — | Profile isolation from a co-installed real Firefox | smoke | `bash scripts/verify-endpoints.sh --layer 2` (exact-path `strace` on `$HOME/.mozilla/firefox`, plus a positive `.mozilla`-component observation) | ❌ W0 | ⬜ pending |
+| 03-02-T2 → 03-03-T1/T2 | 03-02, 03-03 | 2, 3 | BRAND-04 | — | No Mozilla update/telemetry endpoint outside the documented allowlist | smoke (3 layers) | `bash scripts/verify-endpoints.sh` — pref assertion · exact-path `strace` · `MOZ_LOG=nsHostResolver:5` | ❌ W0 | ⬜ pending |
+| 03-05-T1 → 03-05-T3 | 03-05 | 4 | BRAND-06 | — | N/A | smoke (two builds) | `node scripts/verify-branding-identity.mjs` run against both `objdir/` and `objdir-release/`, plus a byte-difference check on the two installed icon sets | ❌ W0 | ⬜ pending |
+| 03-06-T3 | 03-06 | 5 | all seven | — | N/A | aggregate | `bash scripts/verify-phase-03.sh` (and `--quick`, under 120s) | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -74,9 +77,9 @@ never ran" (02-LEARNINGS.md, Patterns).
 |-------|-----------------------------------|
 | `check-patch-surface.sh` | a deliberately-planted patch touching a `.cpp` file |
 | `apply-patches.sh` adopted-patch assertion | a scratch upstream with one patch's content pre-applied — verified necessary: `git apply --3way` exits **0** with a silent no-op in exactly this case |
-| BRAND-01 six-surface checklist | revert one identity option and confirm that surface alone reports the failure |
+| BRAND-01 six-surface checklist | `node scripts/verify-branding-identity.mjs --positive-control <surface>` — runs one surface with the stock Firefox value as the expectation and exits 0 only if that surface then FAILS. **Revised by `gsd-planner` 2026-08-21:** literally reverting an identity option costs a full ~54min rebuild (they are compiled defines) and this phase's budget is two builds. Inverting the expectation proves the same two things — the reader produced a real live value, and the comparison discriminates — at zero build cost |
 | BRAND-04 layer 1 (static pref grep) | restore the `aus5.mozilla.org` URL in the pref file |
-| BRAND-04 layer 2 (`strace`) | launch once with the vendor patch reverted so the profile resolves under `~/.mozilla` |
+| BRAND-04 layer 2 (`strace`) / BRAND-03 | run the whole layer inside a `mktemp -d` redirected `HOME` with a `.mozilla/firefox` directory pre-created inside that sandbox, launching with `--profile` pointing into it so the binary genuinely touches that exact path; require the layer to go red. **Revised by `gsd-planner` 2026-08-21:** reverting the vendor patch is a compiled-define change costing a full rebuild, and the original wording would also have the control touch the developer's real `~/.mozilla` tree, which this phase prohibits. The sandbox form is a real end-to-end observation of the real binary through the real strace path, at zero build cost and zero contact with the real tree. The plain (green) run additionally asserts at least one `.mozilla` path component was observed, so an empty capture cannot read as green |
 | BRAND-04 layer 3 (`MOZ_LOG`) | re-enable one disabled endpoint pref and confirm the host appears |
 
 ---
@@ -87,24 +90,37 @@ Every artifact below is absent today. Following Phase 2's proven shape, the
 verification harness is written and committed **red by design** before the code
 it checks exists, and each red is confirmed to be red for the stated reason.
 
+Plan ownership assigned by `gsd-planner` 2026-08-21 in square brackets.
+
 - [ ] `scripts/check-patch-surface.sh` — the D-72/D-73 guard; compiled-suffix
       set from `upstream/python/mozbuild/mozbuild/frontend/emitter.py:1126-1133`
+      **[03-01 Task 2]**
 - [ ] `scripts/apply-patches.sh` — patch replay plus D-75's post-apply
-      per-patch assertion
+      per-patch assertion **[03-01 Task 1; `--self-test` control in 03-02 Task 3]**
 - [ ] `scripts/verify-branding-identity.mjs` — BRAND-01's six-surface checklist
+      **[03-02 Task 1; `--desktop`/`--config-status` options in 03-05 Task 2]**
+- [ ] `scripts/verify-endpoints.sh` — BRAND-03's exact-path `strace` layer and
+      BRAND-04's three layers, plus `sourcerer/endpoint-allowlist.json` as their
+      shared machine-readable source of truth **[03-02 Task 2; driven green in
+      03-03 Task 2]**
 - [ ] `scripts/verify-phase-03.sh` — aggregator, following
       `scripts/verify-phase-02.sh`'s structure (including its
       `trap cleanup EXIT` + `trap 'cleanup; exit N' INT TERM` split — a
       combined trap does not terminate the script, per 02-LEARNINGS.md)
+      **[03-02 Task 3; CHECKS list completed in 03-06 Task 3]**
 - [ ] `scripts/lib/firefox-bidi.mjs` — parameterise the hardcoded module-level
       `FIREFOX_BIN` (line 32) by adding `binPath = FIREFOX_BIN` to the options
       object of `captureScreenshot()` and `withFirefoxPage()`. Keep
       `export const FIREFOX_BIN` as the default so Phase 2's existing callers,
       which pass no override, are unaffected. Required because the binary is no
-      longer named `firefox`.
+      longer named `firefox`. **[03-02 Task 1]**
 - [ ] `patches/`, `sourcerer/branding/dev`, `sourcerer/branding/release` —
-      directories do not exist
+      directories do not exist **[`patches/` and `dev` in 03-01 Task 1;
+      `release` in 03-05 Task 1]**
 - [ ] the `.desktop` file and its install step — the build emits none
+      **[03-05 Task 2; install path documented in 03-06 Task 2]**
+- [ ] `scripts/rebase-upstream.sh` and `.github/workflows/rebase-upstream.yml` —
+      BUILD-03's CI-ready half **[03-04 Tasks 2 and 3]**
 
 ---
 

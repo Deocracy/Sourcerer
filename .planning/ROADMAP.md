@@ -25,7 +25,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Build Infrastructure** - Nix flake with `theia` and `firefox` dev shells; both halves build from a clean checkout on the NixOS host (completed 2026-08-20)
 - [x] **Phase 2: Sourcerer Theia Extensions** - `@sourcerer/*` extensions deliver branding, the inert customization seam, and a URI for every tab (completed 2026-08-20)
-- [ ] **Phase 3: Branded Firefox Fork** - Vendored ESR fork rebranded to Sourcerer, building in minutes via artifact builds, trademark- and telemetry-free
+- [ ] **Phase 3: Branded Firefox Fork** - Vendored ESR fork rebranded to Sourcerer, iterated via the tiered incremental rebuild loop, trademark- and telemetry-free
 - [ ] **Phase 4: Full-Window Theia Shell** - `sourcerer.xhtml` + `SourcererAPI` + `TheiaService`: one window, Theia is the entire UI, backend spawned and token-gated
 - [ ] **Phase 5: Lifecycle & Failure Hardening** - Zero orphaned processes, single-instance behaviour, branded error state, diagnostics page
 
@@ -113,7 +113,34 @@ Plans:
   4. Running the build on a machine with real Firefox installed never reads or writes `~/.mozilla/firefox` (proven by exact-path `strace`, not a bare `.mozilla` match), and a full-session network capture contacts no host outside a documented allowlist — whose only Mozilla entry is the `firefox.settings.services.mozilla.com` Remote Settings carve-out, with each non-Mozilla host individually waived or disabled. Each check ships a positive control that must go red
   5. A dev build is distinguishable at a glance from a future packaged release (title suffix or icon badge), and the shipped `branding/` tree contains no Mozilla trademark assets
 
-**Plans**: TBD
+**Plans**: 6 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 03-01-PLAN.md — Tracer: one-hunk identity patch, branding overlay symlink, dev branding tree, full build #1, a binary reporting `Deocracy Sourcerer`; plus the compiled-file guard (BUILD-03, BUILD-04, BRAND-01, BRAND-02)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 03-02-PLAN.md — Wave-0 verification harness, red by design: six-surface identity checklist, three-layer endpoint/profile prover, machine-readable allowlist, phase aggregator, `binPath`-parameterised BiDi driver
+
+**Wave 3** *(blocked on Wave 2 / Wave 1 respectively; these two run in parallel)*
+
+- [ ] 03-03-PLAN.md — Endpoint and telemetry removal: branding pref file, minimal `policies.json`, all three layers driven green with every positive control observed red first (BRAND-03, BRAND-04)
+- [ ] 03-04-PLAN.md — Rebase procedure: D-76 dirt-classifying clean-tree gate, `scripts/rebase-upstream.sh`, `workflow_dispatch`-only CI (BUILD-03)
+
+**Wave 4** *(blocked on 03-03)*
+
+- [ ] 03-05-PLAN.md — Release branding variant, two `.desktop` entries, full build #2 into a separate objdir, dev-vs-release distinguishability (BRAND-01, BRAND-02, BRAND-06)
+
+**Wave 5** *(blocked on 03-04 and 03-05)*
+
+- [ ] 03-06-PLAN.md — `docs/BUILD.md`: three re-measured tier timings, the compiled-file boundary, the allowlist and its one carve-out, rebase and desktop-install procedures; phase gate green (BUILD-03, BUILD-04)
+
+> **Build budget:** this phase spends exactly **two** full `./mach build` cycles
+> — build #1 in 03-01 and build #2 in 03-05, the latter into a separate
+> `objdir-release/` so the dev build survives. Every other build is
+> `./mach build faster` or none.
 
 > **Criteria 1, 3 and 4 amended 2026-08-21** (Phase 3 discussion, decisions D-79
 > and D-70 in `.planning/phases/03-branded-firefox-fork/03-CONTEXT.md`).
@@ -186,7 +213,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 (2 and 3 may run in p
 |-------|----------------|--------|-----------|
 | 1. Build Infrastructure | 4/4 | Complete   | 2026-08-20 |
 | 2. Sourcerer Theia Extensions | 7/7 | Complete   | 2026-08-20 |
-| 3. Branded Firefox Fork | 0/TBD | Not started | - |
+| 3. Branded Firefox Fork | 0/6 | Planned | - |
 | 4. Full-Window Theia Shell | 0/TBD | Not started | - |
 | 5. Lifecycle & Failure Hardening | 0/TBD | Not started | - |
 
