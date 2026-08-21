@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: branded-firefox-fork
 status: executing
-stopped_at: Completed 03-02-PLAN.md
-last_updated: "2026-08-21T23:33:29.267Z"
+stopped_at: Completed 03-04-PLAN.md
+last_updated: "2026-08-21T23:40:44.827Z"
 last_activity: 2026-08-21
 last_activity_desc: Phase 3 planning complete
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 17
-  completed_plans: 13
+  completed_plans: 14
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 ## Current Position
 
 Phase: 03 (branded-firefox-fork) — EXECUTING
-Plan: 3 of 6
+Plan: 4 of 6
 Status: Ready to execute
 Last activity: 2026-08-21 — Phase 03 execution started
 
-Progress: [████████░░] 76%
+Progress: [████████░░] 82%
 
 ## Performance Metrics
 
@@ -71,6 +71,7 @@ Progress: [████████░░] 76%
 | Phase 02 P07 | 90min | 3 tasks | 8 files |
 | Phase 03 P01 | 20min | 3 tasks | 21 files |
 | Phase 03 P02 | 55min | 3 tasks | 6 files |
+| Phase 03 P04 | 6min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -116,6 +117,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 03-02: layer 2's positive-observation anchor changed from a flaky .mozilla substring to a reliable $HOME-prefix match, after repeated live testing showed the substring probe doesn't fire on every run
 - [Phase ?]: 03-02: two Remote Settings companion hosts (content-signature-2.cdn.mozilla.net, firefox-settings-attachments.cdn.mozilla.net) added to the allowlist under D-83's carve-out after a real layer-3 run surfaced them
 - [Phase ?]: 03-02: MOZ_LOG per-child log naming is <base>.child-N.moz_log, not <base>.moz_log.child-N -- corrected against GeckoChildProcessHost.cpp:945-967
+- [Phase ?]: 03-04: rebase-upstream.sh echoes its target tag to stdout before the remote-existence check, on every path -- so a dry run against a tag that turns out not to exist still proves it never silently substituted the pinned default
+- [Phase ?]: 03-04: workflow_dispatch input consumed via env:/shell-variable (REBASE_TAG), never interpolated directly into run: -- avoids the GitHub Actions shell-injection pattern
 
 ### Pending Todos
 
@@ -137,6 +140,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-21T23:33:29.258Z
-Stopped at: Completed 03-02-PLAN.md
+Last session: 2026-08-21T23:40:35.660Z
+Stopped at: Completed 03-04-PLAN.md
 Resume file: None

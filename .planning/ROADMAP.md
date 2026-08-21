@@ -113,7 +113,7 @@ Plans:
   4. Running the build on a machine with real Firefox installed never reads or writes `~/.mozilla/firefox` (proven by exact-path `strace`, not a bare `.mozilla` match), and a full-session network capture contacts no host outside a documented allowlist — whose only Mozilla entry is the `firefox.settings.services.mozilla.com` Remote Settings carve-out, with each non-Mozilla host individually waived or disabled. Each check ships a positive control that must go red
   5. A dev build is distinguishable at a glance from a future packaged release (title suffix or icon badge), and the shipped `branding/` tree contains no Mozilla trademark assets
 
-**Plans**: 2/6 plans executed
+**Plans**: 3/6 plans executed
 
 Plans:
 **Wave 1**
@@ -123,7 +123,7 @@ Plans:
 **Wave 2** *(both blocked on Wave 1; these two run in parallel)*
 
 - [x] 03-02-PLAN.md — Wave-0 verification harness, red by design: six-surface identity checklist, three-layer endpoint/profile prover, machine-readable allowlist, phase aggregator, `binPath`-parameterised BiDi driver
-- [ ] 03-04-PLAN.md — Rebase procedure: `scripts/rebase-upstream.sh` and `workflow_dispatch`-only CI (BUILD-03)
+- [x] 03-04-PLAN.md — Rebase procedure: `scripts/rebase-upstream.sh` and `workflow_dispatch`-only CI (BUILD-03)
 
 **Wave 3** *(blocked on Wave 2)*
 
@@ -213,7 +213,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 (2 and 3 may run in p
 |-------|----------------|--------|-----------|
 | 1. Build Infrastructure | 4/4 | Complete   | 2026-08-20 |
 | 2. Sourcerer Theia Extensions | 7/7 | Complete   | 2026-08-20 |
-| 3. Branded Firefox Fork | 2/6 | In Progress|  |
+| 3. Branded Firefox Fork | 3/6 | In Progress|  |
 | 4. Full-Window Theia Shell | 0/TBD | Not started | - |
 | 5. Lifecycle & Failure Hardening | 0/TBD | Not started | - |
 
