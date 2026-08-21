@@ -11,13 +11,13 @@ Requirements for v4.0. Each maps to roadmap phases.
 
 - [x] **BUILD-01**: Developer can enter a `theia` Nix dev shell (node 22, yarn 1.x, node-gyp toolchain) and build/run the Theia browser-target app standalone at localhost on the NixOS host
 - [x] **BUILD-02**: Developer can enter a `firefox` Nix dev shell (toolchain via `inputsFrom` nixpkgs' firefox-esr unwrapped derivation, no `mach bootstrap`) and build the pinned ESR tag
-- [ ] **BUILD-03**: Fork repo is structured as `upstream/` (pinned `FIREFOX_153_1_0esr_RELEASE`) + `patches/` + `sourcerer/` with a documented, CI-ready rebase procedure
-- [ ] **BUILD-04**: Developer has a tiered incremental rebuild loop — `./mach run` for the frontend files symlinked into `upstream/` (no build), `./mach build faster` for preprocessed files, full `./mach build` only after a compiled-define change — with the compiled-file boundary enforced by a guard script
+- [x] **BUILD-03**: Fork repo is structured as `upstream/` (pinned `FIREFOX_153_1_0esr_RELEASE`) + `patches/` + `sourcerer/` with a documented, CI-ready rebase procedure
+- [x] **BUILD-04**: Developer has a tiered incremental rebuild loop — `./mach run` for the frontend files symlinked into `upstream/` (no build), `./mach build faster` for preprocessed files, full `./mach build` only after a compiled-define change — with the compiled-file boundary enforced by a guard script
 
 ### Rebrand
 
-- [ ] **BRAND-01**: Firefox-side identity is Sourcerer (`MOZ_APP_NAME`, `MOZ_APP_DISPLAYNAME`, `MOZ_APP_VENDOR`, distribution id), verified by a named-surface checklist: executable name in `dist/bin`, `application.ini` `Name` and `Vendor`, about:support identity fields, window title, the `.desktop` file's `Name` and `StartupWMClass`, and `--version` output
-- [ ] **BRAND-02**: Full replacement `branding/` tree ships (icons, strings) containing no Mozilla trademark assets
+- [x] **BRAND-01**: Firefox-side identity is Sourcerer (`MOZ_APP_NAME`, `MOZ_APP_DISPLAYNAME`, `MOZ_APP_VENDOR`, distribution id), verified by a named-surface checklist: executable name in `dist/bin`, `application.ini` `Name` and `Vendor`, about:support identity fields, window title, the `.desktop` file's `Name` and `StartupWMClass`, and `--version` output
+- [x] **BRAND-02**: Full replacement `branding/` tree ships (icons, strings) containing no Mozilla trademark assets
 - [ ] **BRAND-03**: Profile directory is Sourcerer's own (falls out of `MOZ_APP_NAME`); verified to never touch `~/.mozilla/firefox` on a machine with real Firefox installed
 - [ ] **BRAND-04**: Auto-update is disabled and a running build contacts no host outside a documented allowlist — whose only Mozilla entry is the `firefox.settings.services.mozilla.com` Remote Settings carve-out (24-hour poll), with every non-Mozilla host individually waived with a stated reason or disabled
 - [x] **BRAND-05**: Theia-side branding (welcome/getting-started widget, About dialog, window/tab title, favicon) ships as a `@sourcerer/*` extension via DI rebind — no Theia core patch
@@ -155,10 +155,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | URI-02 | Phase 2 | Complete |
 | URI-03 | Phase 2 | Complete |
 | URI-04 | Phase 2 | Complete |
-| BUILD-03 | Phase 3 | Pending |
-| BUILD-04 | Phase 3 | Pending |
-| BRAND-01 | Phase 3 | Pending |
-| BRAND-02 | Phase 3 | Pending |
+| BUILD-03 | Phase 3 | Complete |
+| BUILD-04 | Phase 3 | Complete |
+| BRAND-01 | Phase 3 | Complete |
+| BRAND-02 | Phase 3 | Complete |
 | BRAND-03 | Phase 3 | Pending |
 | BRAND-04 | Phase 3 | Pending |
 | BRAND-06 | Phase 3 | Pending |
