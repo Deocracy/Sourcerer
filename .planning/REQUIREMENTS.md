@@ -41,7 +41,7 @@ Requirements for v4.0. Each maps to roadmap phases.
 
 ### Customization Bridge (R4a)
 
-- [ ] **CUST-01**: `@sourcerer/customize` loads a runtime user CSS layer after Theia's own styles; empty by default with zero visual change
+- [x] **CUST-01**: `@sourcerer/customize` loads a runtime user CSS layer after Theia's own styles; empty by default with zero visual change
 - [x] **CUST-02**: The privileged JS layer is exposed only when a dev flag is set; with the flag off, no privileged binding exists at runtime
 
 ### Universal Tab URIs (R4b)
@@ -113,7 +113,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BUILD-01 | Phase 1 | Complete |
 | BUILD-02 | Phase 1 | Complete |
 | BRAND-05 | Phase 2 | Complete |
-| CUST-01 | Phase 2 | Pending |
+| CUST-01 | Phase 2 | Complete |
 | CUST-02 | Phase 2 | Complete |
 | URI-01 | Phase 2 | Complete |
 | URI-02 | Phase 2 | Complete |
