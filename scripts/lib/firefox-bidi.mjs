@@ -92,7 +92,20 @@ class BiDiClient {
         // producing messages) but nothing ever settles the pending promise,
         // which also silently defeats waitFor()'s own timeoutMs (it only
         // checks its deadline after an `await evaluate(...)` returns).
+        // `closedError` (CR-03 follow-up, found live while proving CR-03
+        // with a real SIGINT): 'close'/'error' fire once and reject only
+        // whatever was pending AT THAT MOMENT -- a caller whose current
+        // await is a plain `setTimeout` sleep, not a BiDi call, issues its
+        // *next* send() only after the socket has already closed, and that
+        // new pending entry would otherwise sit unrejected until its own
+        // per-request timeout (measured live: a captureScreenshot call
+        // issued after SIGINT-triggered close took the full 20s instead of
+        // rejecting immediately). Recording the terminal error and having
+        // every subsequent send() reject with it immediately closes that
+        // gap.
+        this.closedError = null;
         const failAll = err => {
+            this.closedError = err;
             for (const { reject } of this.pending.values()) reject(err);
             this.pending.clear();
         };
@@ -101,6 +114,9 @@ class BiDiClient {
     }
 
     send(method, params, { timeoutMs = 20000 } = {}) {
+        if (this.closedError) {
+            return Promise.reject(this.closedError);
+        }
         const id = this.nextId++;
         return new Promise((resolve, reject) => {
             const timer = setTimeout(() => {
@@ -269,8 +285,22 @@ export async function withFirefoxPage(url, callback) {
         await rm(profileDir, { recursive: true, force: true });
     };
 
+    // CR-03: this handler must not call process.exit() itself. A caller
+    // (e.g. verify-customize-inert.mjs) may have its own teardown to run
+    // in its own `finally` after this function's promise settles -- if
+    // this handler force-exits, it races ahead of that, and ahead of the
+    // 5s SIGKILL-escalation + `rm(profileDir, ...)` sequence inside
+    // cleanup() below, exactly the orphaned-process/leaked-profile bug
+    // CR-03 describes. Closing the socket here is what unblocks an
+    // in-flight BiDi call (CR-02's failAll(), fired by the WebSocket
+    // 'close' event), which lets the awaited `callback(...)` above reject
+    // and this function's own `try/finally` unwind naturally and
+    // deterministically -- no forced exit, no race. `process.exitCode`
+    // (not `process.exit()`) marks the eventual natural exit with the
+    // conventional SIGINT code, without terminating anything early.
     sigintHandler = () => {
-        cleanup().finally(() => process.exit(130));
+        process.exitCode = 130;
+        cleanup();
     };
     process.on('SIGINT', sigintHandler);
 
