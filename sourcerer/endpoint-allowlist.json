@@ -39,7 +39,7 @@
     {
       "host": "push.services.mozilla.com",
       "disposition": "deny",
-      "reason": "dom.push.serverURL (modules/libpref/init/all.js:3197). No feature in this phase's scope (no Theia-side work ships until Phase 4) depends on Web Push; disabled rather than waived."
+      "reason": "dom.push.serverURL (modules/libpref/init/all.js:3197), blanked in sourcerer/branding/dev/pref/firefox-branding.js. No feature in this phase's scope (no Theia-side work ships until Phase 4) depends on Web Push; disabled rather than waived. The Push API surface itself (dom.push.enabled) is left untouched -- only the startup server URL this specific host requires is blanked, so a page that calls the API still gets a permission prompt, it simply cannot register a working subscription against this build."
     },
     {
       "host": "contile.services.mozilla.com",
@@ -49,7 +49,7 @@
     {
       "host": "location.services.mozilla.com",
       "disposition": "deny",
-      "reason": "browser.region.network.url (modules/libpref/init/all.js:3094) -- Mozilla's region-lookup service, used for search-engine/locale defaults. Not a DRM/security-parity concern; disabled rather than waived."
+      "reason": "browser.region.network.url (modules/libpref/init/all.js:3094), blanked in sourcerer/branding/dev/pref/firefox-branding.js -- Mozilla's region-lookup service, used for search-engine/locale defaults and queried unattended at startup. Not a DRM/security-parity concern; disabled rather than waived. This host is distinct from the geolocation provider (geo.provider.network.url, also this same host by stock default) that actually serves an explicit site's navigator.geolocation request -- that pref is deliberately left untouched (real capability, fires only on explicit request), so a site that does request geolocation will still attempt this host and fail; that trade-off is accepted for this phase, which ships no Theia-side feature depending on it."
     },
     {
       "host": "edgedl.me.gvt1.com",
@@ -70,6 +70,21 @@
       "host": "ciscobinary.openh264.org",
       "disposition": "deny",
       "reason": "D-87: Cisco's OpenH264 codec download host (toolkit/content/gmp-sources/openh264.json). This is the one genuinely unattended download at startup on stock Firefox (media.gmp-gmpopenh264.enabled defaults true unconditionally, browser/app/profile/firefox.js:2393-2394) -- disabled via media.gmp-gmpopenh264.enabled = false."
+    },
+    {
+      "host": "cloudflare-dns.com",
+      "disposition": "deny",
+      "reason": "TRR open item, resolved 03-03: NOT network.trr.mode (confirmed 0/off by default in modules/libpref/init/StaticPrefList.yaml:15642-15644 -- TRR is not active in this build). The real source is network.connectivity-service.DNS_HTTPS.domain (modules/libpref/init/all.js:3260), read by NetworkConnectivityService.cpp's own unattended-startup DNS-over-HTTPS-record probe. No DRM/security-parity rationale applies (unlike Remote Settings/Safe Browsing), so per D-85 this is turned off at the single master switch, network.connectivity-service.enabled = false, rather than waived. Not named in D-83..D-88; this entry and the two below are the explicit resolution the 03-02-SUMMARY.md open item asked for."
+    },
+    {
+      "host": "example.org",
+      "disposition": "deny",
+      "reason": "Same root cause and fix as cloudflare-dns.com above: network.connectivity-service.DNSv4.domain and .DNSv6.domain both default to \"example.org\" (modules/libpref/init/all.js:3258-3259), read by NetworkConnectivityService.cpp's IPv4/IPv6-reachability DNS probe -- unrelated to network.trr.confirmationNS (which defaults to \"example.com\", one letter different, and was never actually the host observed). Disabled via network.connectivity-service.enabled = false."
+    },
+    {
+      "host": "ipv4only.arpa",
+      "disposition": "deny",
+      "reason": "Same root cause and fix as cloudflare-dns.com above: hardcoded directly in NetworkConnectivityService.cpp:400 as the NAT64-prefix discovery target (RFC 7050), not a preference-driven host. Disabled via network.connectivity-service.enabled = false, the same master switch that also stops the DNSv4/DNSv6/DNS_HTTPS probes above -- one pref, four hosts."
     }
   ],
   "prefs": [
@@ -92,6 +107,81 @@
       "name": "media.gmp-gmpopenh264.enabled",
       "expect": false,
       "reason": "D-87: OpenH264 is visible and enabled unconditionally on stock Firefox (browser/app/profile/firefox.js:2393-2394) and is the one genuinely unattended download at the 20s idle-task mark (C-4). Disabled outright."
+    },
+    {
+      "name": "toolkit.telemetry.unified",
+      "expect": false,
+      "reason": "D-84 defence in depth: MOZ_SERVICES_HEALTHREPORT is compiled out, but this pref is disabled anyway so the intent is stated at the pref layer too."
+    },
+    {
+      "name": "toolkit.telemetry.server",
+      "expect": "",
+      "reason": "D-84 defence in depth: blanked so the compiled-out telemetry path has nowhere to send a report even if a future rebuild restored the flag. Stock value is https://incoming.telemetry.mozilla.org (modules/libpref/init/all.js:534), the deny-listed host above."
+    },
+    {
+      "name": "datareporting.healthreport.uploadEnabled",
+      "expect": false,
+      "reason": "D-84 defence in depth, same rationale as toolkit.telemetry.unified."
+    },
+    {
+      "name": "datareporting.policy.dataSubmissionEnabled",
+      "expect": false,
+      "reason": "D-84 defence in depth: the master data-submission policy gate, disabled alongside the two prefs above."
+    },
+    {
+      "name": "network.captive-portal-service.enabled",
+      "expect": false,
+      "reason": "browser/app/profile/firefox.js:1375 re-enables this to true, overriding toolkit's own default of false (modules/libpref/init/all.js:3255) -- our branding pref file loads last (JS_PREFERENCE_FILES, branding-common.mozbuild) so this restores it to off, stopping detectportal.firefox.com."
+    },
+    {
+      "name": "captivedetect.canonicalURL",
+      "expect": "",
+      "reason": "Belt-and-braces alongside network.captive-portal-service.enabled: blanks the canonical detection URL itself (modules/libpref/init/all.js:3279) so a captive-portal check, if one ever ran, has nowhere to send it."
+    },
+    {
+      "name": "app.normandy.enabled",
+      "expect": false,
+      "reason": "D-84 defence in depth: MOZ_NORMANDY is compiled out, so this pref is moot at runtime, but disabled anyway so a reader of the pref file sees the intent stated."
+    },
+    {
+      "name": "app.shield.optoutstudies.enabled",
+      "expect": false,
+      "reason": "D-84 defence in depth, same rationale as app.normandy.enabled -- both are compiled out via MOZ_NORMANDY but disabled at the pref layer too."
+    },
+    {
+      "name": "browser.newtabpage.activity-stream.discoverystream.enabled",
+      "expect": false,
+      "reason": "Disables the Pocket-powered Discover feed on New Tab (the code-level default is true, set in ActivityStream's own feature manifest rather than a static pref file, so this branding pref is what actually turns it off)."
+    },
+    {
+      "name": "browser.newtabpage.activity-stream.showSponsored",
+      "expect": false,
+      "reason": "Sponsored Discover-feed stories; belt-and-braces alongside discoverystream.enabled above."
+    },
+    {
+      "name": "browser.newtabpage.activity-stream.showSponsoredTopSites",
+      "expect": false,
+      "reason": "Sponsored New Tab tiles; the companion pref to contile.services.mozilla.com's disposition below."
+    },
+    {
+      "name": "browser.topsites.contile.enabled",
+      "expect": false,
+      "reason": "Mozilla Tiles Service (browser.topsites.contile.endpoint, browser/app/profile/firefox.js:1827) -- the pref that stops contile.services.mozilla.com from ever being contacted."
+    },
+    {
+      "name": "browser.region.network.url",
+      "expect": "",
+      "reason": "Blanks the region-lookup service URL -- the pref behind location.services.mozilla.com's `deny` disposition above."
+    },
+    {
+      "name": "dom.push.serverURL",
+      "expect": "",
+      "reason": "Blanks the Web Push server URL -- the pref behind push.services.mozilla.com's `deny` disposition above. dom.push.enabled (the API surface) is untouched."
+    },
+    {
+      "name": "network.connectivity-service.enabled",
+      "expect": false,
+      "reason": "TRR open item, resolved 03-03: the single master switch for NetworkConnectivityService.cpp's DNSv4/DNSv6/DNS_HTTPS/NAT64 probes -- stops cloudflare-dns.com, example.org and ipv4only.arpa (all three above) in one pref. Confirmed by reading RecheckDNS() (NetworkConnectivityService.cpp:354-356): it reads exactly this pref before ever issuing the probes."
     }
   ]
 }
