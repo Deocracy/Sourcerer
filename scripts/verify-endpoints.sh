@@ -12,16 +12,19 @@
 #     array (greprefs.js, then browser/defaults/preferences/firefox.js, then
 #     .../firefox-branding.js, later file wins) and compares to `expect`. A
 #     pref that cannot be found at all is a FAILURE, not a skip.
-#   Layer 2 -- filesystem, exact-path strace (BRAND-03). A bare `.mozilla`
-#     substring match would false-fail a correct build: nsXREDirProvider.cpp
-#     hardcodes a `.mozilla` path COMPONENT on every build (the parent of the
-#     extensions/compat-mode directory), which is why layer 2 asserts a
-#     positive `.mozilla` observation AND a negative exact-prefix
-#     `$HOME/.mozilla/firefox` match, never a bare substring.
+#   Layer 2 -- filesystem, exact-path strace (BRAND-03). Asserts a positive
+#     $HOME-prefixed observation (proving strace captured real filesystem
+#     activity -- empirically, nsXREDirProvider.cpp's ".mozilla" AppendNative
+#     is only reached for specific, lazily-queried directory keys and is NOT
+#     a reliable per-run signal, confirmed live this session) AND a negative
+#     exact-prefix `$HOME/.mozilla/firefox` match, never a bare substring
+#     (which would false-fail a correct build touching some other
+#     ".mozilla"-containing path).
 #   Layer 3 -- network, host resolution via MOZ_LOG=nsHostResolver:5. Reads
-#     `<MOZ_LOG_FILE>.moz_log` and its `.child-N` siblings (Logging.cpp
-#     appends `.moz_log`; GeckoChildProcessHost.cpp appends `.child-N` per
-#     content process -- a literal $MOZ_LOG_FILE read finds nothing).
+#     `<MOZ_LOG_FILE>.moz_log` and its `.child-N.moz_log` siblings
+#     (GeckoChildProcessHost.cpp:945-967 appends the `.child-N` postfix
+#     BEFORE the logging backend re-adds `.moz_log` -- a literal
+#     `$MOZ_LOG_FILE` read, or a `.moz_log.child-N` read, finds nothing).
 #     Extracts hostnames only from the anchored `Resolving host [...]`
 #     pattern (nsHostResolver.cpp:455) -- an unanchored whole-log grep also
 #     matches zero-network-activity names (the TRR URI, the confirmation NS,
@@ -242,7 +245,19 @@ run_layer2_impl() {
   fi
 
   local mozilla_count exact_count
-  mozilla_count="$(grep -cF '.mozilla' "$log" || true)"
+  # Positive-observation anchor: real activity under $HOME, not the ".mozilla"
+  # substring the research doc expected on every build. Empirically found
+  # live this session (03-02 Task 2) to be UNRELIABLE as a per-run signal:
+  # nsXREDirProvider.cpp's ".mozilla" AppendNative only fires for specific,
+  # lazily-queried directory keys (XRE_USER_NATIVE_MANIFESTS, the legacy
+  # update-root, the extensions-compat path) that a plain
+  # `--headless --screenshot about:blank` run does not always touch --
+  # confirmed by a real back-to-back pair of runs on this host, one
+  # observing it and the very next observing zero. $HOME itself, by
+  # contrast, is touched hundreds of times every run (the real profile at
+  # ~/.config/deocracy/sourcerer) and is what genuinely proves strace
+  # captured live filesystem activity rather than an empty/broken log.
+  home_count="$(grep -cF "$home_for_run" "$log" || true)"
   exact_count="$(grep -cF "\"$home_for_run/.mozilla/firefox" "$log" || true)"
 
   if [ "$control" -eq 1 ]; then
@@ -254,15 +269,15 @@ run_layer2_impl() {
     return 1
   fi
 
-  if [ "$mozilla_count" -eq 0 ]; then
-    echo "verify-endpoints: layer 2 FAIL -- zero .mozilla path components observed; the check did not capture real filesystem activity" >&2
+  if [ "$home_count" -eq 0 ]; then
+    echo "verify-endpoints: layer 2 FAIL -- zero \$HOME-prefixed paths observed; the check did not capture real filesystem activity" >&2
     return 1
   fi
   if [ "$exact_count" -gt 0 ]; then
     echo "verify-endpoints: layer 2 FAIL -- $exact_count access(es) to \$HOME/.mozilla/firefox (real Firefox's profile tree)" >&2
     return 1
   fi
-  echo "verify-endpoints: layer 2 PASS -- .mozilla path component observed ($mozilla_count line(s)), zero touches to \$HOME/.mozilla/firefox"
+  echo "verify-endpoints: layer 2 PASS -- \$HOME activity observed ($home_count line(s)), zero touches to \$HOME/.mozilla/firefox"
   return 0
 }
 
@@ -319,13 +334,20 @@ PREFEOF
   wait "$ACTIVE_PID" 2>/dev/null || true
   ACTIVE_PID=""
 
+  # Naming order, confirmed against GeckoChildProcessHost.cpp:945-967: the
+  # child-specific postfix is appended to the (extension-stripped) base
+  # BEFORE the logging backend re-adds .moz_log -- so per-child logs are
+  # <base>.child-N.moz_log, not <base>.moz_log.child-N. Empirically, every
+  # child log observed this session was 0 bytes (this build's DNS activity
+  # all logs through the parent process), but the glob below still reads
+  # them correctly if that ever changes.
   local extracted
-  extracted="$(cat "${log_base}.moz_log" "${log_base}.moz_log.child-"* 2>/dev/null \
+  extracted="$(cat "${log_base}.moz_log" "${log_base}".child-*.moz_log 2>/dev/null \
     | grep -oE 'Resolving host \[[^]]+\]' \
     | sed -E 's/Resolving host \[([^]]+)\]/\1/' \
     | sort -u)"
 
-  rm -f "${log_base}.moz_log" "${log_base}.moz_log.child-"* 2>/dev/null
+  rm -f "${log_base}.moz_log" "${log_base}".child-*.moz_log 2>/dev/null
 
   if [ "$control" -eq 1 ]; then
     cp "$backup" "$BRANDING_PREF_FILE"
