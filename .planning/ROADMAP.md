@@ -118,16 +118,16 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 03-01-PLAN.md — Tracer: one-hunk identity patch, branding overlay symlink, dev branding tree, full build #1, a binary reporting `Deocracy Sourcerer`; plus the compiled-file guard (BUILD-03, BUILD-04, BRAND-01, BRAND-02)
+- [ ] 03-01-PLAN.md — Tracer: one-hunk identity patch, branding overlay symlink, dev branding tree, full build #1, a binary reporting `Deocracy Sourcerer`; plus the D-76 dirt-classifying clean-tree gate and the compiled-file guard (BUILD-03, BUILD-04, BRAND-01, BRAND-02)
 
-**Wave 2** *(blocked on Wave 1)*
+**Wave 2** *(both blocked on Wave 1; these two run in parallel)*
 
 - [ ] 03-02-PLAN.md — Wave-0 verification harness, red by design: six-surface identity checklist, three-layer endpoint/profile prover, machine-readable allowlist, phase aggregator, `binPath`-parameterised BiDi driver
+- [ ] 03-04-PLAN.md — Rebase procedure: `scripts/rebase-upstream.sh` and `workflow_dispatch`-only CI (BUILD-03)
 
-**Wave 3** *(blocked on Wave 2 / Wave 1 respectively; these two run in parallel)*
+**Wave 3** *(blocked on Wave 2)*
 
 - [ ] 03-03-PLAN.md — Endpoint and telemetry removal: branding pref file, minimal `policies.json`, all three layers driven green with every positive control observed red first (BRAND-03, BRAND-04)
-- [ ] 03-04-PLAN.md — Rebase procedure: D-76 dirt-classifying clean-tree gate, `scripts/rebase-upstream.sh`, `workflow_dispatch`-only CI (BUILD-03)
 
 **Wave 4** *(blocked on 03-03)*
 

@@ -53,7 +53,8 @@ second — the Wave-0 red-by-design split.*
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
 | 03-01-T1 → 03-02-T3 | 03-01, 03-02 | 1, 2 | BUILD-03 | — | N/A | integration | `bash scripts/apply-patches.sh --self-test` (mktemp git fixture with one patch pre-adopted; no 1.1 GB clone) | ❌ W0 | ⬜ pending |
-| 03-04-T1 → 03-04-T3 | 03-04 | 3 | BUILD-03 | — | N/A | integration | `bash scripts/fetch-upstream.sh --self-test` · `bash scripts/rebase-upstream.sh --tag <TAG> --dry-run` · a real `gh workflow run` | ❌ W0 | ⬜ pending |
+| 03-01-T2 | 03-01 | 1 | BUILD-03 | — | N/A | integration | `bash scripts/fetch-upstream.sh --self-test` (four classifier cases) and `bash scripts/fetch-upstream.sh` against the patched tree | ❌ W0 | ⬜ pending |
+| 03-04-T1 → 03-04-T2 | 03-04 | 2 | BUILD-03 | — | N/A | integration | `bash scripts/rebase-upstream.sh --tag <TAG> --dry-run` · a real `gh workflow run` | ❌ W0 | ⬜ pending |
 | 03-01-T2 | 03-01 | 1 | BUILD-04 | — | N/A | unit | `bash scripts/check-patch-surface.sh && bash scripts/check-patch-surface.sh --self-test` | ❌ W0 | ⬜ pending |
 | 03-06-T1 | 03-06 | 5 | BUILD-04 | — | N/A | manual (timing) | three tier measurements on this host, recorded in `docs/BUILD.md` with command, units and date | ❌ W0 | ⬜ pending |
 | 03-02-T1 → 03-05-T2/T3 | 03-02, 03-05 | 2, 4 | BRAND-01 | — | N/A | smoke | `node scripts/verify-branding-identity.mjs [--bin …] [--config-status …] [--desktop …]`, plus `--positive-control <surface>` | ❌ W0 | ⬜ pending |
@@ -99,6 +100,11 @@ Plan ownership assigned by `gsd-planner` 2026-08-21 in square brackets.
       per-patch assertion **[03-01 Task 1; `--self-test` control in 03-02 Task 3]**
 - [ ] `scripts/verify-branding-identity.mjs` — BRAND-01's six-surface checklist
       **[03-02 Task 1; `--desktop`/`--config-status` options in 03-05 Task 2]**
+- [ ] `scripts/fetch-upstream.sh` — the D-76 expected-dirt classifier replacing
+      its unconditional dirty-tree hard-fail, plus a `--self-test` mode.
+      **[03-01 Task 2 — it must land in the plan that first makes `upstream/`
+      legitimately dirty, or the documented command is red for the wrong reason
+      until Wave 2]**
 - [ ] `scripts/verify-endpoints.sh` — BRAND-03's exact-path `strace` layer and
       BRAND-04's three layers, plus `sourcerer/endpoint-allowlist.json` as their
       shared machine-readable source of truth **[03-02 Task 2; driven green in
@@ -120,7 +126,7 @@ Plan ownership assigned by `gsd-planner` 2026-08-21 in square brackets.
 - [ ] the `.desktop` file and its install step — the build emits none
       **[03-05 Task 2; install path documented in 03-06 Task 2]**
 - [ ] `scripts/rebase-upstream.sh` and `.github/workflows/rebase-upstream.yml` —
-      BUILD-03's CI-ready half **[03-04 Tasks 2 and 3]**
+      BUILD-03's CI-ready half **[03-04 Tasks 1 and 2]**
 
 ---
 
