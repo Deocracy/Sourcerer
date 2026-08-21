@@ -2,6 +2,7 @@ import { interfaces } from '@theia/core/shared/inversify';
 import { ApplicationShell, FrontendApplicationContribution } from '@theia/core/lib/browser';
 import { FileService } from '@theia/filesystem/lib/browser/file-service';
 import { UserStorageUri } from '@theia/userstorage/lib/browser/user-storage-uri';
+import { TabUriRegistry } from '@sourcerer/tab-uris/lib/browser/tab-uri-registry';
 import { SourcererPrivilegedJsSurface } from './sourcerer-privileged-js';
 
 // The privileged JS layer (D-62..D-67, CUST-02). Only ever bound when
@@ -21,6 +22,9 @@ export class CustomizePrivilegedJsContribution implements FrontendApplicationCon
         protected readonly fileService: FileService,
         protected readonly shell: ApplicationShell,
         protected readonly container: interfaces.Container,
+        // Undefined when @sourcerer/tab-uris's TabUriRegistry is not bound
+        // in this container -- see sourcerer-privileged-js.ts's header.
+        protected readonly tabUriRegistry: TabUriRegistry | undefined,
     ) { }
 
     // `onDidInitializeLayout`, not `onStart`: this only ever needs the
@@ -50,7 +54,7 @@ export class CustomizePrivilegedJsContribution implements FrontendApplicationCon
         const surface: SourcererPrivilegedJsSurface = {
             container: this.container,
             shell: this.shell,
-            tabUriRegistry: undefined,
+            tabUriRegistry: this.tabUriRegistry,
         };
 
         try {

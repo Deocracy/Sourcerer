@@ -1,0 +1,75 @@
+import { ContainerModule } from '@theia/core/shared/inversify';
+import { FrontendApplicationContribution, OpenHandler, OpenerService, WidgetManager } from '@theia/core/lib/browser';
+import { Disposable } from '@theia/core/lib/common';
+import { ChatViewWidget } from '@theia/ai-chat-ui/lib/browser/chat-view-widget';
+import { TabUriRegistry } from './tab-uri-registry';
+import { ViewUriOpenHandler } from './view-open-handler';
+
+/**
+ * Registers an `OpenHandler` after the app's first `OpenerService.open()`
+ * call, when a static `bind(OpenHandler)` would be permanently invisible:
+ * `ContributionProvider.getContributions()` caches its array on first call
+ * and drops its container reference (D-50). Exported for anything that
+ * must register a `view:`/`settings:`-adjacent handler at runtime,
+ * including a user's privileged `customize.js` (D-67's `container` on the
+ * privileged-JS surface).
+ */
+export function registerLateOpenHandler(openerService: OpenerService, handler: OpenHandler): Disposable {
+    if (!openerService.addHandler) {
+        throw new Error('@sourcerer/tab-uris: OpenerService.addHandler is not available on this OpenerService implementation');
+    }
+    return openerService.addHandler(handler);
+}
+
+export default new ContainerModule(bind => {
+    bind(TabUriRegistry).toSelf().inSingletonScope();
+
+    // Registered as a static open-handler binding at module load -- the
+    // ordinary path, reached by `DefaultOpenerService`'s
+    // `ContributionProvider<OpenHandler>` before its first `getContributions()`
+    // call caches. `registerLateOpenHandler` above is the escape hatch for
+    // anything binding after that point.
+    bind(ViewUriOpenHandler).toSelf().inSingletonScope();
+    bind(OpenHandler).toService(ViewUriOpenHandler);
+
+    // D-27: the AI chat widget must never escape into a secondary window
+    // -- the future unified tab strip has no way to model a chrome-owned
+    // tab living outside the shell it tracks. Lives here rather than in
+    // @sourcerer/branding because it is a tab-model constraint, not a
+    // branding one.
+    //
+    // Implemented via `WidgetManager.onDidCreateWidget` rather than a
+    // `rebind(ChatViewWidget)` subclass: `ChatViewWidget`'s constructor
+    // takes seven injected parameters with no property-injection
+    // equivalent, so a subclass rebind would have to re-declare and
+    // forward all seven, silently drifting from upstream on the next
+    // Theia version bump. `isExtractable` is a plain mutable field (not
+    // `readonly`, not behind a getter), so setting it directly on the
+    // just-created instance is the smaller, more robust surface for the
+    // identical outcome -- no `rebind(ApplicationShell)`, no Navigatable,
+    // no shell-hiding, none of this plan's other prohibitions touched.
+    bind(FrontendApplicationContribution).toDynamicValue(ctx => ({
+        onStart: () => {
+            const widgetManager = ctx.container.get(WidgetManager);
+            const markNonExtractable = (widget: unknown) => {
+                if (widget instanceof ChatViewWidget) {
+                    widget.isExtractable = false;
+                }
+            };
+            // Covers both orderings relative to whichever
+            // FrontendApplicationContribution creates the chat widget
+            // first: a pre-existing widget (found live -- another AI
+            // contribution's own `onStart` can create it before this one
+            // runs, and `onDidCreateWidget` only fires once, on first
+            // creation, so subscribing afterward misses that event) is
+            // fixed immediately; any future creation is caught by the
+            // subscription below.
+            widgetManager.getWidgets(ChatViewWidget.ID).forEach(markNonExtractable);
+            widgetManager.onDidCreateWidget(({ factoryId, widget }) => {
+                if (factoryId === ChatViewWidget.ID) {
+                    markNonExtractable(widget);
+                }
+            });
+        },
+    })).inSingletonScope();
+});

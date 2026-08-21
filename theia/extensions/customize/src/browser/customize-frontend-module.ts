@@ -2,6 +2,7 @@ import { ContainerModule } from '@theia/core/shared/inversify';
 import { ApplicationShell, FrontendApplicationContribution } from '@theia/core/lib/browser';
 import { FrontendApplicationConfigProvider } from '@theia/core/lib/browser/frontend-application-config-provider';
 import { FileService } from '@theia/filesystem/lib/browser/file-service';
+import { TabUriRegistry } from '@sourcerer/tab-uris/lib/browser/tab-uri-registry';
 import { CustomizeCssContribution } from './customize-css-contribution';
 import { SourcererPrivilegedJs } from './sourcerer-privileged-js';
 import { CustomizePrivilegedJsContribution } from './customize-privileged-js-contribution';
@@ -29,6 +30,11 @@ export default new ContainerModule(bind => {
             ctx.container.get(FileService),
             ctx.container.get(ApplicationShell),
             ctx.container,
+            // D-67: wired now that @sourcerer/tab-uris exists (Plan 06) --
+            // kept optional (isBound-guarded, not a hard `.get()`) so this
+            // module stays loadable in a container composed without
+            // @sourcerer/tab-uris.
+            ctx.container.isBound(TabUriRegistry) ? ctx.container.get(TabUriRegistry) : undefined,
         )).inSingletonScope();
         bind(FrontendApplicationContribution).toService(CustomizePrivilegedJsContribution);
     }
