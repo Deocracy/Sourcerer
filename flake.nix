@@ -56,6 +56,10 @@
           # cbindgen are all present and correct. Match the real build's stdenv.
           (pkgs.mkShell.override { stdenv = pkgs.llvmPackages.stdenv; }) {
             inputsFrom = [ pkgs.firefox-esr-153-unwrapped ];
+            # D-71: sccache pays for itself in this phase, which repeatedly
+            # changes browser/moz.configure -- each change invalidates
+            # config.status and cascades into a broad C++ recompile.
+            buildInputs = [ pkgs.sccache ];
             shellHook = ''
               # Anchor to the repo root, not invocation-time $PWD: entering the
               # shell from a subdirectory would otherwise scatter build state
@@ -76,6 +80,9 @@
               # unset these so it is never second-guessed by leftover autotools
               # convenience env vars. CC/CXX stay set (clang/clang++, correct).
               unset AS LD NM AR RANLIB OBJDUMP OBJCOPY READELF SIZE STRINGS STRIP
+              # D-71: sccache must see the already-corrected toolchain env
+              # above, so this export comes after the unset line, never before.
+              export RUSTC_WRAPPER=sccache
               echo "Sourcerer firefox shell ready. This shell already supplies the full Gecko toolchain (rustc, cargo, cbindgen, clang) -- no separate toolchain setup is needed. Next: scripts/fetch-upstream.sh, then cd upstream && MOZCONFIG=../.mozconfig ./mach build" >&2
             '';
           };
