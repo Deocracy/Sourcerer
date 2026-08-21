@@ -4,6 +4,7 @@ import {
 } from '@theia/core/lib/browser';
 import { CommandContribution, ContributionProvider } from '@theia/core';
 import URI from '@theia/core/lib/common/uri';
+import { TerminalWidgetFactoryOptions, TERMINAL_WIDGET_FACTORY_ID } from '@theia/terminal/lib/browser/terminal-widget-impl';
 import {
     PLUGIN_VIEW_CONTAINER_FACTORY_ID, SETTINGS_WIDGET_FACTORY_ID, SOURCERER_VIEW_FACTORY_IDS
 } from './view-factory-table';
@@ -122,6 +123,18 @@ export class TabUriRegistry {
             // Settings is addressed through the bespoke `settings:` scheme,
             // never `view:` -- D-38/D-44.
             return new URI('settings:');
+        }
+        if (factoryId === TERMINAL_WIDGET_FACTORY_ID) {
+            // `description.options` is the exact object the widget was
+            // constructed with (WidgetManager.getDescription reconstructs
+            // it from the dedup key, not from the widget's own injected
+            // fields) -- `terminalIdentityOptions` (terminal-naming-
+            // contribution.ts) always sets `created` to the same name as
+            // `id`/`title`, so this is the widget's typeable `terminal:`
+            // address (D-47).
+            const options = description.options as Partial<TerminalWidgetFactoryOptions> | undefined;
+            const name = options?.created ?? widget.id;
+            return new URI('terminal:' + name);
         }
         if (factoryId === PLUGIN_VIEW_CONTAINER_FACTORY_ID) {
             // The widget's own `.id` already equals the full `view:` path
