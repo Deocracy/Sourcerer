@@ -26,6 +26,10 @@ separate Node/Yarn/Rust install (D-18).
 
 ## Theia half
 
+The app composes the frozen 49-`@theia/*`-package daily-drivable set
+(Phase 2 D-19) — 11 packages proved the build in Phase 1; every package
+that was ever going to ship is now in the tree.
+
 ```
 nix develop .#theia
 cd theia
@@ -36,30 +40,112 @@ yarn start
 ```
 
 Then open **http://localhost:3000** (`127.0.0.1:3000`) — that is the port
-`theia start` actually binds; do not assume it moved.
+`theia start` actually binds; do not assume it moved. `yarn start`
+(`applications/browser`'s own script) also sets two environment variables
+explicitly before invoking `theia start` — see "Environment variables the
+start script sets", below.
 
 Why `--ignore-scripts` plus one explicit rebuild, not a plain `yarn
-install`: this was a deliberate decision after auditing all 1,042
-transitive packages in the workspace for install scripts. Only 9 packages
-carry one, and `drivelist` is the only one that genuinely needs it —
-version 12.0.2 ships no prebuilt binary, and `@theia/core` requires
-`drivelist`'s compiled `.node` at backend boot. Running every package's
-install script unaudited is unnecessary attack surface; skipping the one
-script that is actually load-bearing breaks the app at boot. Do not
-"simplify" this back to a bare `yarn install`.
+install`: this was a deliberate decision, re-audited at 49 packages after
+first being decided at 11 (Phase 1). **Re-run at 49 packages (Phase 2
+Plan 04):** the transitive tree is now 1,058 packages deep (depth ≤ 3,
+`@theia/plugin-ext` alone adds roughly 38 direct dependencies), of which
+**7** carry an `install`/`preinstall`/`postinstall` script — `@parcel/
+watcher`, `drivelist`, `esbuild`, `keytar`, `msgpackr-extract`, `node-pty`,
+`puppeteer`. **`drivelist` remains the only load-bearing one** — version
+12.0.2 ships no prebuilt binary, and `@theia/core` requires its compiled
+`.node` at backend boot, unconditionally, on every target. The other six
+are not load-bearing under `--ignore-scripts`:
+
+- `node-pty`, `@parcel/watcher`, `msgpackr-extract` and `esbuild` each
+  resolve their native binary through a platform-gated **optional
+  dependency package** (e.g. `@esbuild/linux-x64`,
+  `@parcel/watcher-linux-x64-glibc`) that Yarn Classic already installs
+  for the matching host — the same mechanism `@vscode/ripgrep` uses (see
+  below). Their own `install`/`postinstall` script is a fallback path for
+  when no prebuilt platform package matches; it never runs here because
+  one already did.
+- `keytar` is Electron/OS-credential-store tooling; a browser-target app
+  never loads it, matching Phase 1's original finding.
+- `puppeteer` is `@theia/cli`'s own dependency (used by `theia test`, which
+  this project never runs), and its postinstall would download a Chromium
+  binary — exactly the class of unaudited network fetch `--ignore-scripts`
+  exists to prevent.
+
+Running every package's install script unaudited is unnecessary attack
+surface; skipping the one script that is actually load-bearing breaks the
+app at boot. Do not "simplify" this back to a bare `yarn install`.
 
 If `yarn.lock` were absent you would drop `--frozen-lockfile`, but it is
 committed, so every install reproduces the exact same tree.
 
-Expect `theia rebuild:browser` (invoked internally by `yarn build`) to log
-`native-keymap`, `find-git-repositories`, `drivelist`, and `keytar` as
-skipped — that is expected on a browser-target app (none of those are
-usable from a browser frontend) and is not a failure.
+**What `theia rebuild:browser` (invoked internally by `yarn build`)
+actually prints, verified at 49 packages:** a single generic line, `native
+node modules are already rebuilt for browser` — not a per-module skip
+list. Reading `@theia/application-manager`'s `rebuild.js` explains why:
+the command only does per-module work (backing up/reverting cached native
+builds under a `.browser_modules` cache directory) when reverting a
+previous **electron-target** rebuild. This project never builds an
+electron target, so that cache is never populated and the command always
+takes the trivial "already rebuilt" branch, at any package count. Correct
+Phase 1's documented expectation here: the four-name list
+(`native-keymap`, `find-git-repositories`, `drivelist`, `keytar`) was
+never something this command literally prints for a browser-only app; it
+described which native modules are *browser-inapplicable in principle*,
+not the command's actual log output.
 
-**Measured on the reference host:** a cold run of the full sequence above
-(install + drivelist rebuild + build + boot) takes roughly 70s; a warm run
-with `--frozen-lockfile` and no dependency changes completes in about 12s
-(the harness's own `scripts/smoke-theia.sh` measured 11.9s end to end).
+**`@vscode/ripgrep`** (first enters the tree here, via
+`@theia/file-search`): at the pinned resolution (`1.18.0`) it has **no
+scripts field at all**. It ships 12 `os`/`cpu`-gated platform binary
+packages as `optionalDependencies` (e.g. `@vscode/ripgrep-linux-x64`), and
+Yarn Classic already skips every one that doesn't match the host, so only
+the matching package installs. **No install-time gate applies to
+`@vscode/ripgrep`** — `--ignore-scripts` does nothing for it because there
+is no script to skip. Do not add a no-op gate for it. If avoiding the
+prebuilt `rg` binary blob is ever made policy, the only lever is a
+post-install file swap of the resolved platform package (or the resolved
+`rgPath` module output) for the Nix-store `rg` binary — `rgPath` is a
+module-level constant import, not DI-injectable or preference-driven, so
+there is no rebind seam. That is optional hardening, out of scope here.
+
+**No bundled VS Code extensions.** The app ships `@theia/plugin-ext`,
+`@theia/plugin-ext-vscode` and `@theia/vsx-registry` — the extension-host
+machinery and the runtime installer — but no `theiaPlugins` manifest block
+and no `theia download:plugins` step. A user installing extensions at
+runtime through the Open VSX connection is the only plugin-acquisition
+path this project needs; do not add a bundling step unless a future phase
+decides to ship default extensions.
+
+**Environment variables the `start` script sets.** `applications/browser`'s
+`start` script exports two variables explicitly, rather than relying on
+Theia's defaults, before invoking `theia start`:
+
+- `VSX_REGISTRY_URL=https://open-vsx.org` — explicit so that repointing at
+  Sourcerer's own registry mirror (R9, post-4.0) is a config change, not a
+  code change.
+- `THEIA_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/sourcerer"`, with a
+  `mkdir -p` run first — Theia never creates the config directory on this
+  branch, and an absent directory leaves the config-dir file watch stuck in
+  a 500 ms `fs.stat` poll loop with no hot reload (load-bearing for the
+  customization layer's hot reload).
+
+Phase 2 owns both only for `yarn watch`/`yarn start`. Phase 4's Firefox
+supervisor takes over setting both permanently on the sidecar spawn.
+
+**Measured on the reference host, re-measured at 49 packages (Phase 2 Plan
+04):** a cold run (`node_modules` absent, Yarn's own package cache already
+warm from repeated installs earlier this session — not a network-cold
+measurement) of the full sequence above (install + drivelist rebuild +
+build + boot, via `scripts/smoke-theia.sh`) took **23.4s**; a warm run
+(`node_modules` present, `--frozen-lockfile`, no dependency changes)
+took **18.1s**. Both numbers moved up from Phase 1's 11-package figures
+(70s cold, 11.9s warm) — expected, given `@theia/plugin-ext` alone adds
+roughly 38 direct dependencies to resolve, link and bundle. The cold
+figure here is not directly comparable to Phase 1's: Phase 1's 70s
+included real network package fetches on a cold cache, while this run's
+Yarn package cache was already warm from this session's prior installs.
+Treat 23.4s as a lower bound for a genuinely cold-cache cold run, not as
+the number a first-time contributor should expect.
 
 ## Firefox half
 
