@@ -37,9 +37,14 @@ export class SourcererWelcomeWidget extends ReactWidget {
     }
 
     protected async doInit(): Promise<void> {
-        const info = await this.appServer.getApplicationInfo();
-        this.version = info?.version;
-        this.update();
+        try {
+            const info = await this.appServer.getApplicationInfo();
+            this.version = info?.version;
+        } catch (error) {
+            console.error('[@sourcerer/branding] failed to load application info for welcome widget:', error);
+        } finally {
+            this.update();
+        }
     }
 
     protected openRepo = (e: React.SyntheticEvent): void => {
