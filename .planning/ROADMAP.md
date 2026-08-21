@@ -72,7 +72,7 @@ Plans:
   4. Copying the URI off a settings tab, a terminal tab, or the AI chat view and passing it to `OpenerService.open()` opens or focuses that exact tab — no shipped widget type reports an empty resource URI
   5. Per-scheme semantics (what the path encodes, open-vs-focus behaviour) are documented and the URIs can be typed by hand
 
-**Plans**: 6/7 plans executed
+**Plans**: 7/7 plans executed
 
 Plans:
 **Wave 1**
@@ -98,7 +98,7 @@ Plans:
 
 **Wave 6**
 
-- [ ] 02-07-PLAN.md — `terminal:` addressing, existing-scheme coverage, and `docs/URI-SCHEMES.md`
+- [x] 02-07-PLAN.md — `terminal:` addressing, existing-scheme coverage, and `docs/URI-SCHEMES.md`
 
 ### Phase 3: Branded Firefox Fork
 
@@ -172,7 +172,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 (2 and 3 may run in p
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Build Infrastructure | 4/4 | Complete   | 2026-08-20 |
-| 2. Sourcerer Theia Extensions | 6/7 | In Progress|  |
+| 2. Sourcerer Theia Extensions | 7/7 | In Progress|  |
 | 3. Branded Firefox Fork | 0/TBD | Not started | - |
 | 4. Full-Window Theia Shell | 0/TBD | Not started | - |
 | 5. Lifecycle & Failure Hardening | 0/TBD | Not started | - |
