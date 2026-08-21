@@ -77,11 +77,21 @@ async function main() {
         }
     };
 
-    let sigintHandler;
-    sigintHandler = () => {
-        restore().finally(() => process.exit(130));
-    };
-    process.on('SIGINT', sigintHandler);
+    // CR-03: this used to register its own `restore().finally(() =>
+    // process.exit(130))`, racing withFirefoxPage's own internal SIGINT
+    // handler -- restore() (a couple of small fs writes) resolves in low
+    // single-digit milliseconds, so its process.exit(130) fired while the
+    // driver's Firefox kill/SIGKILL-escalation/rm(profileDir, ...)
+    // sequence was still mid-flight, orphaning the browser process and
+    // leaking its temp profile directory. Just record that SIGINT arrived
+    // and let the existing try/finally below unwind naturally: closing
+    // the driver's own WebSocket (its SIGINT handler, firefox-bidi.mjs)
+    // rejects any in-flight BiDi call, which propagates out of
+    // withFirefoxPage() and reaches this function's own `finally` --
+    // where `restore()` already runs -- deterministically, not racing
+    // anything.
+    let sigintReceived = false;
+    process.on('SIGINT', () => { sigintReceived = true; });
 
     try {
         await unlink(CSS_PATH).catch(() => { /* already absent */ });
@@ -142,8 +152,10 @@ async function main() {
         console.error(`verify-customize-inert: FAIL -- ${err.message}`);
         process.exitCode = 1;
     } finally {
-        process.off('SIGINT', sigintHandler);
         await restore();
+        // Set last so a SIGINT-triggered failure reports the conventional
+        // 130 rather than whatever the catch block above set.
+        if (sigintReceived) process.exitCode = 130;
     }
 }
 
