@@ -12,14 +12,14 @@ Requirements for v4.0. Each maps to roadmap phases.
 - [x] **BUILD-01**: Developer can enter a `theia` Nix dev shell (node 22, yarn 1.x, node-gyp toolchain) and build/run the Theia browser-target app standalone at localhost on the NixOS host
 - [x] **BUILD-02**: Developer can enter a `firefox` Nix dev shell (toolchain via `inputsFrom` nixpkgs' firefox-esr unwrapped derivation, no `mach bootstrap`) and build the pinned ESR tag
 - [ ] **BUILD-03**: Fork repo is structured as `upstream/` (pinned `FIREFOX_153_1_0esr_RELEASE`) + `patches/` + `sourcerer/` with a documented, CI-ready rebase procedure
-- [ ] **BUILD-04**: Developer gets a runnable build in minutes via artifact builds (`MOZ_ARTIFACT_REVISION` pinned to the last unmodified upstream revision)
+- [ ] **BUILD-04**: Developer has a tiered incremental rebuild loop — `./mach run` for the frontend files symlinked into `upstream/` (no build), `./mach build faster` for preprocessed files, full `./mach build` only after a compiled-define change — with the compiled-file boundary enforced by a guard script
 
 ### Rebrand
 
-- [ ] **BRAND-01**: Firefox-side identity is Sourcerer (`MOZ_APP_NAME`, `MOZ_APP_DISPLAYNAME`, `MOZ_APP_VENDOR`, distribution id) — no residual "firefox" in executable name, window title, or about:support identity fields
+- [ ] **BRAND-01**: Firefox-side identity is Sourcerer (`MOZ_APP_NAME`, `MOZ_APP_DISPLAYNAME`, `MOZ_APP_VENDOR`, distribution id), verified by a named-surface checklist: executable name in `dist/bin`, `application.ini` `Name` and `Vendor`, about:support identity fields, window title, the `.desktop` file's `Name` and `StartupWMClass`, and `--version` output
 - [ ] **BRAND-02**: Full replacement `branding/` tree ships (icons, strings) containing no Mozilla trademark assets
 - [ ] **BRAND-03**: Profile directory is Sourcerer's own (falls out of `MOZ_APP_NAME`); verified to never touch `~/.mozilla/firefox` on a machine with real Firefox installed
-- [ ] **BRAND-04**: Auto-update is disabled and no Mozilla update or telemetry endpoint is reachable from a running build
+- [ ] **BRAND-04**: Auto-update is disabled and a running build contacts no host outside a documented allowlist — whose only Mozilla entry is the `firefox.settings.services.mozilla.com` Remote Settings carve-out (6-hour poll), with every non-Mozilla host individually waived with a stated reason or disabled
 - [x] **BRAND-05**: Theia-side branding (welcome/getting-started widget, About dialog, window/tab title, favicon) ships as a `@sourcerer/*` extension via DI rebind — no Theia core patch
 - [ ] **BRAND-06**: Dev builds carry a visible indicator (title suffix or icon badge) distinguishing them from future packaged releases
 
@@ -64,6 +64,42 @@ Requirements for v4.0. Each maps to roadmap phases.
 > opaque `scheme:path`, not `scheme://` — the authority component is
 > lower-cased on serialization and Theia widget ids are not uniformly
 > lowercase. `settings://` normalizes to `settings:` either way.
+
+> **Amended 2026-08-21** (Phase 3 discussion, decisions D-70 and D-79 in
+> `.planning/phases/03-branded-firefox-fork/03-CONTEXT.md`).
+>
+> **BUILD-04** previously required "a runnable build in minutes via artifact
+> builds (`MOZ_ARTIFACT_REVISION` pinned)". Artifact builds do work for ESR 153
+> — the Taskcluster namespace was queried live and returns a downloadable
+> `target.tar.xz` — but they cannot produce a *renamed* binary:
+> `GeckoJobConfiguration.product` is hardcoded `"firefox"`
+> (`upstream/python/mozbuild/mozbuild/artifacts.py:92`), `LinuxArtifactJob`
+> installs `firefox/firefox` → `dist/bin/firefox` (`:632`, `:663`), and
+> `MOZ_APP_NAME`/`MOZ_APP_VENDOR` are compiled defines baked into the
+> downloaded `libxul.so`. BUILD-04 and BRAND-01 could not both hold. The
+> requirement now names the tiered incremental loop, which is what already
+> works on the dev host. Accepted cost: a clean clone has no
+> minutes-to-runnable path — first build is a full compile.
+>
+> **BRAND-01** previously required that "a search for a residual 'firefox'
+> identity string comes back empty". That is unachievable on any correct
+> build: a correctly branded, unpackaged build still ships 39 files with
+> `firefox` in the filename and 32 more containing the string — all upstream
+> feature names — plus 21 update-named files that survive `--disable-updater`.
+> The requirement now names the six identity surfaces explicitly, each
+> verifiable by a command.
+>
+> **BRAND-04** previously required that "no Mozilla update or telemetry
+> endpoint is reachable from a running build". Remote Settings cannot be
+> turned off by pref on a non-Nightly channel — `services/settings/Utils.sys.mjs:52-84`
+> refuses any `services.settings.server` override — and the only alternative,
+> the `DisableRemoteSettingsAndAcceptSecurityConsequences` policy, also stops
+> CRLite certificate-revocation data, intermediate-certificate preloading and
+> tracking-protection list updates on a browser substrate. The requirement now
+> reads as a documented allowlist with that single named carve-out, and is
+> *stricter* than before on third-party hosts: Google Safe Browsing, Google's
+> Widevine CDM host and Cisco's OpenH264 host must each be waived with a
+> stated reason or disabled (D-83, D-85).
 
 ## v2 Requirements
 
@@ -152,4 +188,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-08-19*
-*Last updated: 2026-08-20 — traceability populated during roadmap creation*
+*Last updated: 2026-08-21 — BUILD-04, BRAND-01 and BRAND-04 amended during Phase 3 discussion*
