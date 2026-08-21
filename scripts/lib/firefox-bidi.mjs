@@ -29,7 +29,14 @@ import { existsSync } from 'node:fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, '..', '..');
-export const FIREFOX_BIN = join(REPO_ROOT, 'objdir', 'dist', 'bin', 'firefox');
+// Phase 3 (03-02): the binary this driver targets by default is the
+// Sourcerer-branded build, not stock `firefox` -- plan 03-01 step 8 removes
+// the stale `dist/bin/firefox` entirely, and identity surface 1 requires
+// that no file by that name remain. Every caller that passes no override
+// (four of the five Phase 2 checks) now routes through this renamed target;
+// callers that need a different binary (e.g. a release-branding build) pass
+// `binPath` explicitly.
+export const FIREFOX_BIN = join(REPO_ROOT, 'objdir', 'dist', 'bin', 'sourcerer');
 
 const BIDI_LINE_RE = /WebDriver BiDi listening on (ws:\/\/127\.0\.0\.1:\d+)/;
 
@@ -163,10 +170,10 @@ export async function waitFor(evaluate, expression, { timeoutMs = 15000, interva
  * unconditionally in a `finally`, on the success path, the timeout path, and
  * on SIGINT.
  */
-export async function captureScreenshot(url, outputPath, { windowSize = '800,600', timeoutMs = 15000 } = {}) {
-    if (!existsSync(FIREFOX_BIN)) {
+export async function captureScreenshot(url, outputPath, { windowSize = '800,600', timeoutMs = 15000, binPath = FIREFOX_BIN } = {}) {
+    if (!existsSync(binPath)) {
         throw new Error(
-            `firefox-bidi: ${FIREFOX_BIN} does not exist. Run the Phase 1 Firefox build first ` +
+            `firefox-bidi: ${binPath} does not exist. Run the Phase 1 Firefox build first ` +
             `(see docs/BUILD.md "Firefox half") -- a fresh clone has no objdir/ until that build runs.`
         );
     }
@@ -174,7 +181,7 @@ export async function captureScreenshot(url, outputPath, { windowSize = '800,600
     const profileDir = await mkdtemp(join(tmpdir(), 'sourcerer-firefox-bidi-'));
     let sigintHandler;
 
-    const child = spawn(FIREFOX_BIN, [
+    const child = spawn(binPath, [
         '--headless',
         '--profile', profileDir,
         '--window-size', windowSize,
@@ -244,10 +251,10 @@ export async function captureScreenshot(url, outputPath, { windowSize = '800,600
  * settle past any debounce) before capturing -- the only way to actually
  * see the rendered app.
  */
-export async function withFirefoxPage(url, callback) {
-    if (!existsSync(FIREFOX_BIN)) {
+export async function withFirefoxPage(url, callback, { binPath = FIREFOX_BIN } = {}) {
+    if (!existsSync(binPath)) {
         throw new Error(
-            `firefox-bidi: ${FIREFOX_BIN} does not exist. Run the Phase 1 Firefox build first ` +
+            `firefox-bidi: ${binPath} does not exist. Run the Phase 1 Firefox build first ` +
             `(see docs/BUILD.md "Firefox half") -- a fresh clone has no objdir/ until that build runs.`
         );
     }
@@ -255,11 +262,20 @@ export async function withFirefoxPage(url, callback) {
     const profileDir = await mkdtemp(join(tmpdir(), 'sourcerer-firefox-bidi-'));
     const port = await freePort();
 
-    const child = spawn(FIREFOX_BIN, [
+    // Without the flag below, script.evaluate against a parent-process
+    // browsing context (e.g. about:support, identity surface 3) is refused
+    // outright -- upstream/remote/webdriver-bidi/modules/root/
+    // script.sys.mjs:844 checks RemoteAgent.allowSystemAccess and throws
+    // "unsupported operation" otherwise. Empirically confirmed both
+    // directions this session (03-02 Task 1): identical BiDi session reads
+    // about:support's application-box live when it is present, and the same
+    // read throws that exact error when it is absent.
+    const child = spawn(binPath, [
         '--headless',
         '--profile', profileDir,
         `--remote-debugging-port=${port}`,
         '--remote-allow-hosts', '127.0.0.1',
+        '--remote-allow-system-access',
         url,
     ], { stdio: ['ignore', 'ignore', 'pipe'] });
 
