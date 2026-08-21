@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "license": "MIT",
   "dependencies": {
+    "@theia/ai-ide": "1.74.1",
     "@theia/core": "1.74.1"
   },
   "theiaExtensions": [
