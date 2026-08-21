@@ -34,6 +34,10 @@ not best-practice convergence. Extends the survey work of agent-memory-systems.
 - Economics target: small models working fast, high-quality, and cheap — 50 parallel
   frontier models is explicitly not the model
 - Deep research performed by Opus subagents
+- Engine selection weighs fork-viability over upstream activity: everything is
+  custom anyway, so an inactive-upstream engine (CozoDB) stays a candidate if
+  stable, permissively licensed, and feature-complete; do not classify such
+  engines as dead/eliminated
 
 ## Spikes
 
