@@ -2,8 +2,12 @@ import { ContainerModule } from '@theia/core/shared/inversify';
 import { FrontendApplicationContribution, OpenHandler, OpenerService, WidgetManager } from '@theia/core/lib/browser';
 import { Disposable } from '@theia/core/lib/common';
 import { ChatViewWidget } from '@theia/ai-chat-ui/lib/browser/chat-view-widget';
+import { TerminalFrontendContribution } from '@theia/terminal/lib/browser/terminal-frontend-contribution';
+import { TerminalWidget } from '@theia/terminal/lib/browser/base/terminal-widget';
 import { TabUriRegistry } from './tab-uri-registry';
 import { ViewUriOpenHandler } from './view-open-handler';
+import { SourcererTerminalFrontendContribution, SourcererTerminalWidget } from './terminal-naming-contribution';
+import { TerminalUriOpenHandler } from './terminal-open-handler';
 
 /**
  * Registers an `OpenHandler` after the app's first `OpenerService.open()`
@@ -21,7 +25,7 @@ export function registerLateOpenHandler(openerService: OpenerService, handler: O
     return openerService.addHandler(handler);
 }
 
-export default new ContainerModule(bind => {
+export default new ContainerModule((bind, _unbind, isBound, rebind) => {
     bind(TabUriRegistry).toSelf().inSingletonScope();
 
     // Registered as a static open-handler binding at module load -- the
@@ -31,6 +35,35 @@ export default new ContainerModule(bind => {
     // anything binding after that point.
     bind(ViewUriOpenHandler).toSelf().inSingletonScope();
     bind(OpenHandler).toService(ViewUriOpenHandler);
+
+    // D-47: guarded rebind -- the in-tree idiom (see @sourcerer/branding's
+    // own rebinds), keeps this module loadable even in a container where
+    // @theia/terminal's own binding is somehow absent. Every terminal
+    // binding in @theia/terminal is `.toService(TerminalFrontendContribution)`
+    // (TerminalService, CommandContribution, MenuContribution,
+    // KeybindingContribution, TabBarToolbarContribution, ColorContribution,
+    // FrontendApplicationContribution -- verified against
+    // terminal-frontend-module.ts's own binding block, broader than
+    // CONTEXT.md's own summary of it), so this one rebind reaches all of
+    // them.
+    if (isBound(TerminalFrontendContribution)) {
+        rebind(TerminalFrontendContribution).to(SourcererTerminalFrontendContribution).inSingletonScope();
+    } else {
+        bind(TerminalFrontendContribution).to(SourcererTerminalFrontendContribution).inSingletonScope();
+    }
+    // D-38: Terminal is the one widget type with a real `Navigatable`
+    // implementation -- rebinding the `TerminalWidget` DI token (not a
+    // subclass of the `terminal` WidgetFactory's own `createWidget`, which
+    // stays untouched) means every terminal, regardless of which code path
+    // created it, resolves through `SourcererTerminalWidget`.
+    if (isBound(TerminalWidget)) {
+        rebind(TerminalWidget).to(SourcererTerminalWidget).inTransientScope();
+    } else {
+        bind(TerminalWidget).to(SourcererTerminalWidget).inTransientScope();
+    }
+
+    bind(TerminalUriOpenHandler).toSelf().inSingletonScope();
+    bind(OpenHandler).toService(TerminalUriOpenHandler);
 
     // D-27: the AI chat widget must never escape into a secondary window
     // -- the future unified tab strip has no way to model a chrome-owned
