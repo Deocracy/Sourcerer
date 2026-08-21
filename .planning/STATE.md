@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 2
 current_phase_name: Sourcerer Theia Extensions
 status: executing
-stopped_at: Completed 02-05-PLAN.md
-last_updated: "2026-08-21T01:39:11.492Z"
+stopped_at: Completed 02-06-PLAN.md
+last_updated: "2026-08-21T02:17:21.667Z"
 last_activity: 2026-08-20
 last_activity_desc: Roadmap created, 26/26 v1 requirements mapped
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 11
-  completed_plans: 9
+  completed_plans: 10
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 ## Current Position
 
 Phase: 2 (Sourcerer Theia Extensions) — EXECUTING
-Plan: 6 of 7
+Plan: 7 of 7
 Status: Ready to execute
 Last activity: 2026-08-20 — Phase 2 execution started
 
-Progress: [████████░░] 82%
+Progress: [█████████░] 91%
 
 ## Performance Metrics
 
@@ -67,6 +67,7 @@ Progress: [████████░░] 82%
 | Phase 02 P03 | 55min | 3 tasks | 8 files |
 | Phase 02 P04 | 45min | 3 tasks | 7 files |
 | Phase 02 P05 | ~2h | 3 tasks | 12 files |
+| Phase 02 P06 | 40min | 3 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -98,6 +99,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Two isBound-guarded rebinds (SourcererAIFirstPerspectiveContribution, SourcererAIConfigurationViewContribution) neutralize @theia/ai-ide's first-boot layout forcing without touching AIActivationService (D-22)
 - [Phase ?]: onStart()/onDidInitializeLayout() in @sourcerer/customize's contributions never await their file read -- awaiting a user-storage: read inside a lifecycle hook that startContributions() itself awaits deadlocks app boot (the RPC connection that read needs stabilizes around/after that same chain resolves).
 - [Phase ?]: scripts/lib/firefox-bidi.mjs's withFirefoxPage gained a screenshot() export (same-session BiDi capture) -- Plan 02's captureScreenshot fires on the page's early load event, before a Theia SPA settles, and cannot see the rendered app.
+- [Phase ?]: 02-06: TabUriRegistry discovers view: targets at runtime from AbstractViewContribution instances (cross-checked against the static coverage table), not a hard-coded lookup -- turns a mis-transcribed table id into a startup console.error instead of a silent no-op
+- [Phase ?]: 02-06: AbstractViewContribution.openView()'s return value is unreliable for a view: URI target when viewContainerId differs from widgetId -- it resolves via viewId (the container's part), not effectiveWidgetId (the container); ViewUriOpenHandler re-fetches the widget by name after calling openView() for its side effect
+- [Phase ?]: 02-06: AI chat widget non-extractable (D-27) fix checks for an already-created widget via WidgetManager.getWidgets() in addition to subscribing to onDidCreateWidget -- another AI contribution's own onStart can create the widget first, and onDidCreateWidget only fires once, on first creation
 
 ### Pending Todos
 
@@ -119,6 +123,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-21T01:38:47.965Z
-Stopped at: Completed 02-05-PLAN.md
+Last session: 2026-08-21T02:17:21.658Z
+Stopped at: Completed 02-06-PLAN.md
 Resume file: None
