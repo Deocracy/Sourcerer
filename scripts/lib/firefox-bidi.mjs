@@ -191,9 +191,24 @@ export async function captureScreenshot(url, outputPath, { windowSize = '800,600
 
 /**
  * Launch `objdir/dist/bin/firefox` headless against `url`, connect over
- * WebDriver BiDi, and invoke `callback({ evaluate, waitFor })`. Guarantees
- * Firefox is killed and its temporary profile removed before returning or
- * throwing, including on SIGINT.
+ * WebDriver BiDi, and invoke `callback({ evaluate, waitFor, screenshot })`.
+ * Guarantees Firefox is killed and its temporary profile removed before
+ * returning or throwing, including on SIGINT.
+ *
+ * `screenshot()` (added for Plan 05's pixel-comparison harness) captures
+ * the CURRENT state of the already-loaded page via BiDi
+ * `browsingContext.captureScreenshot`, returning a `Buffer` -- callers
+ * decide what to do with the bytes (write to disk, hash, decode). This is
+ * a deliberately different mechanism from the sibling `captureScreenshot`
+ * export below: that one launches `--headless --screenshot`, a one-shot
+ * "load and screenshot" process mode with no scripting hook in between,
+ * which was found (Plan 05, live) to fire on the page's early `load` event
+ * -- well before a Theia SPA's `startContributions()`/shell-attach
+ * sequence finishes, so it only ever captures a near-blank loading screen.
+ * `withFirefoxPage`'s `screenshot()` instead runs inside the same session
+ * `waitFor` already uses, so a caller can wait for `#theia-app-shell` (and
+ * settle past any debounce) before capturing -- the only way to actually
+ * see the rendered app.
  */
 export async function withFirefoxPage(url, callback) {
     if (!existsSync(FIREFOX_BIN)) {
@@ -263,7 +278,12 @@ export async function withFirefoxPage(url, callback) {
             return result.result.result.value;
         };
 
-        return await callback({ evaluate, waitFor: (expr, opts) => waitFor(evaluate, expr, opts) });
+        const screenshot = async () => {
+            const result = await client.send('browsingContext.captureScreenshot', { context });
+            return Buffer.from(result.result.data, 'base64');
+        };
+
+        return await callback({ evaluate, waitFor: (expr, opts) => waitFor(evaluate, expr, opts), screenshot });
     } finally {
         if (ws && client && ws.readyState === WebSocket.OPEN) {
             try {
