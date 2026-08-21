@@ -220,6 +220,14 @@ type from memory here (a panel id is not human-mnemonic), but the address
 still round-trips: copy it out of the registry, and pasting it back into
 the same session's opener reopens the same tab.
 
+A degenerate `webview:<id>` address (no `/<viewType>` segment) is resolved
+against already-open panels by `id` alone rather than treated as a request
+to create one — opening it raises a visible error if no open panel matches,
+the same "an unknown or under-specified address must surface an error, not
+silently mint something new" discipline `view:` applies. The two-segment
+form is the only one this phase's own registry ever emits, so this case is
+reached only if an address is typed or constructed by hand.
+
 ## The four carve-outs
 
 These are the cases D-51 identified as unavoidable inside this phase's

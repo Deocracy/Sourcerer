@@ -72,9 +72,18 @@ function outputChannelNameOf(uri: URI): string {
 function parseWebviewPath(path: string): WebviewWidgetIdentifier {
     const slash = path.indexOf('/');
     if (slash === -1) {
-        // No view type recorded -- still a valid (if degenerate) identity;
-        // matches D-51 carve-out 4's "restores a blank panel" rather than
-        // erroring, the same tolerant spirit as D-48's terminal handler.
+        // No view type recorded -- a degenerate identity. WR-03: a real
+        // webview panel is always constructed with both `id` and `viewId`
+        // populated (`webviews-main.ts`:
+        // `getOrCreateWidget(WebviewWidget.FACTORY_ID, {id, viewId})`), so
+        // `{id}` alone would serialize to a different `options` object
+        // under `WidgetManager`'s dedup key than any real panel's whenever
+        // that panel has a non-empty `viewId` -- silently minting a second,
+        // empty widget under the same apparent id instead of resolving to
+        // the one meant. `SourcererWebviewOpenHandler.open()` below never
+        // passes this shape straight to `getOrCreateWidget`; it looks up an
+        // already-cached widget by `id` alone first and throws if none is
+        // found, rather than treating an under-specified address as valid.
         return { id: path };
     }
     return { viewId: path.slice(0, slash), id: path.slice(slash + 1) };
@@ -144,12 +153,34 @@ export class SourcererWebviewOpenHandler implements OpenHandler {
 
     async open(uri: URI): Promise<WebviewWidget> {
         const identifier = parseWebviewPath(parseName(uri));
-        const widget = await this.widgetManager.getOrCreateWidget<WebviewWidget>(WebviewWidget.FACTORY_ID, identifier);
+        // WR-03: a bare `webview:<id>` (no `/viewId`) must resolve to an
+        // already-cached panel by `id` alone, never fall through to
+        // `getOrCreateWidget` with a `{id}`-only options object -- that
+        // shape never matches a real panel's `{id, viewId}` construction
+        // options under the dedup key, so it would silently create a
+        // second, empty widget instead of the one meant.
+        const widget = identifier.viewId === undefined
+            ? this.findExistingById(identifier.id)
+            : await this.widgetManager.getOrCreateWidget<WebviewWidget>(WebviewWidget.FACTORY_ID, identifier);
+        if (!widget) {
+            throw new Error(
+                `sourcerer.webview-uri-open-handler: no open webview panel with id '${identifier.id}' -- ` +
+                'a bare webview:<id> address must name an already-open panel; copy the full ' +
+                'webview:<viewType>/<id> address out of the registry instead of typing one from memory'
+            );
+        }
         if (!widget.isAttached) {
             this.shell.addWidget(widget, { area: 'main' });
         }
         await this.shell.activateWidget(widget.id);
         return widget;
+    }
+
+    protected findExistingById(id: string): WebviewWidget | undefined {
+        return this.widgetManager.getWidgets(WebviewWidget.FACTORY_ID).find(widget => {
+            const options = this.widgetManager.getDescription(widget)?.options as Partial<WebviewWidgetIdentifier> | undefined;
+            return options?.id === id;
+        }) as WebviewWidget | undefined;
     }
 }
 
