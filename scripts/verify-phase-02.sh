@@ -81,8 +81,8 @@ echo "verify-phase-02: app is up at $APP_URL"
 declare -a CHECKS=(
   "diff-theia-core|nix develop \"$REPO_ROOT#theia\" --command bash $REPO_ROOT/scripts/diff-theia-core.sh"
   "verify-branding|node $REPO_ROOT/scripts/verify-branding.mjs $APP_URL"
-  "verify-dev-flag-off|node $REPO_ROOT/scripts/verify-dev-flag-off.mjs $APP_URL"
   "verify-customize-inert|node $REPO_ROOT/scripts/verify-customize-inert.mjs $APP_URL"
+  "verify-dev-flag-off|node $REPO_ROOT/scripts/verify-dev-flag-off.mjs $APP_URL"
   "verify-uri-roundtrip|node $REPO_ROOT/scripts/verify-uri-roundtrip.mjs $APP_URL"
 )
 
