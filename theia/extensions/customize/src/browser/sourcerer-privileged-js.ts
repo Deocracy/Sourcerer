@@ -1,5 +1,6 @@
 import { interfaces } from '@theia/core/shared/inversify';
 import { ApplicationShell } from '@theia/core/lib/browser';
+import { TabUriRegistry } from '@sourcerer/tab-uris/lib/browser/tab-uri-registry';
 
 // CUST-02's build-time gate (D-62..D-67). The DI token MUST use the global
 // symbol registry (`Symbol.for`), not a bare `Symbol()`: a bare symbol is a
@@ -11,13 +12,16 @@ import { ApplicationShell } from '@theia/core/lib/browser';
 export const SourcererPrivilegedJs = Symbol.for('SourcererPrivilegedJs');
 
 // The small, stable surface `customize.js` receives when the dev flag is
-// on (D-67). `tabUriRegistry` is not yet populated: `@sourcerer/tab-uris`
-// (Plan 06) does not exist at this point in the phase's dependency graph
-// (02-05 depends only on 02-04), so there is no class to import or bind
-// here. The property is reserved so a later plan can populate it without
-// changing this interface's shape -- see 02-05-SUMMARY.md's Known Stubs.
+// on (D-67). `tabUriRegistry` is now wired from `@sourcerer/tab-uris`
+// (Plan 06) -- see 02-05-SUMMARY.md's Known Stubs for the gap this closes.
+// The property stays optional (`| undefined`, not a hard-required field):
+// `CustomizePrivilegedJsContribution` populates it only when
+// `TabUriRegistry` is actually bound in the running container, so
+// `@sourcerer/customize` keeps compiling and running standalone if the
+// registry is ever absent from a composition -- no hard dependency that
+// would break the dev-flag-off path.
 export interface SourcererPrivilegedJsSurface {
     readonly container: interfaces.Container;
     readonly shell: ApplicationShell;
-    readonly tabUriRegistry: undefined;
+    readonly tabUriRegistry: TabUriRegistry | undefined;
 }
