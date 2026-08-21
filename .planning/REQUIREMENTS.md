@@ -19,7 +19,7 @@ Requirements for v4.0. Each maps to roadmap phases.
 - [ ] **BRAND-01**: Firefox-side identity is Sourcerer (`MOZ_APP_NAME`, `MOZ_APP_DISPLAYNAME`, `MOZ_APP_VENDOR`, distribution id), verified by a named-surface checklist: executable name in `dist/bin`, `application.ini` `Name` and `Vendor`, about:support identity fields, window title, the `.desktop` file's `Name` and `StartupWMClass`, and `--version` output
 - [ ] **BRAND-02**: Full replacement `branding/` tree ships (icons, strings) containing no Mozilla trademark assets
 - [ ] **BRAND-03**: Profile directory is Sourcerer's own (falls out of `MOZ_APP_NAME`); verified to never touch `~/.mozilla/firefox` on a machine with real Firefox installed
-- [ ] **BRAND-04**: Auto-update is disabled and a running build contacts no host outside a documented allowlist — whose only Mozilla entry is the `firefox.settings.services.mozilla.com` Remote Settings carve-out (6-hour poll), with every non-Mozilla host individually waived with a stated reason or disabled
+- [ ] **BRAND-04**: Auto-update is disabled and a running build contacts no host outside a documented allowlist — whose only Mozilla entry is the `firefox.settings.services.mozilla.com` Remote Settings carve-out (24-hour poll), with every non-Mozilla host individually waived with a stated reason or disabled
 - [x] **BRAND-05**: Theia-side branding (welcome/getting-started widget, About dialog, window/tab title, favicon) ships as a `@sourcerer/*` extension via DI rebind — no Theia core patch
 - [ ] **BRAND-06**: Dev builds carry a visible indicator (title suffix or icon badge) distinguishing them from future packaged releases
 
