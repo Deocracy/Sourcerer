@@ -227,6 +227,15 @@ function buildRowExpression(uriString, factoryId) {
         if (!widget) {
             return JSON.stringify({ ok: false, reason: 'open() resolved to undefined/falsy' });
         }
+        // CR-01: D-53's round-trip assertion alone does not catch a widget
+        // that was created but never attached to the shell --
+        // WidgetManager.getDescription still reports the correct
+        // {factoryId, options} for an unattached cached widget, so the
+        // address round-trips even though nothing appeared on screen.
+        // Assert attachment explicitly so this class of bug fails loudly.
+        if (widget.isAttached === false) {
+            return JSON.stringify({ ok: false, reason: 'widget.isAttached === false -- open() created the widget but never attached it to the shell' });
+        }
         const roundtrip = registry.uriOf(widget);
         if (!roundtrip) {
             return JSON.stringify({ ok: false, reason: 'registry.uriOf(widget) returned undefined' });
@@ -265,6 +274,10 @@ function buildTerminalExpression() {
         const widget = await opener.open(__makeUri('terminal:'));
         if (!widget) {
             return JSON.stringify({ ok: false, reason: 'open() resolved to undefined/falsy' });
+        }
+        // CR-01's attachment assertion, mirrored here for the same reason.
+        if (widget.isAttached === false) {
+            return JSON.stringify({ ok: false, reason: 'widget.isAttached === false -- open() created the widget but never attached it to the shell' });
         }
         const roundtrip = registry.uriOf(widget);
         if (!roundtrip) {

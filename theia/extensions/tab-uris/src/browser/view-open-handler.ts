@@ -4,6 +4,7 @@ import {
 } from '@theia/core/lib/browser';
 import URI from '@theia/core/lib/common/uri';
 import { PreferenceOpenHandler } from '@theia/preferences/lib/browser/preference-open-handler';
+import { PluginViewRegistry } from '@theia/plugin-ext/lib/main/browser/view/plugin-view-registry';
 import { TabUriRegistry } from './tab-uri-registry';
 import { PLUGIN_VIEW_CONTAINER_FACTORY_ID, SETTINGS_WIDGET_FACTORY_ID } from './view-factory-table';
 
@@ -33,6 +34,9 @@ export class ViewUriOpenHandler implements OpenHandler {
 
     @inject(PreferenceOpenHandler)
     protected readonly preferenceOpenHandler: PreferenceOpenHandler;
+
+    @inject(PluginViewRegistry)
+    protected readonly pluginViewRegistry: PluginViewRegistry;
 
     // 1000 or 0, synchronously, on scheme alone -- never a negative number.
     // `Prioritizeable.isValid` tests `priority > 0`, contradicting the
@@ -73,13 +77,29 @@ export class ViewUriOpenHandler implements OpenHandler {
         }
         if (name.startsWith(PLUGIN_VIEW_CONTAINER_FACTORY_ID + ':')) {
             // No table entry needed -- the identifier's own id already
-            // equals the full path (D-50). No dedup written here either:
-            // `getOrCreateWidget` already keys on `{factoryId, options}`
-            // and guards the concurrent-open race itself.
-            const widget = await this.widgetManager.getOrCreateWidget(
-                PLUGIN_VIEW_CONTAINER_FACTORY_ID,
-                this.registry.createWidgetOptions(name)
-            );
+            // equals the full path (D-50). Delegates to
+            // `PluginViewRegistry.openViewContainer` -- the real Theia
+            // code path, and the fix for CR-01: `getOrCreateWidget` alone
+            // never attaches a brand-new widget to the shell, so a bare
+            // `getOrCreateWidget` + `activateWidget` sequence silently
+            // no-oped on the first-ever open of a container (`activateWidget`
+            // reads `this.tracker.widgets`, which only contains attached
+            // widgets). `openViewContainer` calls
+            // `shell.addWidget(containerWidget, { area, rank })` whenever
+            // `!containerWidget.isAttached`
+            // (`plugin-view-registry.ts:805-809` in the pinned v1.74.1
+            // source) before this handler's own `activateWidget` runs.
+            // `PluginViewRegistry`'s own `toViewContainerIdentifier`
+            // produces the identical `{id, progressLocationId}` shape this
+            // file's `TabUriRegistry.createWidgetOptions` already returns
+            // for this branch (verified against
+            // `plugin-view-registry.ts:982-984`), so delegating cannot
+            // fork the widget under D-46's dedup key.
+            const viewContainerId = name.substring(PLUGIN_VIEW_CONTAINER_FACTORY_ID.length + 1);
+            const widget = await this.pluginViewRegistry.openViewContainer(viewContainerId);
+            if (!widget) {
+                throw new Error(`sourcerer.view-uri-open-handler: no plugin view container '${viewContainerId}'`);
+            }
             await this.shell.activateWidget(widget.id);
             return widget;
         }
