@@ -201,6 +201,24 @@ function __makeUri(input) {
     });
     return proxy;
 }
+// CR-01 follow-up, found live while strengthening this check: a widget
+// that IS correctly added to the shell can still report isAttached ===
+// false for a brief moment after open() resolves -- Lumino's actual DOM
+// attach for the side/bottom-panel reveal path completes asynchronously
+// (measured live: up to several hundred ms), not synchronously with
+// addWidget(). Checking immediately produced false failures on
+// legitimately-attached widgets. Poll instead of a single point-in-time
+// check, bounded so a genuinely never-attached widget (CR-01's actual bug
+// -- addWidget() never called at all) still fails loudly rather than
+// hanging.
+async function __waitAttached(widget, timeoutMs) {
+    const deadline = Date.now() + timeoutMs;
+    while (!widget.isAttached) {
+        if (Date.now() >= deadline) return false;
+        await new Promise(r => setTimeout(r, 50));
+    }
+    return true;
+}
 `;
 
 function buildRowExpression(uriString, factoryId) {
@@ -232,9 +250,10 @@ function buildRowExpression(uriString, factoryId) {
         // WidgetManager.getDescription still reports the correct
         // {factoryId, options} for an unattached cached widget, so the
         // address round-trips even though nothing appeared on screen.
-        // Assert attachment explicitly so this class of bug fails loudly.
-        if (widget.isAttached === false) {
-            return JSON.stringify({ ok: false, reason: 'widget.isAttached === false -- open() created the widget but never attached it to the shell' });
+        // Assert attachment explicitly (bounded poll -- see __waitAttached)
+        // so this class of bug fails loudly.
+        if (!(await __waitAttached(widget, 3000))) {
+            return JSON.stringify({ ok: false, reason: 'widget.isAttached stayed false for 3000ms -- open() created the widget but never attached it to the shell' });
         }
         const roundtrip = registry.uriOf(widget);
         if (!roundtrip) {
@@ -275,9 +294,9 @@ function buildTerminalExpression() {
         if (!widget) {
             return JSON.stringify({ ok: false, reason: 'open() resolved to undefined/falsy' });
         }
-        // CR-01's attachment assertion, mirrored here for the same reason.
-        if (widget.isAttached === false) {
-            return JSON.stringify({ ok: false, reason: 'widget.isAttached === false -- open() created the widget but never attached it to the shell' });
+        // CR-01's attachment assertion (bounded poll), mirrored here.
+        if (!(await __waitAttached(widget, 3000))) {
+            return JSON.stringify({ ok: false, reason: 'widget.isAttached stayed false for 3000ms -- open() created the widget but never attached it to the shell' });
         }
         const roundtrip = registry.uriOf(widget);
         if (!roundtrip) {
