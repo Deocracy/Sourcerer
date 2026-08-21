@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: branded-firefox-fork
 status: executing
-stopped_at: Completed 03-01-PLAN.md
-last_updated: "2026-08-21T22:52:08.038Z"
+stopped_at: Completed 03-02-PLAN.md
+last_updated: "2026-08-21T23:33:29.267Z"
 last_activity: 2026-08-21
 last_activity_desc: Phase 3 planning complete
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 17
-  completed_plans: 12
+  completed_plans: 13
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 ## Current Position
 
 Phase: 03 (branded-firefox-fork) — EXECUTING
-Plan: 2 of 6
+Plan: 3 of 6
 Status: Ready to execute
 Last activity: 2026-08-21 — Phase 03 execution started
 
-Progress: [███████░░░] 71%
+Progress: [████████░░] 76%
 
 ## Performance Metrics
 
@@ -70,6 +70,7 @@ Progress: [███████░░░] 71%
 | Phase 02 P06 | 40min | 3 tasks | 12 files |
 | Phase 02 P07 | 90min | 3 tasks | 8 files |
 | Phase 03 P01 | 20min | 3 tasks | 21 files |
+| Phase 03 P02 | 55min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -111,6 +112,10 @@ Recent decisions affecting current work:
 - [Phase ?]: 03-01: -brand-product-name stays Firefox in brand.ftl -- consistent with D-78's byte-identical UA rationale (resolves 03-RESEARCH.md A1)
 - [Phase ?]: 03-01: MOZ_SERVICES_HEALTHREPORT flipped to False alongside MOZ_NORMANDY in the same browser/moz.configure hunk -- zero marginal file cost (resolves Open Question 1)
 - [Phase ?]: 03-01: git apply --3way exits 0 with a completely silent no-op on already-adopted patch content -- apply-patches.sh's before/after blob-hash comparison is the only mechanism that catches it (D-75)
+- [Phase ?]: 03-02: about:support is live-evaluable with --remote-allow-system-access, confirmed both directions -- not degraded to Manual-Only
+- [Phase ?]: 03-02: layer 2's positive-observation anchor changed from a flaky .mozilla substring to a reliable $HOME-prefix match, after repeated live testing showed the substring probe doesn't fire on every run
+- [Phase ?]: 03-02: two Remote Settings companion hosts (content-signature-2.cdn.mozilla.net, firefox-settings-attachments.cdn.mozilla.net) added to the allowlist under D-83's carve-out after a real layer-3 run surfaced them
+- [Phase ?]: 03-02: MOZ_LOG per-child log naming is <base>.child-N.moz_log, not <base>.moz_log.child-N -- corrected against GeckoChildProcessHost.cpp:945-967
 
 ### Pending Todos
 
@@ -132,6 +137,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-21T22:52:08.029Z
-Stopped at: Completed 03-01-PLAN.md
+Last session: 2026-08-21T23:33:29.258Z
+Stopped at: Completed 03-02-PLAN.md
 Resume file: None
