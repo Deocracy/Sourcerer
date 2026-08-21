@@ -107,13 +107,26 @@ Plans:
 **Requirements**: BUILD-03, BUILD-04, BRAND-01, BRAND-02, BRAND-03, BRAND-04, BRAND-06
 **Success Criteria** (what must be TRUE):
 
-  1. The built app reports Sourcerer in its executable name, window title, about:support identity fields, and distribution id — a search for a residual "firefox" identity string comes back empty
+  1. Six identity surfaces each report Sourcerer, verified by command: executable name in `dist/bin`, `application.ini` `Name` and `Vendor`, about:support identity fields, window title, the `.desktop` file's `Name` and `StartupWMClass`, and `--version` output (an open `grep -ri firefox` is not the check — 39 filenames and 32 further occurrences are upstream feature names that survive a correct build)
   2. The repo is laid out as `upstream/` (pinned tag) + `patches/` + `sourcerer/`, and the documented rebase procedure replays the patch stack onto a new ESR tag, failing loudly on conflict rather than silently dropping a patch
-  3. An incremental artifact build with `MOZ_ARTIFACT_REVISION` pinned to the last unmodified upstream revision finishes in minutes, and the artifact-build boundary (what may never be modified) is written down
-  4. Running the build on a machine with real Firefox installed never reads or writes `~/.mozilla/firefox`, and a network capture over a full session shows zero Mozilla update or telemetry endpoints contacted
+  3. `scripts/check-patch-surface.sh` exits non-zero on a deliberately-planted compiled-file patch (working positive control), and the tiered loop's timings — `./mach run` for symlinked frontend files, `./mach build faster` for preprocessed files, full build after a compiled-define change — are re-measured on the dev host at phase end and recorded in `docs/BUILD.md` with date and command
+  4. Running the build on a machine with real Firefox installed never reads or writes `~/.mozilla/firefox` (proven by exact-path `strace`, not a bare `.mozilla` match), and a full-session network capture contacts no host outside a documented allowlist — whose only Mozilla entry is the `firefox.settings.services.mozilla.com` Remote Settings carve-out, with each non-Mozilla host individually waived or disabled. Each check ships a positive control that must go red
   5. A dev build is distinguishable at a glance from a future packaged release (title suffix or icon badge), and the shipped `branding/` tree contains no Mozilla trademark assets
 
 **Plans**: TBD
+
+> **Criteria 1, 3 and 4 amended 2026-08-21** (Phase 3 discussion, decisions D-79
+> and D-70 in `.planning/phases/03-branded-firefox-fork/03-CONTEXT.md`).
+> Criterion 3 no longer names artifact builds: they work for ESR 153 but
+> cannot produce a renamed binary (`artifacts.py:92` hardcodes the product as
+> `"firefox"`; `MOZ_APP_NAME` is a compiled define), so it could not coexist
+> with criterion 1. Criterion 1 no longer asks for an empty `grep` — that can
+> never pass on a correct build. See `.planning/REQUIREMENTS.md` for the
+> matching BUILD-04 / BRAND-01 amendments.
+> Criterion 4's "zero Mozilla endpoints" became an allowlist: Remote Settings
+> cannot be disabled by pref off Nightly (`services/settings/Utils.sys.mjs:52-84`),
+> and the alternative policy also stops CRLite certificate-revocation data,
+> intermediate-certificate preloading and tracking-protection updates (D-83).
 
 ### Phase 4: Full-Window Theia Shell
 
@@ -179,3 +192,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 (2 and 3 may run in p
 
 ---
 *Roadmap created: 2026-08-20*
+*Phase 3 criteria 1, 3 and 4 amended: 2026-08-21*
