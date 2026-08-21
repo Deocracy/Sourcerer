@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: milestone
-current_phase: 2
-current_phase_name: Sourcerer Theia Extensions
+current_phase: 03
+current_phase_name: branded-firefox-fork
 status: executing
-stopped_at: Phase 3 context gathered
-last_updated: "2026-08-21T21:32:50.961Z"
+stopped_at: Completed 03-01-PLAN.md
+last_updated: "2026-08-21T22:52:08.038Z"
 last_activity: 2026-08-21
+last_activity_desc: Phase 3 planning complete
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 17
-  completed_plans: 11
-last_activity_desc: Phase 3 planning complete
+  completed_plans: 12
 ---
 
 # Project State
@@ -23,16 +23,16 @@ last_activity_desc: Phase 3 planning complete
 See: .planning/PROJECT.md (updated 2026-08-19)
 
 **Core value:** A daily-drivable IDE whose substrate is a real browser (DRM, WebExtensions, site isolation inherited from Firefox), built so every later plan lands as an addition, never a rework.
-**Current focus:** Phase 2 — Sourcerer Theia Extensions
+**Current focus:** Phase 03 — branded-firefox-fork
 
 ## Current Position
 
-Phase: 2 (Sourcerer Theia Extensions) — EXECUTING
-Plan: 7 of 7
+Phase: 03 (branded-firefox-fork) — EXECUTING
+Plan: 2 of 6
 Status: Ready to execute
-Last activity: 2026-08-21
+Last activity: 2026-08-21 — Phase 03 execution started
 
-Progress: [██████████] 100%
+Progress: [███████░░░] 71%
 
 ## Performance Metrics
 
@@ -69,6 +69,7 @@ Progress: [██████████] 100%
 | Phase 02 P05 | ~2h | 3 tasks | 12 files |
 | Phase 02 P06 | 40min | 3 tasks | 12 files |
 | Phase 02 P07 | 90min | 3 tasks | 8 files |
+| Phase 03 P01 | 20min | 3 tasks | 21 files |
 
 ## Accumulated Context
 
@@ -106,6 +107,10 @@ Recent decisions affecting current work:
 - [Phase ?]: 02-07: TerminalUriOpenHandler and SourcererOutputOpenHandler stay bare OpenHandlers, not WidgetOpenHandler subclasses -- WidgetOpenHandler.doOpen defaults an unattached widget's area to 'main', wrong for Terminal's real 'bottom' default; delegating to each widget's own in-tree contribution reuses Theia's already-correct placement logic
 - [Phase ?]: 02-07: fixed a live bug in @theia/output's own OutputContribution.open() -- it validated the output: scheme and then discarded the channel, never selecting it; opening output:B after output:A left selectedChannel pinned on A
 - [Phase ?]: 02-07: terminalIdentityOptions({created,id,title} all equal) is a single shared helper used by both the auto-mint path and the terminal-open-handler's stale-name fresh-shell path -- WidgetManager dedups on stableJsonStringify({factoryId,options}), so any drift between the two call sites would fork a duplicate widget
+- [Phase ?]: 03-01: sccache lands in the firefox devShell with RUSTC_WRAPPER exported after the existing AS/LD/NM unset line, never before (D-71) -- smoke-tested green
+- [Phase ?]: 03-01: -brand-product-name stays Firefox in brand.ftl -- consistent with D-78's byte-identical UA rationale (resolves 03-RESEARCH.md A1)
+- [Phase ?]: 03-01: MOZ_SERVICES_HEALTHREPORT flipped to False alongside MOZ_NORMANDY in the same browser/moz.configure hunk -- zero marginal file cost (resolves Open Question 1)
+- [Phase ?]: 03-01: git apply --3way exits 0 with a completely silent no-op on already-adopted patch content -- apply-patches.sh's before/after blob-hash comparison is the only mechanism that catches it (D-75)
 
 ### Pending Todos
 
@@ -127,6 +132,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-21T19:32:45.574Z
-Stopped at: Phase 3 context gathered
-Resume file: .planning/phases/03-branded-firefox-fork/03-CONTEXT.md
+Last session: 2026-08-21T22:52:08.029Z
+Stopped at: Completed 03-01-PLAN.md
+Resume file: None
