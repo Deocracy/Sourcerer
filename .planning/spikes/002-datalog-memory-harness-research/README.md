@@ -52,8 +52,9 @@ Four parallel Opus deep-research subagents, each writing a full report here:
 - 2026-08-20: Spike opened after Spike 001's verdicts were rejected as answering the
   wrong question (best practice, not limitations). Four Opus research agents
   dispatched.
-- 2026-08-20: Report E (Datalog substrate) landed. Engine reality check: CozoDB dead
-  (2024), DDlog archived, XTDB 2.x dropped Datalog for SQL; alive+embeddable are
+- 2026-08-20: Report E (Datalog substrate) landed. Engine reality check: CozoDB
+  upstream inactive since 2024-12, DDlog archived, XTDB 2.x dropped Datalog for SQL;
+  actively-maintained embeddable options are
   Soufflé (native provenance proof trees), Nemo, Ascent/Crepe, DataScript/Datahike.
   Structural finding: no alive open engine gives Datalog + incremental view
   maintenance — assume batch fixpoint recomputation. Buys: complete deterministic
@@ -97,6 +98,12 @@ Four parallel Opus deep-research subagents, each writing a full report here:
 
 - 2026-08-20: Report F (limitations map) landed — 60-row failure table across all
   six approach families, ~70 sources. All four reports in; synthesis below.
+- 2026-08-21: Correction from Chris: stop classifying CozoDB as dead/eliminated.
+  Since the build is custom, fork-viability outweighs upstream activity: CozoDB is
+  stable, MPL-2.0, and uniquely combines Datalog + vectors + FTS + time-travel
+  embedded. Reclassified from "eliminated" to "fork-candidate (own maintenance from
+  day one)". The verified facts stand (no upstream commits since 2024-12); only the
+  verdict drawn from them changed.
 
 ## Results
 
@@ -156,15 +163,26 @@ retractable, provenance-carrying RULE base as the accumulating memory itself.**
 
 ### Design constraints the evidence imposes
 
-**Substrate (report E):** CozoDB is dead; DDlog archived; XTDB dropped Datalog.
-Viable engines: Soufflé (provenance proof trees), Nemo, Ascent/Crepe,
-DataScript/Datahike. No living open engine pairs Datalog with incremental view
-maintenance — design for batch fixpoint recomputation. The three real costs:
-exact-equality joins mean silent under-derivation (an embedding sidecar is needed on
-both write and query paths); entity resolution is the actual project (over-merge
-corrupts invisibly and propagates transitively); the bottleneck shifts from
-authoring to validation — determinism amplifies wrong facts as faithfully as right
-ones.
+**Substrate (report E):** DDlog is archived; XTDB dropped Datalog. Two candidate
+classes, split by maintenance model:
+
+- **Fork-candidate: CozoDB** (MPL-2.0, embedded, pure Rust). Upstream is inactive
+  (no commits since 2024-12) but the release is stable, and since this build is
+  custom anyway, forking is acceptable — adoption means owning maintenance from day
+  one, priced in deliberately. What makes it worth that price: it is the only engine
+  surveyed combining Datalog + HNSW vectors + FTS + time-travel in one store, which
+  answers the exact-equality-join limitation *inside* the engine instead of via an
+  external embedding sidecar.
+- **Maintained upstreams:** Soufflé (native provenance proof trees), Nemo,
+  Ascent/Crepe, DataScript/Datahike — for anything not forked.
+
+No open engine pairs Datalog with incremental view maintenance — design for batch
+fixpoint recomputation either way. The three real costs stand regardless of engine:
+exact-equality joins mean silent under-derivation (CozoDB's built-in vectors/FTS
+mitigate this in-store; every other engine needs an embedding sidecar on both write
+and query paths); entity resolution is the actual project (over-merge corrupts
+invisibly and propagates transitively); the bottleneck shifts from authoring to
+validation — determinism amplifies wrong facts as faithfully as right ones.
 
 **Small models (report G):** structure narrows the gap for FORM, not KNOWLEDGE —
 with oracle retrieval, ≤7B models answer only 14.6% of questions they don't already
