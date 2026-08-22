@@ -113,3 +113,27 @@ pref("network.connectivity-service.enabled", false);
 // Number of usages of the web console.
 // If this is less than 5, then pasting code into the web console is disabled
 pref("devtools.selfxss.count", 5);
+
+// --- BRAND-06 / D-82 / D-84: dev-only title bar for at-a-glance
+// distinguishability. Unlocked plain pref(), same mechanism as every other
+// entry in this file -- a developer can flip it while debugging, and no
+// autoconfig/.cfg pair exists anywhere under sourcerer/ (D-84 rejects that
+// mechanism explicitly). This is a runtime default only: it changes no
+// compiled define, so no rebuild follows from editing it.
+//
+// browser.tabs.inTitlebar is a tri-state int (StaticPrefList.yaml:2096):
+// 0 = no (draw a real title bar), 1 = yes (tabs-in-titlebar/CSD),
+// 2 = default (true everywhere except Linux). The dev variant sets it to
+// the "no" case; the release tree deliberately carries no such default --
+// the absence is what makes the two variants differ.
+//
+// Mechanism chain: LookAndFeel::DrawInTitlebar()
+// (widget/nsXPLookAndFeel.cpp:1452, case 0 returns false) ->
+// Services.appinfo.drawInTitlebar -> browser-customtitlebar.js drops the
+// customtitlebar attribute -> a real title bar is painted, carrying the
+// window title (page title, then this variant's own -brand-full-name).
+//
+// Empirical reason this exists: 03-MANUAL-VERIFICATION.md Item A found
+// that with tabs-in-titlebar on, this desktop paints no title bar at all,
+// so the display name never reaches any surface a person can see.
+pref("browser.tabs.inTitlebar", 0);

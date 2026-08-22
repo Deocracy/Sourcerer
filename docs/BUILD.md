@@ -386,6 +386,44 @@ mkdir -p objdir/dist/bin/distribution
 cp sourcerer/distribution/policies.json objdir/dist/bin/distribution/policies.json
 ```
 
+## Telling a dev build from a release build (BRAND-06)
+
+What a person actually sees, side by side on a real desktop session: the dev
+variant paints a real window title bar, reading the page title followed by
+the suffixed brand name from its own `brand.ftl` (`... — Sourcerer Dev`); the
+release variant paints no title bar at all and keeps drawing tabs-in-titlebar
+(client-side decorations), the same as it always did.
+
+The two variants diverge in exactly three places:
+
+1. `configure.sh`'s `MOZ_APP_DISPLAYNAME` (dev: "Sourcerer Dev", release:
+   "Sourcerer") — this was already correct and machine-verified before this
+   gap closed; it was never the problem.
+2. The `brand.ftl` / `brand.properties` pair, per variant. `brand.ftl`'s
+   `-brand-full-name` already diverged correctly; `brand.properties`'s
+   `brandFullName` did not (03-REVIEW.md WR-01) — both now read the same
+   suffixed/unsuffixed value within each variant.
+3. The dev-only `browser.tabs.inTitlebar` default (`sourcerer/branding/dev/
+   pref/firefox-branding.js`, value `0`) — the release tree carries no such
+   default, and that absence is what makes the two variants differ in window
+   shape, not just in string content.
+
+The icon sets also still differ (dev's `default*.png` carry a small
+corner-badge overlay the release set does not), but the badge alone was
+found insufficient for at-a-glance distinguishability on 2026-08-22 (a few
+pixels at 16-32px) — this gap closure did not re-badge the icons; it added
+the title-bar divergence as the primary, unambiguous cue instead.
+
+`scripts/verify-phase-03.sh`'s `branding-variant-divergence` check is the
+machine gate for both of the divergences this fix added (properties string,
+titlebar default); its self-test proves it goes red if either is removed.
+It cannot verify the perceptual claim itself — "tellable apart at a
+glance" is a human judgment, recorded in `03-MANUAL-VERIFICATION.md`.
+
+All of these files (`brand.properties`, `firefox-branding.js`) are symlinked
+into `dist/bin` (D-70 tier 1), so editing them and re-running needs no
+rebuild.
+
 ## Rebase procedure and desktop install (D-74, D-77)
 
 One documented command moves the fork onto a new ESR tag:
