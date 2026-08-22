@@ -129,4 +129,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-19 after initialization*
+*Last updated: 2026-08-22 — Phase 3 (branded-firefox-fork) complete: 5/5 roadmap success criteria verified, BRAND-06 closed after human re-verification PASS. R1's Firefox-side rebrand (name, title, icons, dev/release variants) is built and verified; R1 stays Active until the Theia-side surfaces and installer naming land.*
