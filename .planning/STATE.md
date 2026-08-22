@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: branded-firefox-fork
 status: executing
-stopped_at: Completed 03-03-PLAN.md
-last_updated: "2026-08-22T00:07:38.653Z"
+stopped_at: Completed 03-05-PLAN.md
+last_updated: "2026-08-22T01:08:41.913Z"
 last_activity: 2026-08-21
 last_activity_desc: Phase 3 planning complete
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 17
-  completed_plans: 15
+  completed_plans: 16
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 ## Current Position
 
 Phase: 03 (branded-firefox-fork) — EXECUTING
-Plan: 5 of 6
+Plan: 6 of 6
 Status: Ready to execute
 Last activity: 2026-08-21 — Phase 03 execution started
 
-Progress: [█████████░] 88%
+Progress: [█████████░] 94%
 
 ## Performance Metrics
 
@@ -73,6 +73,7 @@ Progress: [█████████░] 88%
 | Phase 03 P02 | 55min | 3 tasks | 6 files |
 | Phase 03 P04 | 6min | 2 tasks | 2 files |
 | Phase 03 P03 | ~50min | 2 tasks | 4 files |
+| Phase 03 P05 | 65min | 3 tasks | 19 files |
 
 ## Accumulated Context
 
@@ -123,6 +124,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 03-03: TRR open item resolved as NetworkConnectivityService.cpp (network.connectivity-service.enabled), not network.trr.mode -- cloudflare-dns.com/example.org/ipv4only.arpa dispositioned deny
 - [Phase ?]: 03-03: layer 3's MOZ_LOG capture window corrected 20s -> 35s -- app.update.timerFirstInterval defaults to 30000ms, so the periodic AddonManager update-check timer (and layer 3's own OpenH264 positive control) never fired inside 20s
 - [Phase ?]: 03-03: services.addons.mozilla.org denied via extensions.getAddons.cache.enabled master switch; update.googleapis.com and www.google.com allowed under D-86's existing DRM rationale (Widevine's Chromium-Omaha update-check host and its redirect target) -- corrects C-4's premise that Widevine is fully idle-gated
+- [Phase ?]: 03-05: release icon set is unbadged base-accent recolor (#2B6CB0), not a distinct accent hex -- dev's committed PNGs were found (pixel inspection) to carry an orange corner-badge overlay, contradicting 03-01-SUMMARY.md's prose
+- [Phase ?]: 03-05: verify-branding-identity.mjs BIN_DIR is now derived from --bin (dirname(BIN_PATH)), not hardcoded to objdir -- the executable surface previously silently re-checked the dev binary even when pointed at release
+- [Phase ?]: 03-05: StartupWMClass=sourcerer in both .desktop files (not per-variant); Icon= is an absolute path to each variant's own default128.png, not an icon-theme name
 
 ### Pending Todos
 
@@ -144,6 +148,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-22T00:07:38.643Z
-Stopped at: Completed 03-03-PLAN.md
+Last session: 2026-08-22T01:08:41.904Z
+Stopped at: Completed 03-05-PLAN.md
 Resume file: None
