@@ -126,8 +126,14 @@ const configStatusOverride = argValue('--config-status');
 const expectDisplayNameOverride = argValue('--expect-display-name');
 const positiveControlSurface = argValue('--positive-control');
 
-const BIN_DIR = join(REPO_ROOT, 'objdir', 'dist', 'bin');
-const BIN_PATH = binOverride || join(BIN_DIR, 'sourcerer');
+// BIN_DIR is derived from BIN_PATH (not a separate objdir-hardcoded
+// constant) so that --bin's override is honored by every reader that needs
+// the binary's own directory -- checkExecutable() and APP_INI_PATH in
+// particular. Before this fix both silently kept checking objdir/dist/bin
+// regardless of --bin, so the executable surface never actually verified a
+// --bin-overridden (e.g. release) binary's directory (03-05 Task 3 finding).
+const BIN_PATH = binOverride || join(REPO_ROOT, 'objdir', 'dist', 'bin', 'sourcerer');
+const BIN_DIR = dirname(BIN_PATH);
 const APP_INI_PATH = join(BIN_DIR, 'application.ini');
 const CONFIG_STATUS_PATH = configStatusOverride || join(REPO_ROOT, 'objdir', 'config.status');
 const VERSION_DISPLAY_PATH = join(REPO_ROOT, 'upstream', 'browser', 'config', 'version_display.txt');
