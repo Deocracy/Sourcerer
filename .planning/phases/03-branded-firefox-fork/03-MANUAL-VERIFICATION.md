@@ -1,7 +1,7 @@
 ---
 phase: 03-branded-firefox-fork
 date: 2026-08-22
-status: pending
+status: item-a-failed-item-b-passed
 ---
 
 # Phase 3: Manual Verification Record
@@ -144,70 +144,70 @@ output — confirmed this session):
 
 | File | Dev | Release | Upstream (unofficial) | Verdict |
 |------|-----|---------|------------------------|---------|
-| `Assets.car` | — | — | yes |  |
-| `background.png` | — | — | yes |  |
-| `branding.nsi` | — | — | yes |  |
-| `configure.sh` | yes | yes | yes |  |
-| `content/aboutDialog.css` | yes | yes | yes |  |
-| `content/about-logo@2x.png` | — | — | yes |  |
-| `content/about-logo.png` | — | — | yes |  |
-| `content/about-logo-private@2x.png` | — | — | yes |  |
-| `content/about-logo-private.png` | — | — | yes |  |
-| `content/about-logo.svg` | — | — | yes |  |
-| `content/about.png` | — | — | yes |  |
-| `content/about-wordmark.svg` | — | — | yes |  |
-| `content/document_pdf.svg` | — | — | yes |  |
-| `content/firefox-wordmark.svg` | — | — | yes |  |
-| `content/jar.mn` | yes | yes | yes |  |
-| `content/moz.build` | yes | yes | yes |  |
-| `default128.png` | yes | yes | yes |  |
-| `default16.png` | yes | yes | yes |  |
-| `default22.png` | — | — | yes |  |
-| `default24.png` | — | — | yes |  |
-| `default256.png` | — | — | yes |  |
-| `default32.png` | yes | yes | yes |  |
-| `default48.png` | yes | yes | yes |  |
-| `default64.png` | yes | yes | yes |  |
-| `disk.icns` | — | — | yes |  |
-| `document.icns` | — | — | yes |  |
-| `document.ico` | — | — | yes |  |
-| `document_pdf.ico` | — | — | yes |  |
-| `dsstore` | — | — | yes |  |
-| `firefox64.ico` | — | — | yes |  |
-| `firefox.icns` | — | — | yes |  |
-| `firefox.ico` | — | — | yes |  |
-| `firefox.VisualElementsManifest.xml` | — | — | yes |  |
-| `locales/en-US/brand.ftl` | yes | yes | yes |  |
-| `locales/en-US/brand.properties` | yes | yes | yes |  |
-| `locales/jar.mn` | yes | yes | yes |  |
-| `locales/moz.build` | yes | yes | yes |  |
-| `moz.build` | yes | yes | yes |  |
-| `msix/Assets/Document44x44.png` | — | — | yes |  |
-| `msix/Assets/LargeTile.scale-200.png` | — | — | yes |  |
-| `msix/Assets/MedTile.scale-200.png` | — | — | yes |  |
-| `msix/Assets/SmallTile.scale-200.png` | — | — | yes |  |
-| `msix/Assets/Square150x150Logo.scale-200.png` | — | — | yes |  |
-| `msix/Assets/Square44x44Logo.altform-lightunplated_targetsize-256.png` | — | — | yes |  |
-| `msix/Assets/Square44x44Logo.altform-unplated_targetsize-256.png` | — | — | yes |  |
-| `msix/Assets/Square44x44Logo.scale-200.png` | — | — | yes |  |
-| `msix/Assets/Square44x44Logo.targetsize-256.png` | — | — | yes |  |
-| `msix/Assets/StoreLogo.scale-200.png` | — | — | yes |  |
-| `msix/Assets/Wide310x150Logo.scale-200.png` | — | — | yes |  |
-| `newtab.ico` | — | — | yes |  |
-| `newwindow.ico` | — | — | yes |  |
-| `pbmode.ico` | — | — | yes |  |
-| `pref/firefox-branding.js` | yes | yes | yes |  |
-| `PrivateBrowsing_150.png` | — | — | yes |  |
-| `PrivateBrowsing_70.png` | — | — | yes |  |
-| `private_browsing.VisualElementsManifest.xml` | — | — | yes |  |
-| `stubinstaller/bgstub.jpg` | — | — | yes |  |
-| `stubinstaller/installing_page.css` | — | — | yes |  |
-| `stubinstaller/profile_cleanup_page.css` | — | — | yes |  |
-| `VisualElements_150.png` | — | — | yes |  |
-| `VisualElements_70.png` | — | — | yes |  |
-| `wizHeader.bmp` | — | — | yes |  |
-| `wizHeaderRTL.bmp` | — | — | yes |  |
-| `wizWatermark.bmp` | — | — | yes |  |
+| `Assets.car` | — | — | yes | N/A — not carried forward |
+| `background.png` | — | — | yes | N/A — not carried forward |
+| `branding.nsi` | — | — | yes | N/A — not carried forward |
+| `configure.sh` | yes | yes | yes | Neutral scaffolding — build plumbing carrying per-variant `MOZ_APP_DISPLAYNAME`; opened, no Mozilla mark |
+| `content/aboutDialog.css` | yes | yes | yes | Neutral scaffolding — colors/spacing only (custom `#130829`), no imagery; opened |
+| `content/about-logo@2x.png` | — | — | yes | N/A — not carried forward |
+| `content/about-logo.png` | — | — | yes | N/A — not carried forward |
+| `content/about-logo-private@2x.png` | — | — | yes | N/A — not carried forward |
+| `content/about-logo-private.png` | — | — | yes | N/A — not carried forward |
+| `content/about-logo.svg` | — | — | yes | N/A — not carried forward |
+| `content/about.png` | — | — | yes | N/A — not carried forward |
+| `content/about-wordmark.svg` | — | — | yes | N/A — not carried forward |
+| `content/document_pdf.svg` | — | — | yes | N/A — not carried forward |
+| `content/firefox-wordmark.svg` | — | — | yes | N/A — not carried forward |
+| `content/jar.mn` | yes | yes | yes | Sourcerer-authored — stub shipping only the five Sourcerer icons, explicitly refusing Mozilla about-logo/wordmark references; opened |
+| `content/moz.build` | yes | yes | yes | Neutral scaffolding; opened, no Mozilla mark |
+| `default128.png` | yes | yes | yes | Sourcerer-authored — blue Sourcerer crossed-staves glyph, dev variant adds orange corner dot; both variants viewed |
+| `default16.png` | yes | yes | yes | Sourcerer-authored — same glyph as above; both variants viewed |
+| `default22.png` | — | — | yes | N/A — not carried forward |
+| `default24.png` | — | — | yes | N/A — not carried forward |
+| `default256.png` | — | — | yes | N/A — not carried forward |
+| `default32.png` | yes | yes | yes | Sourcerer-authored — same glyph as above; both variants viewed |
+| `default48.png` | yes | yes | yes | Sourcerer-authored — same glyph as above; both variants viewed |
+| `default64.png` | yes | yes | yes | Sourcerer-authored — same glyph as above; both variants viewed |
+| `disk.icns` | — | — | yes | N/A — not carried forward |
+| `document.icns` | — | — | yes | N/A — not carried forward |
+| `document.ico` | — | — | yes | N/A — not carried forward |
+| `document_pdf.ico` | — | — | yes | N/A — not carried forward |
+| `dsstore` | — | — | yes | N/A — not carried forward |
+| `firefox64.ico` | — | — | yes | N/A — not carried forward |
+| `firefox.icns` | — | — | yes | N/A — not carried forward |
+| `firefox.ico` | — | — | yes | N/A — not carried forward |
+| `firefox.VisualElementsManifest.xml` | — | — | yes | N/A — not carried forward |
+| `locales/en-US/brand.ftl` | yes | yes | yes | Sourcerer-authored, with one recognised and documented textual use of `Firefox`: `-brand-product-name = Firefox` in both variants, deliberate per decision D-78 (compatibility strings / UA parity) — a textual product-name reference, not a carried-forward trademark asset; opened, both variants |
+| `locales/en-US/brand.properties` | yes | yes | yes | Sourcerer-authored; opened, both variants |
+| `locales/jar.mn` | yes | yes | yes | Neutral scaffolding; opened, no Mozilla mark |
+| `locales/moz.build` | yes | yes | yes | Neutral scaffolding; opened, no Mozilla mark |
+| `moz.build` | yes | yes | yes | Neutral scaffolding; opened, no Mozilla mark |
+| `msix/Assets/Document44x44.png` | — | — | yes | N/A — not carried forward |
+| `msix/Assets/LargeTile.scale-200.png` | — | — | yes | N/A — not carried forward |
+| `msix/Assets/MedTile.scale-200.png` | — | — | yes | N/A — not carried forward |
+| `msix/Assets/SmallTile.scale-200.png` | — | — | yes | N/A — not carried forward |
+| `msix/Assets/Square150x150Logo.scale-200.png` | — | — | yes | N/A — not carried forward |
+| `msix/Assets/Square44x44Logo.altform-lightunplated_targetsize-256.png` | — | — | yes | N/A — not carried forward |
+| `msix/Assets/Square44x44Logo.altform-unplated_targetsize-256.png` | — | — | yes | N/A — not carried forward |
+| `msix/Assets/Square44x44Logo.scale-200.png` | — | — | yes | N/A — not carried forward |
+| `msix/Assets/Square44x44Logo.targetsize-256.png` | — | — | yes | N/A — not carried forward |
+| `msix/Assets/StoreLogo.scale-200.png` | — | — | yes | N/A — not carried forward |
+| `msix/Assets/Wide310x150Logo.scale-200.png` | — | — | yes | N/A — not carried forward |
+| `newtab.ico` | — | — | yes | N/A — not carried forward |
+| `newwindow.ico` | — | — | yes | N/A — not carried forward |
+| `pbmode.ico` | — | — | yes | N/A — not carried forward |
+| `pref/firefox-branding.js` | yes | yes | yes | Sourcerer-authored — endpoint-neutering prefs; filename contains "firefox" only because `branding-common.mozbuild` hardcodes it; opened, both variants |
+| `PrivateBrowsing_150.png` | — | — | yes | N/A — not carried forward |
+| `PrivateBrowsing_70.png` | — | — | yes | N/A — not carried forward |
+| `private_browsing.VisualElementsManifest.xml` | — | — | yes | N/A — not carried forward |
+| `stubinstaller/bgstub.jpg` | — | — | yes | N/A — not carried forward |
+| `stubinstaller/installing_page.css` | — | — | yes | N/A — not carried forward |
+| `stubinstaller/profile_cleanup_page.css` | — | — | yes | N/A — not carried forward |
+| `VisualElements_150.png` | — | — | yes | N/A — not carried forward |
+| `VisualElements_70.png` | — | — | yes | N/A — not carried forward |
+| `wizHeader.bmp` | — | — | yes | N/A — not carried forward |
+| `wizHeaderRTL.bmp` | — | — | yes | N/A — not carried forward |
+| `wizWatermark.bmp` | — | — | yes | N/A — not carried forward |
 
 Generation command (relative to repo root):
 
@@ -233,12 +233,49 @@ comparison, not a filtered one.
 
 ### Outcome (filled by Task 3)
 
-- Reviewed file count: _pending_
-- Mozilla-mark count (stated explicitly, zero if zero): _pending_
-- Files opened (not judged by filename) for the neutral-scaffolding verdict: _pending_
-- Findings (if any file lands in the Mozilla-mark category): _pending_
-- Date: _pending_
-- Reviewer: _pending_
+**VERDICT: PASSED. Every carried-forward file is neutral scaffolding or
+Sourcerer-authored; zero files classified as a Mozilla trademark asset.**
+
+- Reviewed file count: **15 of 15** carried-forward files (every file present
+  in `sourcerer/branding/dev/` or `sourcerer/branding/release/`), each
+  reviewed in **both** variant copies. This review was performed
+  interactively in the orchestrator session: all 8 text files were dumped in
+  full with dev-vs-release diffs, and all 10 icon PNGs (5 sizes × 2 variants)
+  were rendered and viewed. None was judged by filename alone.
+- Mozilla-mark count (stated explicitly, zero if zero): **0 — explicitly
+  zero.** No file under `sourcerer/branding/{dev,release}` carries Mozilla or
+  Firefox trademark imagery or identity. The upstream trademark assets
+  (`Assets.car`, `about-logo*`, `about-wordmark.svg`, `firefox-wordmark.svg`,
+  etc.) were confirmed present only in `upstream/browser/branding/unofficial/`
+  and absent from both Sourcerer trees — see the table's "N/A — not carried
+  forward" rows.
+- Files opened (not judged by filename) for the neutral-scaffolding verdict:
+  all six — `moz.build`, `content/moz.build`, `locales/moz.build`,
+  `locales/jar.mn`, `configure.sh`, `content/aboutDialog.css`. Each was read
+  in full, not inferred from its name.
+- Per-row tally against the table above: **6 neutral scaffolding**, **9
+  Sourcerer-authored** (`content/jar.mn`, `pref/firefox-branding.js`, the 5
+  icon PNGs, `locales/en-US/brand.ftl`, `locales/en-US/brand.properties`),
+  **0 Mozilla marks** — sums to all 15 carried-forward rows.
+  **Discrepancy noted, not silently resolved:** the reviewer's dictated
+  summary stated the category counts as "Neutral scaffolding (7)" and
+  "Sourcerer-authored (8)" (7 + 8 = 15, matching the total), but the reviewer's
+  own itemised file lists under each label enumerate only 6 and 7 files
+  respectively (`locales/en-US/brand.ftl` and `locales/en-US/brand.properties`
+  are covered by neither itemised list, only by the separate D-78 textual-use
+  note). This worksheet's per-row tally (6 / 9 / 0) is what the table above
+  actually encodes and is the version this record treats as authoritative,
+  since every row has an explicit verdict; the "(7)"/"(8)" figures are
+  recorded here verbatim as the reviewer's stated counts rather than quietly
+  adjusted to match. The Mozilla-mark count — the fact this checkpoint exists
+  to establish — is unaffected either way: zero under both readings.
+- One recognised-and-documented textual use: `-brand-product-name = Firefox`
+  in both variants' `brand.ftl`, deliberate per decision D-78 (compatibility
+  strings / UA parity). A textual product-name reference, not a carried-forward
+  trademark asset — not counted toward the Mozilla-mark tally.
+- Findings (if any file lands in the Mozilla-mark category): **none.**
+- Date: 2026-08-22
+- Reviewer: Christopher Colantuono
 
 ## Final phase gate
 
