@@ -260,6 +260,183 @@ check_allowlist_doc_consistency_self_test() {
   return 1
 }
 
+# --- branding-variant-divergence (03-11-PLAN.md, closes BRAND-06's gap) ---
+#
+# Shared inner helper: takes four path arguments -- dev brand.properties,
+# release brand.properties, dev branding pref file, release branding pref
+# file -- so the self-test can point it at temp files without ever touching
+# the real tree. Asserts all four of: (1) dev brandFullName == "Sourcerer
+# Dev", (2) release brandFullName == "Sourcerer", (3) the dev pref file sets
+# browser.tabs.inTitlebar to 0 via a pref() call, (4) the release pref file
+# sets no value for that same pref name. A missing/unreadable input path is
+# a FAIL naming that path, never a skip.
+_branding_variant_divergence_impl() {
+  local dev_properties="$1"
+  local release_properties="$2"
+  local dev_pref="$3"
+  local release_pref="$4"
+  node -e '
+    const fs = require("fs");
+    const [devPropPath, relPropPath, devPrefPath, relPrefPath] = process.argv.slice(1);
+
+    function readPropsFullName(path) {
+      if (!fs.existsSync(path)) {
+        console.error(`branding-variant-divergence: FAIL -- ${path} does not exist`);
+        process.exit(1);
+      }
+      let text;
+      try {
+        text = fs.readFileSync(path, "utf8");
+      } catch (err) {
+        console.error(`branding-variant-divergence: FAIL -- ${path} could not be read: ${err.message}`);
+        process.exit(1);
+      }
+      // Selection and matching both operate on the TRIMMED line -- WR-01
+      // (03-REVIEW.md) already fixed this exact selection-vs-matching
+      // mismatch once in scripts/verify-branding-identity.mjs; do not
+      // reintroduce it here.
+      const line = text.split(/\r?\n/).find(l => l.trim().startsWith("brandFullName"));
+      if (!line) {
+        console.error(`branding-variant-divergence: FAIL -- ${path} has no brandFullName entry`);
+        process.exit(1);
+      }
+      const trimmed = line.trim();
+      const m = trimmed.match(/^brandFullName\s*=\s*(.*)$/);
+      if (!m) {
+        console.error(`branding-variant-divergence: FAIL -- ${path} brandFullName line has an unexpected shape: ${JSON.stringify(line)}`);
+        process.exit(1);
+      }
+      // .properties values are unquoted -- trim trailing whitespace only,
+      // compare with exact string equality, never includes/case-insensitive.
+      return m[1].trim();
+    }
+
+    function readTitlebarPref(path) {
+      if (!fs.existsSync(path)) {
+        console.error(`branding-variant-divergence: FAIL -- ${path} does not exist`);
+        process.exit(1);
+      }
+      let text;
+      try {
+        text = fs.readFileSync(path, "utf8");
+      } catch (err) {
+        console.error(`branding-variant-divergence: FAIL -- ${path} could not be read: ${err.message}`);
+        process.exit(1);
+      }
+      for (const l of text.split(/\r?\n/)) {
+        const trimmed = l.trim();
+        // A mention inside a `//` line comment must not satisfy this --
+        // skip such lines entirely rather than regex-matching them.
+        if (trimmed.startsWith("//")) continue;
+        const m = trimmed.match(/pref\(\s*"browser\.tabs\.inTitlebar"\s*,\s*([^)]+?)\s*\)/);
+        if (m) return m[1].trim();
+      }
+      return undefined; // no pref() call sets this name at all
+    }
+
+    const devValue = readPropsFullName(devPropPath);
+    const relValue = readPropsFullName(relPropPath);
+    const devTitlebar = readTitlebarPref(devPrefPath);
+    const relTitlebar = readTitlebarPref(relPrefPath);
+
+    const failures = [];
+    if (devValue !== "Sourcerer Dev") {
+      failures.push(`dev brand.properties brandFullName=${JSON.stringify(devValue)} (expected "Sourcerer Dev") at ${devPropPath}`);
+    }
+    if (relValue !== "Sourcerer") {
+      failures.push(`release brand.properties brandFullName=${JSON.stringify(relValue)} (expected "Sourcerer") at ${relPropPath}`);
+    }
+    if (devTitlebar !== "0") {
+      failures.push(`dev pref file browser.tabs.inTitlebar=${JSON.stringify(devTitlebar)} (expected a pref() call setting 0) at ${devPrefPath}`);
+    }
+    if (relTitlebar !== undefined) {
+      failures.push(`release pref file sets browser.tabs.inTitlebar=${JSON.stringify(relTitlebar)} (expected no pref() call for this name) at ${relPrefPath}`);
+    }
+
+    if (failures.length > 0) {
+      for (const f of failures) console.error(`branding-variant-divergence: FAIL -- ${f}`);
+      process.exit(1);
+    }
+
+    console.log(`branding-variant-divergence: PASS -- dev brand.properties brandFullName=${JSON.stringify(devValue)}, release brand.properties brandFullName=${JSON.stringify(relValue)}, dev titlebar pref=${JSON.stringify(devTitlebar)}, release titlebar pref=unset`);
+  ' "$dev_properties" "$release_properties" "$dev_pref" "$release_pref"
+}
+
+# Argument-free wrapper for the CHECKS array -- feeds the four INSTALLED
+# paths under objdir/dist/bin and objdir-release/dist/bin (symlinks into
+# sourcerer/branding/<variant>/, D-70 tier 1), proving the divergence reaches
+# a built tree, not just the repo-root source.
+check_branding_variant_divergence() {
+  _branding_variant_divergence_impl \
+    "$REPO_ROOT/objdir/dist/bin/browser/chrome/en-US/locale/branding/brand.properties" \
+    "$REPO_ROOT/objdir-release/dist/bin/browser/chrome/en-US/locale/branding/brand.properties" \
+    "$REPO_ROOT/objdir/dist/bin/browser/defaults/preferences/firefox-branding.js" \
+    "$REPO_ROOT/objdir-release/dist/bin/browser/defaults/preferences/firefox-branding.js"
+}
+
+# Synthesises its own known-good quartet into mktemp files (registered with
+# track_temp -- the script's existing trap-covered cleanup() removes them on
+# every exit path), asserts the comparator goes green on it, then re-runs it
+# twice more -- once with the dev suffix stripped, once with the titlebar
+# default also present in the release pref file -- requiring each mutation
+# to be rejected by name (D-88: a working positive control in both
+# directions). Synthesising rather than copying the repo's current files
+# makes this self-test's verdict independent of whether Task 2 has run yet.
+check_branding_variant_divergence_self_test() {
+  local dev_props rel_props dev_pref rel_pref
+  dev_props="$(mktemp)"; track_temp "$dev_props"
+  rel_props="$(mktemp)"; track_temp "$rel_props"
+  dev_pref="$(mktemp)"; track_temp "$dev_pref"
+  rel_pref="$(mktemp)"; track_temp "$rel_pref"
+
+  printf 'brandFullName=Sourcerer Dev\n' > "$dev_props"
+  printf 'brandFullName=Sourcerer\n' > "$rel_props"
+  printf 'pref("browser.tabs.inTitlebar", 0);\n' > "$dev_pref"
+  printf '// release: no titlebar override\n' > "$rel_pref"
+
+  local out
+  if ! out="$(_branding_variant_divergence_impl "$dev_props" "$rel_props" "$dev_pref" "$rel_pref" 2>&1)"; then
+    echo "branding-variant-divergence-self-test: FAIL -- synthesised correct quartet did not go green" >&2
+    echo "$out" >&2
+    return 1
+  fi
+
+  # Mutation 1: strip the dev suffix.
+  local dev_props_bad
+  dev_props_bad="$(mktemp)"; track_temp "$dev_props_bad"
+  printf 'brandFullName=Sourcerer\n' > "$dev_props_bad"
+  local out1
+  if out1="$(_branding_variant_divergence_impl "$dev_props_bad" "$rel_props" "$dev_pref" "$rel_pref" 2>&1)"; then
+    echo "branding-variant-divergence-self-test: FAIL -- planted properties-suffix mutation was NOT rejected" >&2
+    echo "$out1" >&2
+    return 1
+  fi
+  if ! echo "$out1" | grep -qF 'brand.properties'; then
+    echo "branding-variant-divergence-self-test: FAIL -- properties mutation rejected, but output doesn't name the properties divergence" >&2
+    echo "$out1" >&2
+    return 1
+  fi
+
+  # Mutation 2: titlebar default copied into the release pref file too.
+  local rel_pref_bad
+  rel_pref_bad="$(mktemp)"; track_temp "$rel_pref_bad"
+  printf 'pref("browser.tabs.inTitlebar", 0);\n' > "$rel_pref_bad"
+  local out2
+  if out2="$(_branding_variant_divergence_impl "$dev_props" "$rel_props" "$dev_pref" "$rel_pref_bad" 2>&1)"; then
+    echo "branding-variant-divergence-self-test: FAIL -- planted titlebar mutation was NOT rejected" >&2
+    echo "$out2" >&2
+    return 1
+  fi
+  if ! echo "$out2" | grep -qF 'browser.tabs.inTitlebar'; then
+    echo "branding-variant-divergence-self-test: FAIL -- titlebar mutation rejected, but output doesn't name the titlebar divergence" >&2
+    echo "$out2" >&2
+    return 1
+  fi
+
+  echo "branding-variant-divergence-self-test: PASS -- synthesised correct quartet went green; properties-suffix mutation and titlebar mutation both went red"
+  return 0
+}
+
 # Each entry: "label|command...". Later plans append here, not as a sibling
 # driver script.
 declare -a CHECKS=(
@@ -270,6 +447,8 @@ declare -a CHECKS=(
   "allowlist-schema|check_allowlist_schema"
   "allowlist-doc-consistency|check_allowlist_doc_consistency"
   "allowlist-doc-consistency-self-test|check_allowlist_doc_consistency_self_test"
+  "branding-variant-divergence|check_branding_variant_divergence"
+  "branding-variant-divergence-self-test|check_branding_variant_divergence_self_test"
 )
 
 if [ "$QUICK" -eq 1 ]; then

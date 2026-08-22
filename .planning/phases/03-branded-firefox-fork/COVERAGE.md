@@ -1,0 +1,1 @@
+No external API integration: phase touches Firefox branding assets and verification scripts only; the sole external call is a one-shot build-time GitHub tag-SHA lookup already implemented and verified in prior plans.
