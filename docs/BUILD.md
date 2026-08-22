@@ -175,6 +175,105 @@ rustc, cargo, cbindgen) matched to what nixpkgs itself builds this exact
 Firefox version with — there is no separate toolchain setup step to run
 before `./mach build`.
 
+## Tiered rebuild loop (D-70, D-73)
+
+BUILD-04 is not "run a full compile every time" — it is three tiers, each
+with a distinct rebuild cost, selected by what kind of file changed. All
+three timings below were **re-measured on this host (`legion`), 2026-08-22**
+— none are carried over from research or from a prior phase (D-73 exists
+precisely because Phase 2 once carried forward a `docs/BUILD.md` "measured"
+figure that was never measured). Where a re-measured figure differs from a
+number research or planning inherited, that is stated explicitly here, not
+silently replaced.
+
+### Tier 1 — no build (`./mach run`)
+
+For any file that is a **symlink from `objdir/dist/bin` into `upstream/`** —
+every `.js`, `.ftl`, and branding PNG — editing the source and re-running is
+free: `./mach run` is registered `category="post-build"` and never builds.
+
+Research recorded 7450 of 7784 `objdir/dist/bin` entries as such symlinks.
+Re-measured this session (files + symlinks only, directories excluded from
+both counts, via `find objdir/dist/bin -type f -o -type l` and
+`find objdir/dist/bin -type l -exec readlink -f {} \;` filtered to paths
+under `upstream/`): **7163 of 7766** — fewer in both the numerator and the
+denominator than the inherited figure. This build actually has that ratio,
+not the quoted one; the difference is plausibly the branding/pref/policy
+files plans `03-01`/`03-03`/`03-05` added since research ran, but the new
+count is reported as measured, not reconciled against a guess.
+
+Verified live: edited `upstream/toolkit/components/thumbnails/PageThumbs.worker.js`
+(a `.js` file `objdir/dist/bin/modules/PageThumbs.worker.js` symlinks to),
+confirmed the appended line was visible through the symlink with zero build
+step, then restored the file to its exact original content (`md5sum` matched
+before and after the edit). Timed the tier's cost:
+
+```
+MOZCONFIG=../.mozconfig ./mach run --version
+```
+
+(run inside `nix develop .#firefox`, cwd `upstream/`) — **1.05s** wall
+(mach's own per-process timer printed `0:00.73`; the wrapper's stopwatch,
+which also includes shell-entry overhead, measured 1052ms). Measured 2026-08-22
+on `legion`.
+
+After restoring the edited file, `git -C upstream status --porcelain` and a
+fresh `bash scripts/fetch-upstream.sh` (exit 0) confirmed the tree returned to
+exactly the expected-dirt state `scripts/fetch-upstream.sh` accepts — no
+residual tier-1 edit.
+
+### Tier 2 — `./mach build faster`
+
+For a **preprocessed frontend file** — one `moz.build` compiles via `PP_FILES`
+rather than installing as a plain symlink — a build is required, but only the
+fast, non-compiling `faster` tier. Forced this by updating a real preprocessed
+file's modification time only, changing no content:
+
+```
+touch upstream/browser/base/content/browser.xhtml
+```
+
+(`browser/base/content/browser.xhtml`, the canonical preprocessed
+browser-window document, is the file this tier is measured against.) `touch`
+changes no content — `git -C upstream diff --stat -- browser/base/content/browser.xhtml`
+stayed empty before and after every run below, so CLAUDE.md's
+never-modify-Gecko rule is not touched by this measurement, only its
+modification time is. Timed:
+
+```
+MOZCONFIG=../.mozconfig ./mach build faster
+```
+
+(inside `nix develop .#firefox`, cwd `upstream/`), run twice (re-`touch`ing
+before each), since the first run after a cold objdir is not representative —
+it also pays mach's own one-time "build" virtualenv-site creation cost.
+Invocation 1 (cold, includes that one-time cost): mach-reported wall time 20s.
+Invocation 2 (warm): mach-reported wall time **1.84s** (`0:01.84` marker); a
+third warm run confirmed **1.83s**. Both measured 2026-08-22 on `legion`. The
+warm figure — **1.84s** — is the one to use for this tier, not the 2.55s
+research inherited: D-73 forbids carrying that number forward, and the two are
+close but not the same measurement.
+
+### Tier 3 — full `./mach build`
+
+Trigger: a change to a **compiled define** — in this repo that means editing
+`patches/010-sourcerer-identity.patch` (the one Gecko patch hunk this phase
+carries) or adding a `--with-*`/`--enable-*` option to `.mozconfig`. Neither
+happened as part of this measurement task; the phase's build budget is
+exactly two full builds, both already spent by the two compiled-define
+changes below, harvested here rather than re-run:
+
+| Build | Command | Wall time | sccache hit rate | Source |
+|---|---|---|---|---|
+| #1 (dev, `objdir/`) | `MOZCONFIG=../.mozconfig ./mach build` | **2368s (~39m28s)** | not recoverable — the sccache server that ran this build had already recycled by the time its stats were checked in the same session (`03-01-SUMMARY.md`, "Issues Encountered") | `03-01-SUMMARY.md` |
+| #2 (release, `objdir-release/`) | `SOURCERER_OBJDIR=objdir-release SOURCERER_BRANDING=sourcerer/branding/release MOZCONFIG=../.mozconfig ./mach build` | **2822s (~47m2s)** | **0.14%** — 5648 new sccache requests this build's delta, 5043 executed, 7 hits, 5022 misses | `03-05-SUMMARY.md` |
+
+Neither build is re-run here — doing so would spend a third full compile,
+which this phase's stated build-cycle budget does not allow; both figures are
+taken verbatim, with their exact commands, from the SUMMARY that actually ran
+them. Both builds were measured 2026-08-21 on `legion`: build #1 per
+`03-01-SUMMARY.md`, build #2 per `03-05-SUMMARY.md`.
+
 ## Toolchain baseline
 
 Phase 3's rebase procedure (BUILD-03) starts by diffing the toolchain the
