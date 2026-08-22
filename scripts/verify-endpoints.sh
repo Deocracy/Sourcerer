@@ -100,6 +100,35 @@ done
 # ---------------------------------------------------------------------------
 ACTIVE_PID=""
 declare -a TEMP_PATHS=()
+PREF_BACKUP_SRC=""
+PREF_BACKUP_DST=""
+
+# track_pref_backup DEST -- snapshots DEST's current bytes into a fresh temp
+# copy and records both paths in PREF_BACKUP_SRC/PREF_BACKUP_DST, so
+# restore_pref_backup (called unconditionally from cleanup(), below) can
+# write them back on every exit path: normal, error, or a trap-caught
+# INT/TERM. This is what CR-02/03-VERIFICATION.md Gap 3 was missing -- the
+# old bare local `backup` variable was invisible to cleanup().
+track_pref_backup() {
+  local dst="$1"
+  local src
+  src="$(mktemp)"
+  cp "$dst" "$src"
+  PREF_BACKUP_SRC="$src"
+  PREF_BACKUP_DST="$dst"
+}
+
+# restore_pref_backup -- no-op when nothing is tracked (both globals empty),
+# so it is safe to call unconditionally from cleanup() on every run,
+# including runs that never touched a pref file, and safe to call twice.
+restore_pref_backup() {
+  if [ -n "$PREF_BACKUP_SRC" ] && [ -n "$PREF_BACKUP_DST" ] && [ -f "$PREF_BACKUP_SRC" ]; then
+    cp "$PREF_BACKUP_SRC" "$PREF_BACKUP_DST"
+    rm -f "$PREF_BACKUP_SRC"
+  fi
+  PREF_BACKUP_SRC=""
+  PREF_BACKUP_DST=""
+}
 
 cleanup() {
   if [ -n "$ACTIVE_PID" ]; then
@@ -107,6 +136,9 @@ cleanup() {
     wait "$ACTIVE_PID" 2>/dev/null || true
     ACTIVE_PID=""
   fi
+  # Restore the pref-file backup (if any) before TEMP_PATHS deletion runs --
+  # the temp copy must be written back before anything that could delete it.
+  restore_pref_backup
   local p
   for p in "${TEMP_PATHS[@]:-}"; do
     [ -n "$p" ] && [ -e "$p" ] && find "$p" -delete 2>/dev/null
@@ -186,14 +218,14 @@ run_layer1_control() {
     echo "verify-endpoints: layer 1 positive control FAIL -- $BRANDING_PREF_FILE does not exist" >&2
     return 1
   fi
-  local backup
-  backup="$(mktemp)"
-  cp "$BRANDING_PREF_FILE" "$backup"
-  # Restore even on failure -- this is the whole point of the control.
-  # firefox-branding.js is the unpreprocessed JS_PREFERENCE_FILES branch
-  # (branding-common.mozbuild), read directly at browser startup with no
-  # `mach build` step in between -- appending to it and immediately
-  # re-running layer1_check is sufficient, no rebuild required.
+  # track_pref_backup registers the restore with cleanup()'s trap coverage
+  # (ACTIVE_PID/TEMP_PATHS's own mechanism) -- restore even on failure or an
+  # interrupt is the whole point of the control. firefox-branding.js is the
+  # unpreprocessed JS_PREFERENCE_FILES branch (branding-common.mozbuild),
+  # read directly at browser startup with no `mach build` step in between --
+  # appending to it and immediately re-running layer1_check is sufficient,
+  # no rebuild required.
+  track_pref_backup "$BRANDING_PREF_FILE"
   cat >> "$BRANDING_PREF_FILE" <<'PREFEOF'
 
 pref("media.gmp-manager.url", "https://aus5.mozilla.org/update/3/GMP/%VERSION%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/update.xml");
@@ -202,8 +234,7 @@ PREFEOF
   local rc=0
   layer1_check >/dev/null 2>&1 || rc=1
 
-  cp "$backup" "$BRANDING_PREF_FILE"
-  rm -f "$backup"
+  restore_pref_backup
 
   if [ "$rc" -ne 0 ]; then
     echo "verify-endpoints: layer 1 positive control PASS -- restoring the stock media.gmp-manager.url correctly went red"
@@ -244,7 +275,6 @@ run_layer2_impl() {
     return 1
   fi
 
-  local mozilla_count exact_count
   # Positive-observation anchor: real activity under $HOME, not the ".mozilla"
   # substring the research doc expected on every build. Empirically found
   # live this session (03-02 Task 2) to be UNRELIABLE as a per-run signal:
@@ -257,6 +287,7 @@ run_layer2_impl() {
   # contrast, is touched hundreds of times every run (the real profile at
   # ~/.config/deocracy/sourcerer) and is what genuinely proves strace
   # captured live filesystem activity rather than an empty/broken log.
+  local home_count exact_count
   home_count="$(grep -cF "$home_for_run" "$log" || true)"
   exact_count="$(grep -cF "\"$home_for_run/.mozilla/firefox" "$log" || true)"
 
@@ -310,11 +341,13 @@ allowlist_host_allowed() {
 
 run_layer3_impl() {
   local control="$1"
-  local backup=""
 
+  # track_pref_backup registers the restore with cleanup()'s trap coverage,
+  # so a SIGINT during the 35-second sleep below (previously CR-02: the
+  # trap fires cleanup(); exit 130 without ever reaching this function's own
+  # restore) now restores the pref file before the process exits.
   if [ "$control" -eq 1 ]; then
-    backup="$(mktemp)"
-    cp "$BRANDING_PREF_FILE" "$backup"
+    track_pref_backup "$BRANDING_PREF_FILE"
     cat >> "$BRANDING_PREF_FILE" <<'PREFEOF'
 
 pref("media.gmp-gmpopenh264.enabled", true);
@@ -358,10 +391,9 @@ PREFEOF
 
   rm -f "${log_base}.moz_log" "${log_base}".child-*.moz_log 2>/dev/null
 
-  if [ "$control" -eq 1 ]; then
-    cp "$backup" "$BRANDING_PREF_FILE"
-    rm -f "$backup"
-  fi
+  # restore_pref_backup is a no-op when nothing was tracked (the non-control
+  # path), so this call site needs no `if [ "$control" -eq 1 ]` wrapper.
+  restore_pref_backup
 
   if [ -z "$extracted" ]; then
     echo "verify-endpoints: layer 3 FAIL -- empty extracted host set; the check never ran" >&2
