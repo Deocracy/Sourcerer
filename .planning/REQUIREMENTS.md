@@ -21,7 +21,7 @@ Requirements for v4.0. Each maps to roadmap phases.
 - [x] **BRAND-03**: Profile directory is Sourcerer's own (falls out of `MOZ_APP_NAME`); verified to never touch `~/.mozilla/firefox` on a machine with real Firefox installed
 - [x] **BRAND-04**: Auto-update is disabled and a running build contacts no host outside a documented allowlist — whose Mozilla entries are the three hosts of the one Remote Settings carve-out (D-83): `firefox.settings.services.mozilla.com` (the Remote Settings service itself, 24-hour poll), `content-signature-2.cdn.mozilla.net` (the content-signature certificate chain each downloaded collection is verified against), and `firefox-settings-attachments.cdn.mozilla.net` (the attachment CDN serving large collection blobs, including CRLite's own revocation data) — with every non-Mozilla host individually waived with a stated reason or disabled
 - [x] **BRAND-05**: Theia-side branding (welcome/getting-started widget, About dialog, window/tab title, favicon) ships as a `@sourcerer/*` extension via DI rebind — no Theia core patch
-- [ ] **BRAND-06**: Dev builds carry a visible indicator (title suffix or icon badge) distinguishing them from future packaged releases -- **human-verified FAILED 2026-08-22** (see `03-MANUAL-VERIFICATION.md` Item A): neither variant renders a visible window title on this desktop (client-side decorations), and the icon badge was not reliably distinguishable at a glance. Reverted from Complete pending a follow-up fix and re-verification.
+- [x] **BRAND-06**: Dev builds carry a visible indicator (title suffix or icon badge) distinguishing them from future packaged releases -- **human-verified PASS 2026-08-22 on re-verification** (see `03-MANUAL-VERIFICATION.md` Item A re-verification section): `03-11` fixed the dev `brand.properties`/`brand.ftl` mismatch and added a dev-only `browser.tabs.inTitlebar=0` default, so the dev window now paints a real title bar reading "Sourcerer Dev" while release paints none -- the two are tellable apart at a glance.
 
 ### Sidecar Supervision
 
@@ -173,7 +173,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BRAND-02 | Phase 3 | Complete |
 | BRAND-03 | Phase 3 | Complete |
 | BRAND-04 | Phase 3 | Complete |
-| BRAND-06 | Phase 3 | Gap -- human-verification FAILED 2026-08-22 |
+| BRAND-06 | Phase 3 | Complete |
 | SHELL-01 | Phase 4 | Pending |
 | SHELL-02 | Phase 4 | Pending |
 | SHELL-05 | Phase 4 | Pending |
@@ -200,4 +200,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-08-19*
-*Last updated: 2026-08-22 — BUILD-04, BRAND-01 and BRAND-04 amended 2026-08-21 during Phase 3 discussion; BRAND-04 further amended 2026-08-22 to name the three-host Remote Settings carve-out (03-09 gap closure, `03-VERIFICATION.md` Gap 2); BRAND-06 reverted from Complete to Gap 2026-08-22 after human verification recorded it FAILED (03-10, `03-MANUAL-VERIFICATION.md` Item A) -- BRAND-02 confirmed Complete by the same plan's Item B*
+*Last updated: 2026-08-22 — BUILD-04, BRAND-01 and BRAND-04 amended 2026-08-21 during Phase 3 discussion; BRAND-04 further amended 2026-08-22 to name the three-host Remote Settings carve-out (03-09 gap closure, `03-VERIFICATION.md` Gap 2); BRAND-06 reverted from Complete to Gap 2026-08-22 after human verification recorded it FAILED (03-10, `03-MANUAL-VERIFICATION.md` Item A) -- BRAND-02 confirmed Complete by the same plan's Item B; BRAND-06 re-flipped Gap -> Complete 2026-08-22 after `03-11` fixed the dev variant's brand-string/title-bar divergence and human re-verification recorded PASS (`03-MANUAL-VERIFICATION.md` Item A re-verification section)*

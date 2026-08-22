@@ -4,9 +4,9 @@ milestone: v4.0
 milestone_name: milestone
 current_phase: 03
 current_phase_name: branded-firefox-fork
-status: executing
-stopped_at: Paused 03-11-PLAN.md at Task 3 checkpoint (human-verify) -- Tasks 1-2 committed
-last_updated: "2026-08-22T16:43:40.061Z"
+status: verifying
+stopped_at: Completed 03-11-PLAN.md -- BRAND-06 gap closed, human re-verification PASS
+last_updated: "2026-08-22T19:04:48.306Z"
 last_activity: 2026-08-22
 last_activity_desc: Phase 03 execution started
 progress:
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 ## Current Position
 
 Phase: 03 (branded-firefox-fork) — EXECUTING
-Plan: 11 of 11 (paused at Task 3 checkpoint -- Tasks 1-2 committed)
-Status: Executing Phase 03
-Last activity: 2026-08-22 — Paused 03-11-PLAN.md at Task 3 human-verify checkpoint
+Plan: 11 of 11 (complete -- Task 3 human re-verification PASS)
+Status: Phase complete — ready for verification
+Last activity: 2026-08-22 — Completed 03-11-PLAN.md -- BRAND-06 re-verified PASS
 
-Progress: [██████████] 100%
+Progress: [██████████] 95%
 
 ## Performance Metrics
 
@@ -79,6 +79,7 @@ Progress: [██████████] 100%
 | Phase 03 P08 | 55min | 3 tasks | 3 files |
 | Phase 03 P09 | 35min | 2 tasks | 4 files |
 | Phase 03 P10 | ~13h (spans human checkpoint pause) | 3 tasks | 2 files |
+| Phase 03 P11 | 50min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -141,6 +142,7 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 3] 03-09: allowlist-doc-consistency matches hosts as whole tokens (character-class boundary regex), not substrings -- a plain substring search would let cdn.mozilla.net pass vacuously as a suffix of two genuinely-documented hosts
 - [Phase ?]: [Phase 3] 03-10: Item A (dev-vs-release distinguishable at a glance) human-verified and recorded as FAILED -- brand.properties/brand.ftl mismatch within dev variant, client-side window decorations hide the title bar, icon badge not reliably perceptible. Open gap, not fixed by this evidence-only plan.
 - [Phase ?]: [Phase 3] 03-10: Item B (branding-tree trademark-asset review) human-verified and recorded as PASSED -- 15/15 carried-forward files reviewed in both variants, opened not judged by filename, 0 Mozilla-mark findings.
+- [Phase ?]: [Phase 3] 03-11: BRAND-06 gap closed -- dev brand.properties suffixed to match brand.ftl (WR-01), dev-only browser.tabs.inTitlebar=0 default paints a real title bar, verify-branding-identity.mjs brand-full-name surface now reads brand.properties too; human re-verification PASS 2026-08-22 (icon badge deliberately left un-rebadged)
 
 ### Pending Todos
 
@@ -151,8 +153,6 @@ None yet.
 - Phase 1: nixpkgs Firefox-toolchain attributes are unverified. Check every attribute against the nixos MCP before writing the flake (research STACK.md gap).
 - Phase 4: verify the pinned Theia release is >= 1.73.1 and that the CVE-2026-61891 token check fires on plain HTTP, not only WebSocket upgrade.
 - All phases: Theia has no API stability tier. Review every `@theia/*` import against `doc/Migration.md` and record it in INTERNAL-APIS.md.
-- Phase 3: Item A human-verification (dev-vs-release distinguishable at a glance, BRAND-06) recorded FAILED on 2026-08-22 -- see 03-MANUAL-VERIFICATION.md. Root causes identified (brand.properties/brand.ftl mismatch, CSD hides title bar, icon badge weak) but not fixed. Requires a follow-up gap-closure plan before Phase 3's human-verification gate is satisfied.
-- Phase 3: 03-11 Task 3 (BRAND-06 re-verification) is a blocking human checkpoint -- launch objdir/dist/bin/sourcerer -no-remote and objdir-release/dist/bin/sourcerer -no-remote side by side, read the dev window's title bar text, and record the verdict in 03-MANUAL-VERIFICATION.md's Item A re-verification section.
 
 ## Deferred Items
 
@@ -164,6 +164,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-22T16:43:33.117Z
-Stopped at: Paused 03-11-PLAN.md at Task 3 checkpoint (human-verify) -- Tasks 1-2 committed
-Resume file: 03-11-PLAN.md
+Last session: 2026-08-22T19:04:48.294Z
+Stopped at: Completed 03-11-PLAN.md -- BRAND-06 gap closed, human re-verification PASS
+Resume file: None
