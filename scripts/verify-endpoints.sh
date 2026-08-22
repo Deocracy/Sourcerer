@@ -329,7 +329,16 @@ PREFEOF
   MOZ_LOG=nsHostResolver:5 MOZ_LOG_FILE="$log_base" \
     "$BIN_PATH" --headless --profile "$profile_dir" "https://firefox.settings.services.mozilla.com/" &
   ACTIVE_PID=$!
-  sleep 20
+  # 35s, not 20s (03-03 finding): app.update.timerFirstInterval defaults to
+  # 30000ms (toolkit/components/timermanager/UpdateTimerManager.sys.mjs:97-103),
+  # the delay before Firefox's periodic AddonManager update-check timer fires
+  # for the first time. A 20-second window never observes that timer at all --
+  # confirmed live this session: extending to 35s newly surfaced
+  # ciscobinary.openh264.org (layer 3's own positive control, previously a
+  # false-negative), services.addons.mozilla.org, update.googleapis.com and
+  # www.google.com, none of which a 20-second capture could ever see. 35s
+  # gives >=5s of margin past the 30s minimum for host-load jitter.
+  sleep 35
   kill "$ACTIVE_PID" 2>/dev/null || true
   wait "$ACTIVE_PID" 2>/dev/null || true
   ACTIVE_PID=""
