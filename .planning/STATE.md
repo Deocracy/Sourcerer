@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: branded-firefox-fork
 status: executing
-stopped_at: Completed 03-09-PLAN.md
-last_updated: "2026-08-22T03:18:11.343Z"
+stopped_at: Completed 03-10-PLAN.md -- Item A FAILED (open gap), Item B PASSED
+last_updated: "2026-08-22T15:57:25.050Z"
 last_activity: 2026-08-21
 last_activity_desc: Phase 3 planning complete
 progress:
   total_phases: 3
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 21
-  completed_plans: 20
+  completed_plans: 21
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 ## Current Position
 
 Phase: 03 (branded-firefox-fork) — EXECUTING
-Plan: 4 of 10
+Plan: 5 of 10
 Status: Ready to execute
 Last activity: 2026-08-21 — Phase 03 execution started
 
-Progress: [██████████] 95%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -78,6 +78,7 @@ Progress: [██████████] 95%
 | Phase 03 P07 | 20min | 3 tasks | 3 files |
 | Phase 03 P08 | 55min | 3 tasks | 3 files |
 | Phase 03 P09 | 35min | 2 tasks | 4 files |
+| Phase 03 P10 | ~13h (spans human checkpoint pause) | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -138,6 +139,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 03-08: interrupt self-test's mutation-detection grep matches the appended pref("media.gmp-gmpopenh264.enabled", true) value specifically, not the bare key name -- the pristine pref file already contains that key set to false, so a bare-key grep matched instantly and made the test vacuous
 - [Phase ?]: [Phase 3] 03-09: amended the authoritative requirement wording (ROADMAP Criterion 4, REQUIREMENTS BRAND-04, D-83) to name three Remote-Settings-family hosts instead of one, rather than writing a verification override -- direction pre-approved by the developer
 - [Phase ?]: [Phase 3] 03-09: allowlist-doc-consistency matches hosts as whole tokens (character-class boundary regex), not substrings -- a plain substring search would let cdn.mozilla.net pass vacuously as a suffix of two genuinely-documented hosts
+- [Phase ?]: [Phase 3] 03-10: Item A (dev-vs-release distinguishable at a glance) human-verified and recorded as FAILED -- brand.properties/brand.ftl mismatch within dev variant, client-side window decorations hide the title bar, icon badge not reliably perceptible. Open gap, not fixed by this evidence-only plan.
+- [Phase ?]: [Phase 3] 03-10: Item B (branding-tree trademark-asset review) human-verified and recorded as PASSED -- 15/15 carried-forward files reviewed in both variants, opened not judged by filename, 0 Mozilla-mark findings.
 
 ### Pending Todos
 
@@ -148,6 +151,7 @@ None yet.
 - Phase 1: nixpkgs Firefox-toolchain attributes are unverified. Check every attribute against the nixos MCP before writing the flake (research STACK.md gap).
 - Phase 4: verify the pinned Theia release is >= 1.73.1 and that the CVE-2026-61891 token check fires on plain HTTP, not only WebSocket upgrade.
 - All phases: Theia has no API stability tier. Review every `@theia/*` import against `doc/Migration.md` and record it in INTERNAL-APIS.md.
+- Phase 3: Item A human-verification (dev-vs-release distinguishable at a glance, BRAND-06) recorded FAILED on 2026-08-22 -- see 03-MANUAL-VERIFICATION.md. Root causes identified (brand.properties/brand.ftl mismatch, CSD hides title bar, icon badge weak) but not fixed. Requires a follow-up gap-closure plan before Phase 3's human-verification gate is satisfied.
 
 ## Deferred Items
 
@@ -159,6 +163,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-22T03:18:11.331Z
-Stopped at: Completed 03-09-PLAN.md
+Last session: 2026-08-22T15:57:25.037Z
+Stopped at: Completed 03-10-PLAN.md -- Item A FAILED (open gap), Item B PASSED
 Resume file: None
