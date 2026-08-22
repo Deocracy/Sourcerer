@@ -83,14 +83,21 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, '..');
 
 const HELP = `Usage: node scripts/verify-branding-identity.mjs [--bin <path>] [--expect-display-name <string>] [--positive-control <surface>]
+       node scripts/verify-branding-identity.mjs [--desktop <path>] [--config-status <path>]
        node scripts/verify-branding-identity.mjs --help
 
 Runs BRAND-01's six-surface identity checklist against the built binary.
 
   --bin <path>                Binary to drive (default objdir/dist/bin/sourcerer)
+  --desktop <path>             .desktop file the desktop-entry surface asserts
+                               against (default sourcerer/sourcerer.desktop) --
+                               lets 03-05 point the surface at either variant.
+  --config-status <path>       config.status the desktop-entry surface reads
+                               MOZ_APP_DISPLAYNAME/MOZ_APP_REMOTINGNAME from
+                               (default objdir/config.status).
   --expect-display-name <s>   Override the expected MOZ_APP_DISPLAYNAME for the
                                desktop-entry surface (default: read live from
-                               objdir/config.status)
+                               the --config-status path)
   --positive-control <surface>
                                Run exactly one surface (application-ini,
                                about-support, or version) with its expected
@@ -114,19 +121,21 @@ function argValue(flag) {
 }
 
 const binOverride = argValue('--bin');
+const desktopOverride = argValue('--desktop');
+const configStatusOverride = argValue('--config-status');
 const expectDisplayNameOverride = argValue('--expect-display-name');
 const positiveControlSurface = argValue('--positive-control');
 
 const BIN_DIR = join(REPO_ROOT, 'objdir', 'dist', 'bin');
 const BIN_PATH = binOverride || join(BIN_DIR, 'sourcerer');
 const APP_INI_PATH = join(BIN_DIR, 'application.ini');
-const CONFIG_STATUS_PATH = join(REPO_ROOT, 'objdir', 'config.status');
+const CONFIG_STATUS_PATH = configStatusOverride || join(REPO_ROOT, 'objdir', 'config.status');
 const VERSION_DISPLAY_PATH = join(REPO_ROOT, 'upstream', 'browser', 'config', 'version_display.txt');
-const DESKTOP_FILE_PATH = join(REPO_ROOT, 'sourcerer', 'sourcerer.desktop');
+const DESKTOP_FILE_PATH = desktopOverride || join(REPO_ROOT, 'sourcerer', 'sourcerer.desktop');
 const BRAND_FTL_PATH = join(REPO_ROOT, 'sourcerer', 'branding', 'dev', 'locales', 'en-US', 'brand.ftl');
 
 const SURFACE_IDS = ['executable', 'application-ini', 'about-support', 'brand-full-name', 'desktop-entry', 'version'];
-const CONTROLLABLE_SURFACES = ['application-ini', 'about-support', 'version'];
+const CONTROLLABLE_SURFACES = ['application-ini', 'about-support', 'version', 'desktop-entry'];
 
 const surfacesRun = [];
 
@@ -264,9 +273,18 @@ function checkBrandFullName() {
     };
 }
 
-function checkDesktopEntry() {
-    const expectedName = expectDisplayNameOverride || readConfigStatusVar(CONFIG_STATUS_PATH, 'MOZ_APP_DISPLAYNAME');
-    const expectedWmClass = readConfigStatusVar(CONFIG_STATUS_PATH, 'MOZ_APP_REMOTINGNAME');
+function checkDesktopEntry({ stockControl = false } = {}) {
+    // stockControl substitutes the pre-branding stock values this build's
+    // config.status reported before D-79's identity patch landed
+    // (03-05-PLAN.md: 'firefox-default', the auto-derived
+    // MOZ_APP_REMOTINGNAME on the 'default' update channel with no explicit
+    // export) so the control proves the comparison discriminates a real
+    // .desktop file from a stock one, not just that a config.status read
+    // succeeded.
+    const expectedName = stockControl
+        ? 'Firefox'
+        : (expectDisplayNameOverride || readConfigStatusVar(CONFIG_STATUS_PATH, 'MOZ_APP_DISPLAYNAME'));
+    const expectedWmClass = stockControl ? 'firefox-default' : readConfigStatusVar(CONFIG_STATUS_PATH, 'MOZ_APP_REMOTINGNAME');
     const { name, wmClass } = parseDesktopFile(DESKTOP_FILE_PATH);
     const pass = name === expectedName && wmClass === expectedWmClass;
     surfacesRun.push('desktop-entry');
@@ -353,6 +371,8 @@ async function runPositiveControl(surface) {
         result = await checkAboutSupport({ stockControl: true });
     } else if (surface === 'version') {
         result = checkVersion({ stockControl: true });
+    } else if (surface === 'desktop-entry') {
+        result = checkDesktopEntry({ stockControl: true });
     }
 
     if (!result.pass) {
