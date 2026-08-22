@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: branded-firefox-fork
 status: executing
-stopped_at: Completed 03-06-PLAN.md -- Phase 3 complete
-last_updated: "2026-08-22T02:24:35.843Z"
+stopped_at: Completed 03-07-PLAN.md
+last_updated: "2026-08-22T02:41:37.992Z"
 last_activity: 2026-08-21
 last_activity_desc: Phase 3 planning complete
 progress:
   total_phases: 3
-  completed_phases: 3
+  completed_phases: 2
   total_plans: 21
-  completed_plans: 17
+  completed_plans: 18
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 ## Current Position
 
 Phase: 03 (branded-firefox-fork) — EXECUTING
-Plan: 6 of 6
+Plan: 2 of 10
 Status: Ready to execute
 Last activity: 2026-08-21 — Phase 03 execution started
 
-Progress: [██████████] 100%
+Progress: [█████████░] 86%
 
 ## Performance Metrics
 
@@ -75,6 +75,7 @@ Progress: [██████████] 100%
 | Phase 03 P03 | ~50min | 2 tasks | 4 files |
 | Phase 03 P05 | 65min | 3 tasks | 19 files |
 | Phase 03 P06 | 35min | 3 tasks | 4 files |
+| Phase 03 P07 | 20min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -130,6 +131,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 03-05: StartupWMClass=sourcerer in both .desktop files (not per-variant); Icon= is an absolute path to each variant's own default128.png, not an icon-theme name
 - [Phase ?]: 03-06: pushed the full local history (133 commits) to origin/master and dispatched .github/workflows/rebase-upstream.yml for the first time -- run concluded success in ~2min, proving the rebase mechanism off this machine
 - [Phase ?]: 03-06: dl.google.com allowlisted as a second D-86-extension host (Widevine Omaha redirect flow), discovered by this plan's own final verify-phase-03.sh run
+- [Phase ?]: 03-07: Promoted a per-variant VARIANTS descriptor (bin/desktop/configStatus/brandFtl/brandFullName) in verify-branding-identity.mjs so the brand-full-name identity surface reads whichever variant --variant selects, closing CR-01's vacuous release-variant PASS.
 
 ### Pending Todos
 
@@ -151,6 +153,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-22T01:38:50.596Z
-Stopped at: Completed 03-06-PLAN.md -- Phase 3 complete
+Last session: 2026-08-22T02:41:37.983Z
+Stopped at: Completed 03-07-PLAN.md
 Resume file: None
