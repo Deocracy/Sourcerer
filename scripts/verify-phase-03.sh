@@ -149,6 +149,7 @@ else
     "verify-branding-identity-release|node $REPO_ROOT/scripts/verify-branding-identity.mjs --variant release"
     "verify-branding-identity-brand-ftl-control|node $REPO_ROOT/scripts/verify-branding-identity.mjs --variant release --positive-control brand-full-name"
     "verify-endpoints|bash $REPO_ROOT/scripts/verify-endpoints.sh"
+    "verify-endpoints-interrupt-self-test|bash $REPO_ROOT/scripts/verify-endpoints.sh --interrupt-self-test"
   )
 fi
 
@@ -178,7 +179,17 @@ for entry in "${CHECKS[@]}"; do
       CURRENT_CHECK_PID=""
       ;;
     *)
-      if eval "$cmd"; then
+      # Every entry that reaches this branch is a bare, argument-free shell
+      # function name (WR-02: `eval "$cmd"` is the wrong tool for a
+      # statically-known function name). Call it directly. A future CHECKS
+      # entry that needs arguments must add a wrapper function, not smuggle
+      # a command string here -- guard against that loudly rather than
+      # silently mis-invoking it.
+      if [[ "$cmd" == *[[:space:]]* ]]; then
+        echo "verify-phase-03: FAIL -- check '$label' has a non-function-name command ('$cmd'); add a wrapper function instead" >&2
+        SUMMARY+=("$label: FAIL")
+        FAILED=1
+      elif "$cmd"; then
         SUMMARY+=("$label: PASS")
       else
         SUMMARY+=("$label: FAIL")
