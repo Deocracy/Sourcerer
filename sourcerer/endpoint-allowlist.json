@@ -100,6 +100,11 @@
       "host": "www.google.com",
       "disposition": "allow",
       "reason": "D-86 extension: observed resolving in the same 35-second window alongside update.googleapis.com, immediately after it -- media.gmp-manager.chromium-update-url's own query string (`response=redirect`) means a successful Omaha check redirects to a Google-hosted download location; this is that redirect target, part of the same Widevine update-check flow, not an independent concern."
+    },
+    {
+      "host": "dl.google.com",
+      "disposition": "allow",
+      "reason": "D-86 extension, discovered during 03-06's phase-gate close-out run: a second real redirect target in the same Widevine Chromium-Omaha update-check flow as www.google.com above -- media.gmp-manager.chromium-update-url's redirect response varies which Google-owned download host it names between runs (both are Google's own public download-serving domains for this exact protocol, no Mozilla host involved), so this is the same D-86 waiver category, not a new concern. No tree reference names this host by pref; it is a live protocol redirect target, exactly like www.google.com's own entry above."
     }
   ],
   "prefs": [
