@@ -38,14 +38,75 @@ re-confirmed independently this session).
 
 ### Outcome (filled by Task 2)
 
-- Observed: window title, dev variant (literal string): _pending_
-- Observed: window title, release variant (literal string): _pending_
-- Observed: icon badge present, dev variant (yes/no): _pending_
-- Observed: icon badge present, release variant (yes/no): _pending_
-- Observed: distinguishable at a glance (yes / description of difficulty): _pending_
-- `about:support` used to reach the verdict: _pending_
-- Date: _pending_
-- Observer: _pending_
+**VERDICT: FAILED. Item A's expected outcome (dev and release distinguishable
+at a glance) did not hold.**
+
+- Observed: window title, dev variant (literal string): **none visible.**
+  Both `sourcerer` builds draw tabs-in-titlebar (client-side decorations), so
+  the WM title bar that would carry the display name is never painted on this
+  desktop. No window title text was displayed for either variant in normal use.
+- Observed: window title, release variant (literal string): **none visible.**
+  Same client-side-decoration cause as dev; no title text rendered.
+- Observed: icon badge present, dev variant (yes/no): **inconclusive.** The
+  observer saw "a dot in one and not the other" but could not tell whether it
+  was an intentional badge or a rendering artifact.
+- Observed: icon badge present, release variant (yes/no): **inconclusive** —
+  same uncertainty, no dot observed on this variant per the observer's report.
+- Observed: distinguishable at a glance (yes / description of difficulty):
+  **NO — not distinguishable.** Observer's verbatim words: "well besites the
+  logo having a dot in one and not the other I dont see much difrence (and
+  even that I dont know if that is a notise or something)" and "I dont really
+  see a diffrece."
+- `about:support` used to reach the verdict: **No** — not opened at any point,
+  per instruction.
+- Date: 2026-08-22
+- Observer: Christopher Colantuono
+
+**Procedure deviation:** the plan's steps 1-6 describe launching dev, closing
+it, then launching release sequentially. This verification instead launched
+both variants concurrently and visible side by side on a real Wayland desktop
+session (dev pid 1605330 from `objdir/dist/bin/sourcerer`, release pid 1605762
+from `objdir-release/dist/bin/sourcerer`, both with `-no-remote`). Simultaneous
+side-by-side comparison is a stricter test of "distinguishable at a glance"
+than sequential viewing — the result was still a failure under the stricter
+test, so the deviation does not undermine the verdict.
+
+**Supporting evidence gathered after the verdict** (explains, does not
+substitute for, the human judgment above):
+
+1. `sourcerer/branding/dev/locales/en-US/brand.properties` contains
+   `brandFullName=Sourcerer` — unsuffixed, not "Sourcerer Dev".
+2. `diff` of dev vs release `brand.properties` shows the two files are
+   byte-identical — no brand string differs between variants in
+   `.properties` at all.
+3. `diff` of dev vs release `brand.ftl` shows exactly one differing line
+   (`-brand-full-name`: "Sourcerer Dev" vs "Sourcerer"); `-brand-short-name`
+   and `-brand-shorter-name` are identical ("Sourcerer") in both variants.
+4. Therefore dev's own `brand.ftl` (`-brand-full-name = Sourcerer Dev`) and
+   dev's own `brand.properties` (`brandFullName=Sourcerer`) contradict each
+   other within the same variant — this is a real, pre-existing defect in the
+   branding tree, not an artifact of how the check was run.
+5. `MOZ_APP_DISPLAYNAME` in `config.status` is correct per variant
+   ("Sourcerer Dev" vs "Sourcerer") — the build-level name is right; the
+   user-visible brand strings that a person can actually see are what fail.
+6. All five icon PNGs differ byte-wise, but visual inspection of
+   `default128.png` shows the only difference is a small orange dot in the
+   top-right corner. Base glyph, hue, and silhouette are identical. At
+   16-32px (favicon/taskbar size) this is a few pixels — consistent with the
+   observer's inability to confidently read it as a badge.
+7. Startup log for both variants: `Missing chrome or resource URL:
+   chrome://branding/content/about-logo@2x.png` — neither branding tree ships
+   the 2x about-dialog logo. Separate defect from Item A, recorded here as an
+   observation only.
+
+**Why the automated 12/12 gate passed while this human check failed:** the
+automated `verify-branding-identity-brand-ftl-control` check (added 03-07)
+reads `brand.ftl` only. Nothing in the automated suite checks
+`brand.properties`, nothing checks short/shorter-name divergence, and nothing
+checks perceptual icon distinctiveness or whether a window title is even
+rendered on a given desktop environment. The automated suite proves the
+strings it reads differ; it does not and cannot prove a person can tell the
+two builds apart, which is exactly why this item is human-only.
 
 ## Item B — Branding tree trademark-asset review
 
