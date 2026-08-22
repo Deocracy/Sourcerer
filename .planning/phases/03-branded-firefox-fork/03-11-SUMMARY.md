@@ -148,3 +148,9 @@ The icon badge remains the one known-weak cue (a few pixels at 16-32px, not inde
 ---
 *Phase: 03-branded-firefox-fork*
 *Completed: 2026-08-22*
+
+## Self-Check: PASSED
+
+All 8 files created/modified by this plan verified present on disk; all 4
+task/checkpoint/completion commits (`5cd7293`, `6590b1d`, `34d2174`,
+`51993b9`) verified present in `git log --oneline --all`.
