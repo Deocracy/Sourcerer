@@ -113,7 +113,7 @@ Plans:
   4. Running the build on a machine with real Firefox installed never reads or writes `~/.mozilla/firefox` (proven by exact-path `strace`, not a bare `.mozilla` match), and a full-session network capture contacts no host outside a documented allowlist — whose Mozilla entries are the three hosts of the one Remote Settings carve-out (D-83): `firefox.settings.services.mozilla.com` (the Remote Settings service itself, 24-hour poll), `content-signature-2.cdn.mozilla.net` (the content-signature certificate chain each downloaded collection is verified against), and `firefox-settings-attachments.cdn.mozilla.net` (the attachment CDN serving large collection blobs, including CRLite's own revocation data) — with each non-Mozilla host individually waived or disabled. Each check ships a positive control that must go red
   5. A dev build is distinguishable at a glance from a future packaged release (title suffix or icon badge), and the shipped `branding/` tree contains no Mozilla trademark assets
 
-**Plans**: 8/10 plans executed (4 gap-closure plans added 2026-08-22)
+**Plans**: 9/10 plans executed (4 gap-closure plans added 2026-08-22)
 
 Plans:
 **Wave 1**
@@ -147,7 +147,7 @@ Plans:
 
 **Wave 8** *(blocked on 03-08)*
 
-- [ ] 03-09-PLAN.md — Gap 2: Criterion 4, BRAND-04 and D-83 amended to describe the three-host Remote Settings carve-out; allowlist-to-document consistency machine-gated with a planted-failure self-test (BRAND-04)
+- [x] 03-09-PLAN.md — Gap 2: Criterion 4, BRAND-04 and D-83 amended to describe the three-host Remote Settings carve-out; allowlist-to-document consistency machine-gated with a planted-failure self-test (BRAND-04)
 
 **Wave 9** *(blocked on 03-09)*
 
@@ -240,7 +240,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 (2 and 3 may run in p
 |-------|----------------|--------|-----------|
 | 1. Build Infrastructure | 4/4 | Complete   | 2026-08-20 |
 | 2. Sourcerer Theia Extensions | 7/7 | Complete   | 2026-08-20 |
-| 3. Branded Firefox Fork | 8/10 | In Progress|  |
+| 3. Branded Firefox Fork | 9/10 | In Progress|  |
 | 4. Full-Window Theia Shell | 0/TBD | Not started | - |
 | 5. Lifecycle & Failure Hardening | 0/TBD | Not started | - |
 

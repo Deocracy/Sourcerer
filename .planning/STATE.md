@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: branded-firefox-fork
 status: executing
-stopped_at: Completed 03-08-PLAN.md
-last_updated: "2026-08-22T03:09:46.933Z"
+stopped_at: Completed 03-09-PLAN.md
+last_updated: "2026-08-22T03:18:11.343Z"
 last_activity: 2026-08-21
 last_activity_desc: Phase 3 planning complete
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 21
-  completed_plans: 19
+  completed_plans: 20
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 ## Current Position
 
 Phase: 03 (branded-firefox-fork) — EXECUTING
-Plan: 3 of 10
+Plan: 4 of 10
 Status: Ready to execute
 Last activity: 2026-08-21 — Phase 03 execution started
 
-Progress: [█████████░] 90%
+Progress: [██████████] 95%
 
 ## Performance Metrics
 
@@ -77,6 +77,7 @@ Progress: [█████████░] 90%
 | Phase 03 P06 | 35min | 3 tasks | 4 files |
 | Phase 03 P07 | 20min | 3 tasks | 3 files |
 | Phase 03 P08 | 55min | 3 tasks | 3 files |
+| Phase 03 P09 | 35min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -135,6 +136,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 03-07: Promoted a per-variant VARIANTS descriptor (bin/desktop/configStatus/brandFtl/brandFullName) in verify-branding-identity.mjs so the brand-full-name identity surface reads whichever variant --variant selects, closing CR-01's vacuous release-variant PASS.
 - [Phase ?]: 03-08: dropped setsid in favor of set -m for the interrupt self-test's recursive child launch -- setsid layered under job control forces an extra internal fork that decouples $! from the real process-group leader; set -m alone gives the async job its own fresh pgid and avoids the SIG_IGN-on-background-job trap that defeats a non-interactive script's own INT trap
 - [Phase ?]: 03-08: interrupt self-test's mutation-detection grep matches the appended pref("media.gmp-gmpopenh264.enabled", true) value specifically, not the bare key name -- the pristine pref file already contains that key set to false, so a bare-key grep matched instantly and made the test vacuous
+- [Phase ?]: [Phase 3] 03-09: amended the authoritative requirement wording (ROADMAP Criterion 4, REQUIREMENTS BRAND-04, D-83) to name three Remote-Settings-family hosts instead of one, rather than writing a verification override -- direction pre-approved by the developer
+- [Phase ?]: [Phase 3] 03-09: allowlist-doc-consistency matches hosts as whole tokens (character-class boundary regex), not substrings -- a plain substring search would let cdn.mozilla.net pass vacuously as a suffix of two genuinely-documented hosts
 
 ### Pending Todos
 
@@ -156,6 +159,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-22T03:09:46.912Z
-Stopped at: Completed 03-08-PLAN.md
+Last session: 2026-08-22T03:18:11.331Z
+Stopped at: Completed 03-09-PLAN.md
 Resume file: None
