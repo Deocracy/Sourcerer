@@ -83,6 +83,21 @@ upstream — we never fork Theia core, we compose extensions — pushed one laye
 down so that Sourcerer relates to Power Browser the way Power Browser relates
 to Theia.
 
+Repo homes, decided 2026-08-22:
+
+- **Power Browser** — `DeBIOS-Foundation/powerbrowser`, public. The DeBIOS
+  Foundation is a 501(c)(3) nonprofit and a Deocracy subsidiary. A neutral
+  nonprofit owning the platform is what makes "anyone can build a distribution"
+  credible rather than a courtesy extended by a competitor.
+- **Sourcerer** — stays at `Deocracy/Sourcerer` for now. The distribution is
+  the commercial side; keeping it out of the 501(c)(3) keeps the foundation's
+  asset visibly independent.
+
+This working tree remains `Deocracy/Sourcerer`. Note that most of what it
+currently contains — the fork, the patch stack, the branding work — is platform
+code under this model and will eventually move to `powerbrowser`. That
+migration is not scheduled.
+
 Consequences:
 
 - Databasise and the curated addon set live outside the Power Browser tree and
@@ -177,10 +192,6 @@ months-scale build, not a weeks-scale rebrand.
 - Opt-in telemetry (wanted; design undecided).
 - Enterprise collaboration (@theia/collaboration / OCT) — relevance TBD.
 - Docker-based deployment — understanding TBD.
-- Repo homes for the stream split. Power Browser and Sourcerer get separate
-  GitHub repos under **DeBIOS** (a Deocracy subsidiary); that organisation does
-  not exist yet. Whether Sourcerer sits under DeBIOS or stays under Deocracy is
-  undecided.
 - Executing the platform rename across the tree (`@sourcerer/*` →
   `@powerbrowser/*`, `SourcererAPI.sys.mjs` → `PowerBrowserAPI.sys.mjs`,
   `sourcerer/` → `powerbrowser/`). Agreed in principle, not yet applied.
