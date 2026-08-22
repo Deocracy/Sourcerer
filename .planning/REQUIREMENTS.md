@@ -19,7 +19,7 @@ Requirements for v4.0. Each maps to roadmap phases.
 - [x] **BRAND-01**: Firefox-side identity is Sourcerer (`MOZ_APP_NAME`, `MOZ_APP_DISPLAYNAME`, `MOZ_APP_VENDOR`, distribution id), verified by a named-surface checklist: executable name in `dist/bin`, `application.ini` `Name` and `Vendor`, about:support identity fields, window title, the `.desktop` file's `Name` and `StartupWMClass`, and `--version` output
 - [x] **BRAND-02**: Full replacement `branding/` tree ships (icons, strings) containing no Mozilla trademark assets
 - [x] **BRAND-03**: Profile directory is Sourcerer's own (falls out of `MOZ_APP_NAME`); verified to never touch `~/.mozilla/firefox` on a machine with real Firefox installed
-- [x] **BRAND-04**: Auto-update is disabled and a running build contacts no host outside a documented allowlist — whose only Mozilla entry is the `firefox.settings.services.mozilla.com` Remote Settings carve-out (24-hour poll), with every non-Mozilla host individually waived with a stated reason or disabled
+- [x] **BRAND-04**: Auto-update is disabled and a running build contacts no host outside a documented allowlist — whose Mozilla entries are the three hosts of the one Remote Settings carve-out (D-83): `firefox.settings.services.mozilla.com` (the Remote Settings service itself, 24-hour poll), `content-signature-2.cdn.mozilla.net` (the content-signature certificate chain each downloaded collection is verified against), and `firefox-settings-attachments.cdn.mozilla.net` (the attachment CDN serving large collection blobs, including CRLite's own revocation data) — with every non-Mozilla host individually waived with a stated reason or disabled
 - [x] **BRAND-05**: Theia-side branding (welcome/getting-started widget, About dialog, window/tab title, favicon) ships as a `@sourcerer/*` extension via DI rebind — no Theia core patch
 - [x] **BRAND-06**: Dev builds carry a visible indicator (title suffix or icon badge) distinguishing them from future packaged releases
 
@@ -100,6 +100,18 @@ Requirements for v4.0. Each maps to roadmap phases.
 > *stricter* than before on third-party hosts: Google Safe Browsing, Google's
 > Widevine CDM host and Cisco's OpenH264 host must each be waived with a
 > stated reason or disabled (D-83, D-85).
+>
+> **BRAND-04 further amended 2026-08-22** (03-09 gap closure,
+> `.planning/phases/03-branded-firefox-fork/03-VERIFICATION.md` Gap 2, D-83):
+> the single named carve-out above was always a three-host Remote Settings
+> *feature*. `content-signature-2.cdn.mozilla.net` (content-signature
+> certificate verification) and `firefox-settings-attachments.cdn.mozilla.net`
+> (the attachment CDN, including CRLite's own revocation data) were added to
+> `sourcerer/endpoint-allowlist.json` during 03-02/03-03 after a real,
+> non-control 35-second capture surfaced them as exactly what the built
+> browser resolves — but were never folded into this requirement's wording
+> until now. All three hosts are the one D-83 carve-out; no new host,
+> decision, or allowlist change is made by this amendment.
 
 ## v2 Requirements
 
@@ -188,4 +200,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-08-19*
-*Last updated: 2026-08-21 — BUILD-04, BRAND-01 and BRAND-04 amended during Phase 3 discussion*
+*Last updated: 2026-08-22 — BUILD-04, BRAND-01 and BRAND-04 amended 2026-08-21 during Phase 3 discussion; BRAND-04 further amended 2026-08-22 to name the three-host Remote Settings carve-out (03-09 gap closure, `03-VERIFICATION.md` Gap 2)*

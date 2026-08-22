@@ -311,6 +311,20 @@ command line, mozconfig, **and** branding confvars alike.
   Self-hosting a Remote Settings mirror was rejected: it needs a patch anyway
   (the override is refused) and is DIST-01-shaped work, out of scope for v4.0.
 
+  **Extended 2026-08-22** (03-09 gap closure, `03-VERIFICATION.md` Gap 2): the
+  carve-out named above was always three hosts, not one —
+  `firefox.settings.services.mozilla.com` is the Remote Settings service
+  itself; `content-signature-2.cdn.mozilla.net` is the content-signature
+  certificate chain each downloaded collection is verified against;
+  `firefox-settings-attachments.cdn.mozilla.net` is the attachment CDN
+  serving large collection blobs, including CRLite's own revocation data —
+  one of this decision's own stated reasons for keeping Remote Settings on. A
+  real, non-control 35-second network capture in 03-03 confirmed these three
+  and only these three resolve under the carve-out;
+  `sourcerer/endpoint-allowlist.json` already allow-dispositions all three.
+  This extension brings D-83's own text into agreement with the allowlist it
+  governs; the reasoning above is unchanged.
+
 - **D-84:** **Removal is build-time + branding pref file + policies.json. No
   autoconfig.**
   - Build-time, folded into the **same `browser/moz.configure` hunk** as D-78 and
