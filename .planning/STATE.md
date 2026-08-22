@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: branded-firefox-fork
 status: executing
-stopped_at: Completed 03-04-PLAN.md
-last_updated: "2026-08-21T23:40:44.827Z"
+stopped_at: Completed 03-03-PLAN.md
+last_updated: "2026-08-22T00:07:38.653Z"
 last_activity: 2026-08-21
 last_activity_desc: Phase 3 planning complete
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 17
-  completed_plans: 14
+  completed_plans: 15
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 ## Current Position
 
 Phase: 03 (branded-firefox-fork) — EXECUTING
-Plan: 4 of 6
+Plan: 5 of 6
 Status: Ready to execute
 Last activity: 2026-08-21 — Phase 03 execution started
 
-Progress: [████████░░] 82%
+Progress: [█████████░] 88%
 
 ## Performance Metrics
 
@@ -72,6 +72,7 @@ Progress: [████████░░] 82%
 | Phase 03 P01 | 20min | 3 tasks | 21 files |
 | Phase 03 P02 | 55min | 3 tasks | 6 files |
 | Phase 03 P04 | 6min | 2 tasks | 2 files |
+| Phase 03 P03 | ~50min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -119,6 +120,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 03-02: MOZ_LOG per-child log naming is <base>.child-N.moz_log, not <base>.moz_log.child-N -- corrected against GeckoChildProcessHost.cpp:945-967
 - [Phase ?]: 03-04: rebase-upstream.sh echoes its target tag to stdout before the remote-existence check, on every path -- so a dry run against a tag that turns out not to exist still proves it never silently substituted the pinned default
 - [Phase ?]: 03-04: workflow_dispatch input consumed via env:/shell-variable (REBASE_TAG), never interpolated directly into run: -- avoids the GitHub Actions shell-injection pattern
+- [Phase ?]: 03-03: TRR open item resolved as NetworkConnectivityService.cpp (network.connectivity-service.enabled), not network.trr.mode -- cloudflare-dns.com/example.org/ipv4only.arpa dispositioned deny
+- [Phase ?]: 03-03: layer 3's MOZ_LOG capture window corrected 20s -> 35s -- app.update.timerFirstInterval defaults to 30000ms, so the periodic AddonManager update-check timer (and layer 3's own OpenH264 positive control) never fired inside 20s
+- [Phase ?]: 03-03: services.addons.mozilla.org denied via extensions.getAddons.cache.enabled master switch; update.googleapis.com and www.google.com allowed under D-86's existing DRM rationale (Widevine's Chromium-Omaha update-check host and its redirect target) -- corrects C-4's premise that Widevine is fully idle-gated
 
 ### Pending Todos
 
@@ -140,6 +144,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-21T23:40:35.660Z
-Stopped at: Completed 03-04-PLAN.md
+Last session: 2026-08-22T00:07:38.643Z
+Stopped at: Completed 03-03-PLAN.md
 Resume file: None
