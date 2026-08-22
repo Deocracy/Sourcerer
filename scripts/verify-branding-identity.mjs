@@ -20,20 +20,25 @@
 //                       operation" error with the flag absent, and returns
 //                       the live value ("Sourcerer") with it present -- so
 //                       this is a real live read, not a constant.
-//   4. brand-full-name -- the dev variant's own
-//                       sourcerer/branding/dev/locales/en-US/brand.ftl
-//                       `-brand-full-name`, asserted to be exactly
-//                       "Sourcerer Dev". NOT a document.title read: the
-//                       Linux window title resolves through Fluent's
-//                       `-brand-full-name` term (browser.ftl:7), and
-//                       `document.title` over BiDi is the wrong realm anyway
-//                       (browsingContext.getTree returns content contexts,
-//                       never the chrome window). The live chrome-window
-//                       title and WM_CLASS reads are Manual-Only items in
-//                       03-VALIDATION.md (no xprop/chrome introspection on
-//                       this headless host); 03-05 Task 3 adds the
-//                       cross-variant (dev vs release) differ assertion once
-//                       the release branding directory exists.
+//   4. brand-full-name -- reads the resolved variant's own
+//                       sourcerer/branding/<variant>/locales/en-US/brand.ftl
+//                       `-brand-full-name` and asserts it against that same
+//                       variant's own expected value, both sourced from the
+//                       VARIANTS descriptor (or the --brand-ftl/
+//                       --expect-brand-full-name overrides). NOT a
+//                       document.title read: the Linux window title resolves
+//                       through Fluent's `-brand-full-name` term
+//                       (browser.ftl:7), and `document.title` over BiDi is
+//                       the wrong realm anyway (browsingContext.getTree
+//                       returns content contexts, never the chrome window).
+//                       The live chrome-window title and WM_CLASS reads are
+//                       Manual-Only items in 03-VALIDATION.md (no xprop/
+//                       chrome introspection on this headless host). A
+//                       `--positive-control brand-full-name` cross-variant
+//                       control reads the OTHER variant's brand.ftl while
+//                       keeping the selected variant's expected value --
+//                       proving both that the path is honored and that the
+//                       comparison discriminates (03-07-PLAN.md).
 //   5. desktop-entry  -- sourcerer/sourcerer.desktop's Name=/StartupWMClass=
 //                       against config.status's resolved MOZ_APP_DISPLAYNAME/
 //                       MOZ_APP_REMOTINGNAME. Expected RED until 03-05 --
@@ -82,28 +87,61 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, '..');
 
-const HELP = `Usage: node scripts/verify-branding-identity.mjs [--bin <path>] [--expect-display-name <string>] [--positive-control <surface>]
-       node scripts/verify-branding-identity.mjs [--desktop <path>] [--config-status <path>]
+// Per-variant branding-identity descriptor (03-07-PLAN.md): every fact that
+// differs between the dev and release variants lives here, keyed by variant
+// id, instead of as independent per-flag defaults. Adding a surface means
+// extending a record here, not adding an unrelated flag with its own
+// silently-defaulting fallback -- the exact seam CR-01 fell through.
+const VARIANTS = {
+    dev: {
+        bin: join(REPO_ROOT, 'objdir', 'dist', 'bin', 'sourcerer'),
+        desktop: join(REPO_ROOT, 'sourcerer', 'sourcerer.desktop'),
+        configStatus: join(REPO_ROOT, 'objdir', 'config.status'),
+        brandFtl: join(REPO_ROOT, 'sourcerer', 'branding', 'dev', 'locales', 'en-US', 'brand.ftl'),
+        brandFullName: 'Sourcerer Dev',
+    },
+    release: {
+        bin: join(REPO_ROOT, 'objdir-release', 'dist', 'bin', 'sourcerer'),
+        desktop: join(REPO_ROOT, 'sourcerer', 'sourcerer-release.desktop'),
+        configStatus: join(REPO_ROOT, 'objdir-release', 'config.status'),
+        brandFtl: join(REPO_ROOT, 'sourcerer', 'branding', 'release', 'locales', 'en-US', 'brand.ftl'),
+        brandFullName: 'Sourcerer',
+    },
+};
+const VARIANT_IDS = Object.keys(VARIANTS);
+
+const HELP = `Usage: node scripts/verify-branding-identity.mjs [--variant <${VARIANT_IDS.join('|')}>] [--positive-control <surface>]
+       node scripts/verify-branding-identity.mjs [--bin <path>] [--desktop <path>] [--config-status <path>]
+       node scripts/verify-branding-identity.mjs [--brand-ftl <path>] [--expect-brand-full-name <string>] [--expect-display-name <string>]
        node scripts/verify-branding-identity.mjs --help
 
 Runs BRAND-01's six-surface identity checklist against the built binary.
 
-  --bin <path>                Binary to drive (default objdir/dist/bin/sourcerer)
+  --variant <${VARIANT_IDS.join('|')}>          Select the branding-variant descriptor that supplies
+                               every per-variant default below (default dev).
+                               An unrecognised id exits non-zero before any
+                               surface runs.
+  --bin <path>                Binary to drive (default: the selected variant's bin)
   --desktop <path>             .desktop file the desktop-entry surface asserts
-                               against (default sourcerer/sourcerer.desktop) --
-                               lets 03-05 point the surface at either variant.
+                               against (default: the selected variant's desktop file).
   --config-status <path>       config.status the desktop-entry surface reads
                                MOZ_APP_DISPLAYNAME/MOZ_APP_REMOTINGNAME from
-                               (default objdir/config.status).
+                               (default: the selected variant's config.status).
+  --brand-ftl <path>           brand.ftl the brand-full-name surface reads
+                               (default: the selected variant's own brand.ftl).
+  --expect-brand-full-name <s> Override the expected -brand-full-name value for
+                               the brand-full-name surface (default: the
+                               selected variant's own expected value).
   --expect-display-name <s>   Override the expected MOZ_APP_DISPLAYNAME for the
                                desktop-entry surface (default: read live from
                                the --config-status path)
   --positive-control <surface>
                                Run exactly one surface (application-ini,
-                               about-support, or version) with its expected
-                               value replaced by the stock Firefox value.
-                               Exits 0 only if that surface then reports
-                               FAILURE.
+                               about-support, version, desktop-entry, or
+                               brand-full-name) with its expected value (or,
+                               for brand-full-name, its input file) replaced
+                               by a value that must be wrong. Exits 0 only if
+                               that surface then reports FAILURE.
   --help                       Print this message and exit 0
 `;
 
@@ -120,9 +158,20 @@ function argValue(flag) {
     return args[i + 1];
 }
 
+const variantId = argValue('--variant') || 'dev';
+if (!VARIANT_IDS.includes(variantId)) {
+    console.error(`verify-branding-identity: FAIL -- unknown --variant '${variantId}'. Supported: ${VARIANT_IDS.join(', ')}`);
+    process.exit(1);
+}
+const variant = VARIANTS[variantId];
+const otherVariantId = VARIANT_IDS.find(id => id !== variantId);
+const otherVariant = VARIANTS[otherVariantId];
+
 const binOverride = argValue('--bin');
 const desktopOverride = argValue('--desktop');
 const configStatusOverride = argValue('--config-status');
+const brandFtlOverride = argValue('--brand-ftl');
+const expectBrandFullNameOverride = argValue('--expect-brand-full-name');
 const expectDisplayNameOverride = argValue('--expect-display-name');
 const positiveControlSurface = argValue('--positive-control');
 
@@ -132,16 +181,17 @@ const positiveControlSurface = argValue('--positive-control');
 // particular. Before this fix both silently kept checking objdir/dist/bin
 // regardless of --bin, so the executable surface never actually verified a
 // --bin-overridden (e.g. release) binary's directory (03-05 Task 3 finding).
-const BIN_PATH = binOverride || join(REPO_ROOT, 'objdir', 'dist', 'bin', 'sourcerer');
+const BIN_PATH = binOverride || variant.bin;
 const BIN_DIR = dirname(BIN_PATH);
 const APP_INI_PATH = join(BIN_DIR, 'application.ini');
-const CONFIG_STATUS_PATH = configStatusOverride || join(REPO_ROOT, 'objdir', 'config.status');
+const CONFIG_STATUS_PATH = configStatusOverride || variant.configStatus;
 const VERSION_DISPLAY_PATH = join(REPO_ROOT, 'upstream', 'browser', 'config', 'version_display.txt');
-const DESKTOP_FILE_PATH = desktopOverride || join(REPO_ROOT, 'sourcerer', 'sourcerer.desktop');
-const BRAND_FTL_PATH = join(REPO_ROOT, 'sourcerer', 'branding', 'dev', 'locales', 'en-US', 'brand.ftl');
+const DESKTOP_FILE_PATH = desktopOverride || variant.desktop;
+const BRAND_FTL_PATH = brandFtlOverride || variant.brandFtl;
+const EXPECTED_BRAND_FULL_NAME = expectBrandFullNameOverride || variant.brandFullName;
 
 const SURFACE_IDS = ['executable', 'application-ini', 'about-support', 'brand-full-name', 'desktop-entry', 'version'];
-const CONTROLLABLE_SURFACES = ['application-ini', 'about-support', 'version', 'desktop-entry'];
+const CONTROLLABLE_SURFACES = ['application-ini', 'about-support', 'version', 'desktop-entry', 'brand-full-name'];
 
 const surfacesRun = [];
 
@@ -182,7 +232,13 @@ function readBrandFullName(path) {
     if (!existsSync(path)) throw new Error(`${path} does not exist`);
     const line = readFileSync(path, 'utf8').split(/\r?\n/).find(l => l.trim().startsWith('-brand-full-name'));
     if (!line) throw new Error(`${path} has no -brand-full-name entry`);
-    const m = line.match(/^-brand-full-name\s*=\s*(.+)$/);
+    // WR-01 (03-REVIEW.md): the .find() predicate above selects on the
+    // TRIMMED line, but the regex below used to match the UNTRIMMED line --
+    // a brand.ftl with leading whitespace on its term line would select a
+    // line the regex then rejected, producing a spurious unexpected-shape
+    // error. Match against the trimmed form so selection and matching agree.
+    const trimmed = line.trim();
+    const m = trimmed.match(/^-brand-full-name\s*=\s*(.+)$/);
     if (!m || !m[1].trim()) throw new Error(`${path} -brand-full-name line has an unexpected or empty shape: ${JSON.stringify(line)}`);
     return m[1].trim();
 }
@@ -268,14 +324,21 @@ async function checkAboutSupport({ stockControl = false } = {}) {
     };
 }
 
-function checkBrandFullName() {
-    const value = readBrandFullName(BRAND_FTL_PATH);
-    const expected = 'Sourcerer Dev';
-    const pass = value === expected;
+function checkBrandFullName({ crossVariantControl = false } = {}) {
+    // crossVariantControl reads the OTHER variant's own brand.ftl (never a
+    // stock/substituted value) while keeping the selected variant's own
+    // expected value -- this discriminates on BOTH axes at once: a wrong
+    // path (the other variant's real file) and, since that file legitimately
+    // carries a different real value, a wrong comparison too. A
+    // stock-value-only control would not have caught CR-01, whose path was
+    // wrong but whose hardcoded value happened to still be a real string.
+    const path = crossVariantControl ? otherVariant.brandFtl : BRAND_FTL_PATH;
+    const value = readBrandFullName(path);
+    const pass = value === EXPECTED_BRAND_FULL_NAME;
     surfacesRun.push('brand-full-name');
     return {
         pass,
-        detail: `dev variant -brand-full-name=${JSON.stringify(value)} (expected ${JSON.stringify(expected)}); dev-vs-release differ assertion is 03-05 Task 3's responsibility`,
+        detail: `variant=${variantId} brand.ftl=${path} -brand-full-name=${JSON.stringify(value)} (expected ${JSON.stringify(EXPECTED_BRAND_FULL_NAME)})`,
     };
 }
 
@@ -379,6 +442,8 @@ async function runPositiveControl(surface) {
         result = checkVersion({ stockControl: true });
     } else if (surface === 'desktop-entry') {
         result = checkDesktopEntry({ stockControl: true });
+    } else if (surface === 'brand-full-name') {
+        result = checkBrandFullName({ crossVariantControl: true });
     }
 
     if (!result.pass) {
