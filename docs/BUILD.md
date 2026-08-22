@@ -274,6 +274,172 @@ taken verbatim, with their exact commands, from the SUMMARY that actually ran
 them. Both builds were measured 2026-08-21 on `legion`: build #1 per
 `03-01-SUMMARY.md`, build #2 per `03-05-SUMMARY.md`.
 
+### The three tiers, at a glance
+
+| Tier | Example file in this tree | Command | Measured cost |
+|---|---|---|---|
+| 1 — no build | `objdir/dist/bin/modules/PageThumbs.worker.js` (symlink into `upstream/toolkit/components/thumbnails/PageThumbs.worker.js`) | `MOZCONFIG=../.mozconfig ./mach run --version` | 1.05s (2026-08-22, `legion`) |
+| 2 — `./mach build faster` | `upstream/browser/base/content/browser.xhtml` (preprocessed) | `MOZCONFIG=../.mozconfig ./mach build faster` | 1.84s warm (2026-08-22, `legion`) |
+| 3 — full `./mach build` | `patches/010-sourcerer-identity.patch` (or any `--with-*`/`--enable-*` `.mozconfig` option) | `MOZCONFIG=../.mozconfig ./mach build` | 2368s / 2822s (2026-08-21, `legion`) |
+
+**A file that is neither symlinked into `dist/bin` nor preprocessed falls
+through to tier 3** — a full `./mach build` — because there is no faster path
+the build system exposes for it; the tier a file belongs to is a property of
+how `moz.build` installs it (`FINAL_TARGET_FILES` symlink vs. `PP_FILES`
+preprocessing vs. a compiled source the linker consumes), not a menu choice.
+
+**Accepted cost, per D-70:** a clean clone has no minutes-to-runnable path —
+the first build is always a full compile (tier 3, ~54 minutes per the
+original research estimate; this phase's own two full builds ran 2368s and
+2822s). Artifact builds cannot produce a renamed binary (C-1: `MOZ_APP_NAME`
+is a compiled define and the Taskcluster job configuration hardcodes
+`product="firefox"`), so there is no faster path to a first, Sourcerer-branded
+binary than tier 3.
+
+## The compiled-file boundary (D-72)
+
+`scripts/check-patch-surface.sh` is the single source of truth for which file
+types a patch in `patches/*.patch` may touch. It rejects any patch whose
+target path ends in one of the compiled suffixes drawn from
+`upstream/python/mozbuild/mozbuild/frontend/emitter.py:1126-1133` — `.c .cc
+.cxx .cpp .h .hh .hpp .inc .m .mm .rs .s .S .asm .webidl .idl .ipdl .ipdlh`,
+plus any `Cargo.*` file — reading each patch's own `+++ b/` header lines, never
+grepping the patch body (a body-grep would false-match a string that merely
+appears inside changed content).
+
+Two invocations:
+
+```
+bash scripts/check-patch-surface.sh              # scans patches/, exits 1 on any offense
+bash scripts/check-patch-surface.sh --self-test   # plants a throwaway compiled-file patch in a mktemp dir and asserts it IS rejected
+```
+
+**Tier consequence:** a patch that touches a compiled file means every
+subsequent rebuild is tier 3 (a full `./mach build`, ~2368-2822s measured
+above) — there is no tier-1/tier-2 path for a change the linker has to see.
+This is the entire reason the phase's one Gecko patch
+(`patches/010-sourcerer-identity.patch`) is confined to a single hunk in
+`browser/moz.configure`, a config file, not a compiled source.
+
+Deliberately **not created**: `sourcerer/ARTIFACT-BOUNDARY.md` (the name
+presumes artifact builds, which D-70 replaced with the tiered loop — this
+section of `docs/BUILD.md` is the boundary's home instead) and
+`sourcerer/INTERNAL-APIS.md` (that catalogues `SourcererAPI.sys.mjs`
+touchpoints, none of which exist until Phase 4).
+
+## Endpoints and the one carve-out (D-83–D-88)
+
+`sourcerer/endpoint-allowlist.json` is the single machine-readable source of
+truth for every host and pref this build's network/telemetry surface is
+allowed to touch, read directly by `scripts/verify-endpoints.sh`'s layers 1
+and 3. Any host observed at runtime absent from this file, or any host in it
+with disposition `deny`, is a failure — Mozilla or not (D-85).
+
+**The one carve-out, stated plainly:** `firefox.settings.services.mozilla.com`
+(Remote Settings) stays on. Its polling cadence is
+`services.settings.poll_interval` = **86400 seconds (24 hours)**
+(`modules/libpref/init/all.js:1745`) — not the shorter, sometimes-quoted
+figure of 21600 seconds, which belongs to `app.normandy.run_interval_seconds`,
+a subsystem this phase compiles out (`imply_option("MOZ_NORMANDY", False)`)
+and is therefore moot. The reason
+Remote Settings cannot simply be turned off: `services/settings/Utils.sys.mjs:52-84`
+refuses any `services.settings.server` override off Nightly, and the only
+alternative, the `DisableRemoteSettingsAndAcceptSecurityConsequences` policy,
+also stops CRLite certificate-revocation data, intermediate-certificate
+preloading, and tracking-protection list updates — unacceptable on a substrate
+whose entire pitch is that it is a real browser.
+
+Every host in `sourcerer/endpoint-allowlist.json` with disposition `allow`,
+and why:
+
+| Host | Reason |
+|---|---|
+| `firefox.settings.services.mozilla.com` | D-83: Remote Settings, the carve-out above |
+| `content-signature-2.cdn.mozilla.net` | D-83, same feature: content-signature certificate-chain verification for Remote Settings collections |
+| `firefox-settings-attachments.cdn.mozilla.net` | D-83, same feature: Remote Settings' attachment CDN (CRLite's own data, one of D-83's own reasons to keep Remote Settings on) |
+| `edgedl.me.gvt1.com` | D-86: Google's Widevine CDM download host — DRM stays working, no Mozilla host involved; `media.eme.enabled` defaults false on Linux so this costs nothing unattended |
+| `safebrowsing.google.com` | D-85: Google Safe Browsing v2 API — deliberate waiver, malware/phishing protection stays on |
+| `safebrowsing.googleapis.com` | D-85: Google Safe Browsing v4 API — same waiver as v2 |
+| `update.googleapis.com` | D-86 extension: Widevine's Chromium-Omaha update-check host, fired by the same periodic AddonManager timer regardless of `media.eme.enabled` — corrects C-4's premise that Widevine is fully idle-gated (it is idle-gated for the EME-toggle path, not this periodic path) |
+| `www.google.com` | D-86 extension: the Omaha check's own redirect target, observed immediately after `update.googleapis.com` in the same session |
+
+The three proof layers and their positive-control forms:
+
+```
+bash scripts/verify-endpoints.sh --layer 1                     # static pref grep
+bash scripts/verify-endpoints.sh --layer 1 --positive-control   # restores a stock URL, must go red
+
+bash scripts/verify-endpoints.sh --layer 2                     # exact-path strace on $HOME/.mozilla/firefox
+bash scripts/verify-endpoints.sh --layer 2 --positive-control   # sandboxed $HOME with a real .mozilla/firefox dir, must go red
+
+bash scripts/verify-endpoints.sh --layer 3                     # MOZ_LOG=nsHostResolver:5, 35s capture window
+bash scripts/verify-endpoints.sh --layer 3 --positive-control   # re-enables OpenH264, must go red
+```
+
+`distribution/policies.json` install command, verbatim as run in
+`03-03-SUMMARY.md` (a full rebuild does not produce this file, and a clobbered
+objdir loses it — it must be re-copied after any clobber):
+
+```
+mkdir -p objdir/dist/bin/distribution
+cp sourcerer/distribution/policies.json objdir/dist/bin/distribution/policies.json
+```
+
+## Rebase procedure and desktop install (D-74, D-77)
+
+One documented command moves the fork onto a new ESR tag:
+
+```
+scripts/rebase-upstream.sh --tag <NEW_TAG> [--dry-run]
+```
+
+It fails loudly, by name, at any of: the requested tag not existing on the
+remote (checked via `git ls-remote` before any clone), `fetch-upstream.sh`
+failing to re-materialize `upstream/` at the new tag,
+`apply-patches.sh` failing to replay `patches/*.patch` (including D-75's
+non-vacuous per-patch assertion — a patch that applies as a silent no-op is a
+failure, by name), `check-patch-surface.sh` rejecting the replayed stack, or
+the git-excluded branding-overlay symlink (`upstream/sourcerer`) failing to
+resolve back to this repo's `sourcerer/` directory after the rebase.
+
+**CI story:** `.github/workflows/rebase-upstream.yml` is `workflow_dispatch`-only
+(no `schedule:` — the ~4-weekly ESR cadence is a standing post-v4.0 operational
+item, not a Phase 3 deliverable) and runs the same replay off this machine, on
+a GitHub-hosted runner. **Nix and the Gecko build are deliberately out of
+scope for this workflow**: the Nix Gecko toolchain closure does not fit a
+standard GitHub-hosted runner alongside a multi-gigabyte Gecko working tree,
+so the workflow only exercises `rebase-upstream.sh`'s clone/replay/verify
+sequence — it never runs `./mach build`. Consequently, the
+`scripts/toolchain-baseline.sh` diff against the committed
+`toolchain-baseline.txt` that PITFALLS #2 requires after every ESR rebase is a
+**local operator follow-up**, run under `nix develop .#firefox` after a
+successful CI replay — not a CI step, because the toolchain that produces it
+only exists in the `firefox` devShell this workflow does not enter.
+
+**Desktop install (local dev testing).** `sourcerer/sourcerer.desktop` (dev)
+and `sourcerer/sourcerer-release.desktop` (release) install at the user-scope
+path:
+
+```
+~/.local/share/applications/sourcerer.desktop
+~/.local/share/applications/sourcerer-release.desktop
+```
+
+Both `Exec=` and `Icon=` in each file are **absolute paths** into this
+machine's `objdir*`/branding tree — they must be repointed at the new paths
+before either file works on another machine or after this repo moves. After
+any later change to either file's `Exec=` or `StartupWMClass=`, re-register
+with:
+
+```
+update-desktop-database ~/.local/share/applications
+```
+
+`update-desktop-database` is **not currently installed on this host** — that
+follow-up needs the package (nixpkgs `desktop-file-utils`) added to a dev
+shell before it can be run; neither `.desktop` file has been installed here
+yet, so this has not blocked anything so far.
+
 ## Toolchain baseline
 
 Phase 3's rebase procedure (BUILD-03) starts by diffing the toolchain the
