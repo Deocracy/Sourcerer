@@ -80,6 +80,22 @@ pref("browser.topsites.contile.enabled", false);
 pref("browser.region.network.url", "");
 pref("dom.push.serverURL", "");
 
+// --- AMO (services.addons.mozilla.org): discovered only once the layer-3
+// observation window was corrected from 20s to 35s (see verify-endpoints.sh)
+// -- Firefox's general periodic AddonManager update-check timer
+// (toolkit/components/timermanager/UpdateTimerManager.sys.mjs,
+// app.update.timerFirstInterval defaults to 30000ms) does not fire inside a
+// 20-second capture, so 03-02's original session never observed it. The
+// master switch stops every AddonRepository network call (langpack
+// matching, addon search/discovery, browser-mappings) in one pref; the
+// individual URLs are blanked too, belt-and-braces. ---
+pref("extensions.getAddons.cache.enabled", false);
+pref("extensions.getAddons.get.url", "");
+pref("extensions.getAddons.langpacks.url", "");
+pref("extensions.getAddons.discovery.api_url", "");
+pref("extensions.getAddons.browserMappings.url", "");
+pref("extensions.addonAbuseReport.url", "");
+
 // --- NetworkConnectivityService: the actual source of the cloudflare-dns.com
 // / example.org / ipv4only.arpa hosts observed by 03-02's real layer-3
 // capture. These are NOT network.trr.mode (which already defaults to 0/off
