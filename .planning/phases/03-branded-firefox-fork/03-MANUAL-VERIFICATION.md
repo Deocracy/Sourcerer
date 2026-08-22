@@ -108,6 +108,39 @@ rendered on a given desktop environment. The automated suite proves the
 strings it reads differ; it does not and cannot prove a person can tell the
 two builds apart, which is exactly why this item is human-only.
 
+## Item A — re-verification after 03-11 gap closure
+
+**Test:** Launch both branding variants concurrently, side by side, on a
+real desktop session, each with `-no-remote` — exactly the stricter
+procedure the 2026-08-22 run above used, so the two verdicts are comparable.
+
+**Expected observation:** the dev window shows a title bar whose text ends
+in the suffixed brand name; the release window shows no title bar; the two
+are tellable apart at a glance, without opening `about:support`.
+
+**Why still human-only (unchanged from Item A above):** WebDriver BiDi's
+`browsingContext.getTree` returns content contexts only, never the chrome
+window's title; `xprop`/`xdotool`/`wmctrl` are absent from this host.
+"Tellable apart at a glance" is inherently a human perceptual judgment.
+
+**Launch commands** (run from the repository root, `/home/chris/coding/sourcerer`):
+
+1. Dev variant: `objdir/dist/bin/sourcerer -no-remote`
+2. Release variant: `objdir-release/dist/bin/sourcerer -no-remote`
+
+### Outcome (filled by Task 3 — human observation, not this task)
+
+- Observed: dev window title (literal string, or "no title bar painted"):
+  **[unfilled]**
+- Observed: release window title (literal string, or "no title bar
+  painted"): **[unfilled]**
+- Observed: title bar painted, dev variant (yes/no): **[unfilled]**
+- Observed: title bar painted, release variant (yes/no): **[unfilled]**
+- At-a-glance verdict (PASS / FAILED): **[unfilled]**
+- `about:support` used to reach the verdict (yes/no): **[unfilled]**
+- Date: **[unfilled]**
+- Observer: **[unfilled]**
+
 ## Item B — Branding tree trademark-asset review
 
 **Test (verbatim from `03-VERIFICATION.md`):** Review
