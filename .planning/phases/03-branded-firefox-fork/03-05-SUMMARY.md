@@ -191,3 +191,7 @@ None -- no external service configuration required. Neither `.desktop` file was 
 ---
 *Phase: 03-branded-firefox-fork*
 *Completed: 2026-08-21*
+
+## Self-Check: PASSED
+
+All claimed files found on disk (`sourcerer/branding/release/moz.build`, `configure.sh`, `pref/firefox-branding.js`, `default128.png`, `sourcerer/sourcerer.desktop`, `sourcerer/sourcerer-release.desktop`, `scripts/verify-branding-identity.mjs`, this SUMMARY.md, `objdir-release/dist/bin/sourcerer`). All claimed commits found in git history (`3dd2dda`, `af50e8e`, `d61be8c`, `cfdb6f0`).
