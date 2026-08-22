@@ -1,7 +1,7 @@
 ---
 phase: 03-branded-firefox-fork
 date: 2026-08-22
-status: item-a-failed-item-b-passed
+status: item-a-failed-then-passed-on-reverification-item-b-passed
 ---
 
 # Phase 3: Manual Verification Record
@@ -130,16 +130,25 @@ window's title; `xprop`/`xdotool`/`wmctrl` are absent from this host.
 
 ### Outcome (filled by Task 3 — human observation, not this task)
 
-- Observed: dev window title (literal string, or "no title bar painted"):
-  **[unfilled]**
-- Observed: release window title (literal string, or "no title bar
-  painted"): **[unfilled]**
-- Observed: title bar painted, dev variant (yes/no): **[unfilled]**
-- Observed: title bar painted, release variant (yes/no): **[unfilled]**
-- At-a-glance verdict (PASS / FAILED): **[unfilled]**
-- `about:support` used to reach the verdict (yes/no): **[unfilled]**
-- Date: **[unfilled]**
-- Observer: **[unfilled]**
+**VERDICT: PASS. Item A's expected outcome (dev and release distinguishable
+at a glance) held on re-verification.**
+
+- Observed: dev window title (literal string): **"Sourcerer Dev"** — a real
+  title bar strip painted above the tab row (New Tab has no page title, so
+  the bar shows just the brand name).
+- Observed: release window title: **no title bar painted** — unchanged,
+  tabs-in-titlebar (client-side decorations).
+- Observed: title bar painted, dev variant (yes/no): **yes**
+- Observed: title bar painted, release variant (yes/no): **no**
+- Observed: taskbar/dock icons: still look alike — expected, this plan
+  deliberately did not re-badge the icons (see the objective).
+- At-a-glance verdict (yes / description): **PASS — the two windows are
+  immediately tellable apart.** Observer's verbatim words: "Looks like a
+  PASS."
+- `about:support` used to reach the verdict: **No.**
+- Date: 2026-08-22
+- Observer: Christopher Colantuono (verdict relayed through the orchestrator
+  session with screenshot evidence of both windows side by side)
 
 ## Item B — Branding tree trademark-asset review
 
