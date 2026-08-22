@@ -113,7 +113,7 @@ Plans:
   4. Running the build on a machine with real Firefox installed never reads or writes `~/.mozilla/firefox` (proven by exact-path `strace`, not a bare `.mozilla` match), and a full-session network capture contacts no host outside a documented allowlist — whose only Mozilla entry is the `firefox.settings.services.mozilla.com` Remote Settings carve-out, with each non-Mozilla host individually waived or disabled. Each check ships a positive control that must go red
   5. A dev build is distinguishable at a glance from a future packaged release (title suffix or icon badge), and the shipped `branding/` tree contains no Mozilla trademark assets
 
-**Plans**: 6/6 plans executed
+**Plans**: 6/10 plans executed (4 gap-closure plans added 2026-08-22)
 
 Plans:
 **Wave 1**
@@ -136,6 +136,22 @@ Plans:
 **Wave 5** *(blocked on 03-04 and 03-05)*
 
 - [x] 03-06-PLAN.md — `docs/BUILD.md`: three re-measured tier timings, the compiled-file boundary, the allowlist and its one carve-out, rebase and desktop-install procedures; phase gate green (BUILD-03, BUILD-04)
+
+**Wave 6** *(gap closure — tracer slice, blocked on 03-06)*
+
+- [ ] 03-07-PLAN.md — Gap 1 (CR-01): promote a branding-variant descriptor so the `-brand-full-name` identity surface reads the variant it was pointed at; cross-variant positive control registered in the phase gate; `03-05-SUMMARY.md`'s falsified claim corrected; WR-01 fixed (BRAND-01, BRAND-06)
+
+**Wave 7** *(blocked on 03-07)*
+
+- [ ] 03-08-PLAN.md — Gap 3 (CR-02): pref-file backup brought under `verify-endpoints.sh`'s own trap-covered `cleanup()`, proven by a real SIGINT self-test registered in the phase gate; plus WR-02, IN-02, IN-03 (BRAND-03, BRAND-04, BUILD-03)
+
+**Wave 8** *(blocked on 03-08)*
+
+- [ ] 03-09-PLAN.md — Gap 2: Criterion 4, BRAND-04 and D-83 amended to describe the three-host Remote Settings carve-out; allowlist-to-document consistency machine-gated with a planted-failure self-test (BRAND-04)
+
+**Wave 9** *(blocked on 03-09)*
+
+- [ ] 03-10-PLAN.md — Both Manual-Only human verifications performed and durably recorded in `03-MANUAL-VERIFICATION.md`; final full phase-gate run recorded (BRAND-02, BRAND-06)
 
 > **Build budget:** this phase spends exactly **two** full `./mach build` cycles
 > — build #1 in 03-01 and build #2 in 03-05, the latter into a separate
