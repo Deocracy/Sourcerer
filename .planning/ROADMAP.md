@@ -25,7 +25,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Build Infrastructure** - Nix flake with `theia` and `firefox` dev shells; both halves build from a clean checkout on the NixOS host (completed 2026-08-20)
 - [x] **Phase 2: Sourcerer Theia Extensions** - `@sourcerer/*` extensions deliver branding, the inert customization seam, and a URI for every tab (completed 2026-08-20)
-- [ ] **Phase 3: Branded Firefox Fork** - Vendored ESR fork rebranded to Sourcerer, iterated via the tiered incremental rebuild loop, trademark- and telemetry-free
+- [x] **Phase 3: Branded Firefox Fork** - Vendored ESR fork rebranded to Sourcerer, iterated via the tiered incremental rebuild loop, trademark- and telemetry-free (completed 2026-08-22)
 - [ ] **Phase 4: Full-Window Theia Shell** - `sourcerer.xhtml` + `SourcererAPI` + `TheiaService`: one window, Theia is the entire UI, backend spawned and token-gated
 - [ ] **Phase 5: Lifecycle & Failure Hardening** - Zero orphaned processes, single-instance behaviour, branded error state, diagnostics page
 
@@ -244,7 +244,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 (2 and 3 may run in p
 |-------|----------------|--------|-----------|
 | 1. Build Infrastructure | 4/4 | Complete   | 2026-08-20 |
 | 2. Sourcerer Theia Extensions | 7/7 | Complete   | 2026-08-20 |
-| 3. Branded Firefox Fork | 11/11 | In Progress|  |
+| 3. Branded Firefox Fork | 11/11 | Complete    | 2026-08-22 |
 | 4. Full-Window Theia Shell | 0/TBD | Not started | - |
 | 5. Lifecycle & Failure Hardening | 0/TBD | Not started | - |
 
