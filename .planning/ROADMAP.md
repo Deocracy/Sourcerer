@@ -113,7 +113,7 @@ Plans:
   4. Running the build on a machine with real Firefox installed never reads or writes `~/.mozilla/firefox` (proven by exact-path `strace`, not a bare `.mozilla` match), and a full-session network capture contacts no host outside a documented allowlist — whose Mozilla entries are the three hosts of the one Remote Settings carve-out (D-83): `firefox.settings.services.mozilla.com` (the Remote Settings service itself, 24-hour poll), `content-signature-2.cdn.mozilla.net` (the content-signature certificate chain each downloaded collection is verified against), and `firefox-settings-attachments.cdn.mozilla.net` (the attachment CDN serving large collection blobs, including CRLite's own revocation data) — with each non-Mozilla host individually waived or disabled. Each check ships a positive control that must go red
   5. A dev build is distinguishable at a glance from a future packaged release (title suffix or icon badge), and the shipped `branding/` tree contains no Mozilla trademark assets
 
-**Plans**: 10/10 plans executed (4 gap-closure plans added 2026-08-22)
+**Plans**: 11 plans — 10/10 executed, plus 03-11 planned 2026-08-22 to close the one remaining gap (5 gap-closure plans total)
 
 Plans:
 **Wave 1**
@@ -152,6 +152,10 @@ Plans:
 **Wave 9** *(blocked on 03-09)*
 
 - [x] 03-10-PLAN.md — Both Manual-Only human verifications performed and durably recorded in `03-MANUAL-VERIFICATION.md`; final full phase-gate run recorded (BRAND-02, BRAND-06)
+
+**Wave 10** *(gap closure — Criterion 5 / BRAND-06, blocked on 03-10)*
+
+- [ ] 03-11-PLAN.md — Close the human-verified BRAND-06 failure: dev `brand.properties` diverged to match its own `brand.ftl`, a dev-only `browser.tabs.inTitlebar` default so the dev build paints a real title bar carrying the suffixed brand name (release keeps tabs-in-titlebar and paints none), the brand-full-name identity surface extended to read the properties bundle, a `branding-variant-divergence` check with a both-directions self-test, and a human re-verification of Item A (BRAND-06, BRAND-01)
 
 > **Build budget:** this phase spends exactly **two** full `./mach build` cycles
 > — build #1 in 03-01 and build #2 in 03-05, the latter into a separate
