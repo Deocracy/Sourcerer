@@ -110,7 +110,7 @@ Plans:
   1. Six identity surfaces each report Sourcerer, verified by command: executable name in `dist/bin`, `application.ini` `Name` and `Vendor`, about:support identity fields, window title, the `.desktop` file's `Name` and `StartupWMClass`, and `--version` output (an open `grep -ri firefox` is not the check — 39 filenames and 32 further occurrences are upstream feature names that survive a correct build)
   2. The repo is laid out as `upstream/` (pinned tag) + `patches/` + `sourcerer/`, and the documented rebase procedure replays the patch stack onto a new ESR tag, failing loudly on conflict rather than silently dropping a patch
   3. `scripts/check-patch-surface.sh` exits non-zero on a deliberately-planted compiled-file patch (working positive control), and the tiered loop's timings — `./mach run` for symlinked frontend files, `./mach build faster` for preprocessed files, full build after a compiled-define change — are re-measured on the dev host at phase end and recorded in `docs/BUILD.md` with date and command
-  4. Running the build on a machine with real Firefox installed never reads or writes `~/.mozilla/firefox` (proven by exact-path `strace`, not a bare `.mozilla` match), and a full-session network capture contacts no host outside a documented allowlist — whose only Mozilla entry is the `firefox.settings.services.mozilla.com` Remote Settings carve-out, with each non-Mozilla host individually waived or disabled. Each check ships a positive control that must go red
+  4. Running the build on a machine with real Firefox installed never reads or writes `~/.mozilla/firefox` (proven by exact-path `strace`, not a bare `.mozilla` match), and a full-session network capture contacts no host outside a documented allowlist — whose Mozilla entries are the three hosts of the one Remote Settings carve-out (D-83): `firefox.settings.services.mozilla.com` (the Remote Settings service itself, 24-hour poll), `content-signature-2.cdn.mozilla.net` (the content-signature certificate chain each downloaded collection is verified against), and `firefox-settings-attachments.cdn.mozilla.net` (the attachment CDN serving large collection blobs, including CRLite's own revocation data) — with each non-Mozilla host individually waived or disabled. Each check ships a positive control that must go red
   5. A dev build is distinguishable at a glance from a future packaged release (title suffix or icon badge), and the shipped `branding/` tree contains no Mozilla trademark assets
 
 **Plans**: 8/10 plans executed (4 gap-closure plans added 2026-08-22)
@@ -170,6 +170,17 @@ Plans:
 > cannot be disabled by pref off Nightly (`services/settings/Utils.sys.mjs:52-84`),
 > and the alternative policy also stops CRLite certificate-revocation data,
 > intermediate-certificate preloading and tracking-protection updates (D-83).
+
+> **Criterion 4's carve-out amended to three hosts, 2026-08-22** (03-09 gap
+> closure, `.planning/phases/03-branded-firefox-fork/03-VERIFICATION.md` Gap 2,
+> D-83). D-83's Remote Settings carve-out was always a three-host *feature*,
+> not the single endpoint the criterion's wording implied: a real, non-control
+> 35-second network capture in 03-03 confirmed `firefox.settings.services.mozilla.com`,
+> `content-signature-2.cdn.mozilla.net` and `firefox-settings-attachments.cdn.mozilla.net`
+> are exactly what the built browser resolves under Remote Settings, and the
+> shipped `sourcerer/endpoint-allowlist.json` already allow-dispositioned all
+> three. This note amends Criterion 4's text to match the allowlist and the
+> evidence already on record; the 2026-08-21 note above is unedited.
 
 ### Phase 4: Full-Window Theia Shell
 
