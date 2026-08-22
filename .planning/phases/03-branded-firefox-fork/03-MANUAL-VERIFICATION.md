@@ -1,7 +1,11 @@
 ---
 phase: 03-branded-firefox-fork
 date: 2026-08-22
-status: item-a-failed-then-passed-on-reverification-item-b-passed
+status: passed
+# Item A: FAILED 2026-08-22, then PASSED on re-verification after 03-11 gap closure (same day).
+# Item B: PASSED. `status:` uses the routing-table vocabulary because this file matches the
+# `*-VERIFICATION.md` glob and alphabetically shadows 03-VERIFICATION.md in gsd-tools'
+# verification.status reader — a non-vocabulary value here routes the whole phase as unknown/stale.
 ---
 
 # Phase 3: Manual Verification Record
