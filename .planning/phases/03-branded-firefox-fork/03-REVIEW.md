@@ -1,216 +1,158 @@
 ---
 phase: 03-branded-firefox-fork
-reviewed: 2026-08-21T00:00:00Z
+reviewed: 2026-08-22T00:00:00Z
 depth: standard
-files_reviewed: 18
+files_reviewed: 31
 files_reviewed_list:
+  - docs/BUILD.md
+  - flake.nix
+  - .github/workflows/rebase-upstream.yml
+  - .gitignore
+  - .mozconfig
+  - patches/010-sourcerer-identity.patch
+  - README.md
   - scripts/apply-patches.sh
   - scripts/check-patch-surface.sh
   - scripts/fetch-upstream.sh
+  - scripts/lib/firefox-bidi.mjs
   - scripts/rebase-upstream.sh
+  - scripts/verify-branding-identity.mjs
   - scripts/verify-endpoints.sh
   - scripts/verify-phase-03.sh
-  - scripts/lib/firefox-bidi.mjs
-  - scripts/verify-branding-identity.mjs
-  - .github/workflows/rebase-upstream.yml
-  - .mozconfig
-  - flake.nix
-  - patches/010-sourcerer-identity.patch
-  - sourcerer/endpoint-allowlist.json
-  - sourcerer/distribution/policies.json
-  - sourcerer/branding/dev/pref/firefox-branding.js
-  - sourcerer/branding/release/pref/firefox-branding.js
   - sourcerer/branding/dev/configure.sh
+  - sourcerer/branding/dev/content/jar.mn
+  - sourcerer/branding/dev/content/aboutDialog.css
+  - sourcerer/branding/dev/locales/en-US/brand.ftl
+  - sourcerer/branding/dev/locales/en-US/brand.properties
+  - sourcerer/branding/dev/moz.build
+  - sourcerer/branding/dev/pref/firefox-branding.js
   - sourcerer/branding/release/configure.sh
+  - sourcerer/branding/release/content/aboutDialog.css
+  - sourcerer/branding/release/content/jar.mn
+  - sourcerer/branding/release/content/moz.build
+  - sourcerer/branding/release/locales/en-US/brand.ftl
+  - sourcerer/branding/release/locales/en-US/brand.properties
+  - sourcerer/branding/release/locales/jar.mn
+  - sourcerer/branding/release/locales/moz.build
+  - sourcerer/branding/release/moz.build
+  - sourcerer/branding/release/pref/firefox-branding.js
+  - sourcerer/distribution/policies.json
+  - sourcerer/endpoint-allowlist.json
   - sourcerer/sourcerer.desktop
   - sourcerer/sourcerer-release.desktop
 findings:
-  critical: 2
-  warning: 2
-  info: 3
-  total: 7
+  critical: 0
+  warning: 3
+  info: 1
+  total: 4
 status: issues_found
 ---
 
 # Phase 3: Code Review Report
 
-**Reviewed:** 2026-08-21
+**Reviewed:** 2026-08-22
 **Depth:** standard
-**Files Reviewed:** 18 (plus `sourcerer/branding/{dev,release}/locales/en-US/brand.ftl`, read as evidence for CR-01)
+**Files Reviewed:** 34
 **Status:** issues_found
 
 ## Summary
 
-This phase's dominant risk, per its own stated philosophy ("a negative check without a demonstrated-red positive control proves nothing"), is a verification harness that can go green while measuring nothing. Six prior bugs of exactly that shape were found and fixed across plans 03-02/03-03/03-05 (the capture-window/glob/argv bugs documented in the SUMMARYs). This review found **two more of the same class that were not caught**:
+This is a re-review of a phase that already went through one review cycle
+(`03-REVIEW.md`, 2026-08-21) and two gap-closure plans. Both previously-found
+Critical issues were verified fixed by direct inspection of the current
+source, not taken on trust:
 
-1. `verify-branding-identity.mjs`'s "brand-full-name" surface (identity surface 4) is hardcoded to read the **dev** branding tree's `brand.ftl` regardless of the `--bin`/`--desktop`/`--config-status` overrides `verify-phase-03.sh`'s own `verify-branding-identity-release` check passes it. The release build's own `brand.ftl` (which correctly differs, "Sourcerer" vs "Sourcerer Dev") is never read by any code path. This directly contradicts 03-05-SUMMARY.md's claim that "identity surface 4 reads two different real values from the two variants' own `brand.ftl` files" -- as implemented, it reads the same file and the same expected constant every time.
-2. `verify-endpoints.sh`'s layer-1 and layer-3 `--positive-control` paths mutate the **real, installed** branding pref file under `objdir/dist/bin/.../firefox-branding.js` (re-enabling OpenH264, restoring the stock GMP-manager URL) and restore it only via a linear post-mutation `cp`, with no SIGINT/TERM-safe path. The script's own top-level `trap cleanup EXIT` / `trap 'cleanup; exit 130' INT TERM` cleans up backgrounded PIDs and `mktemp` scratch paths, but never the pref-file backup. A SIGINT during layer 3's 35-second sleep (a very plausible interactive event) leaves the actual built binary silently running with part of BRAND-04's endpoint lockdown undone, undetected until the next full `./mach build` (measured at 2368s-2822s in this phase, i.e., not something a developer will trigger to "just check").
+- **CR-01** (`verify-branding-identity.mjs`'s brand-full-name surface always
+  reading the dev tree's `brand.ftl`) is fixed: the file now has a
+  `VARIANTS` descriptor (`scripts/verify-branding-identity.mjs:95-110`) with
+  a per-variant `brandFtl`/`brandFullName` pair, a `--variant`/`--brand-ftl`
+  override, and `checkBrandFullName` reads `BRAND_FTL_PATH`, which is
+  variant-derived. `verify-phase-03.sh` now runs both
+  `verify-branding-identity-dev` and `verify-branding-identity-release` plus
+  a dedicated `--variant release --positive-control brand-full-name`
+  cross-variant control (`scripts/verify-phase-03.sh:279-281`).
+- **CR-02** (positive controls mutating the real installed pref file with no
+  interrupt-safe restore) is fixed: `scripts/verify-endpoints.sh` now has
+  `track_pref_backup`/`restore_pref_backup` (lines 118-143) registered
+  against the script's top-level `cleanup()` (called from both `trap cleanup
+  EXIT` and `trap 'cleanup; exit 130' INT TERM`, lines 160-161), and a
+  dedicated `--interrupt-self-test` mode (lines 465-566) that sends a real
+  SIGINT into a real running layer-3 control and asserts the pref file
+  survives byte-identical. This is a genuine, demonstrated-red-capable
+  regression test, not just a code-shape argument.
 
-The remaining findings are lower-severity robustness/quality issues. No secrets, no shell-injection, and no CI-workflow-injection were found beyond what the phase's own SUMMARYs already document as fixed (`.github/workflows/rebase-upstream.yml`'s `env:`-mediated `REBASE_TAG` is correctly non-interpolated).
+Of the prior review's four lower-severity findings, three (WR-02's `eval`,
+WR-01's untrimmed-line regex mismatch, IN-02's unscoped `home_count`/
+`exact_count`, IN-03's tag-pinned `actions/checkout`) are also fixed and
+verified in the current source. **IN-01 (stale header comment in
+`firefox-bidi.mjs`) is not fixed** — re-reported below, unchanged.
 
-## Critical Issues
-
-### CR-01: `verify-branding-identity.mjs`'s brand-full-name surface never reads the release variant it is asked to check
-
-**File:** `scripts/verify-branding-identity.mjs:141` (constant), `271-280` (surface), consumed by `scripts/verify-phase-03.sh:149`
-
-**Issue:** `BRAND_FTL_PATH` is a hardcoded constant:
-
-```js
-const BRAND_FTL_PATH = join(REPO_ROOT, 'sourcerer', 'branding', 'dev', 'locales', 'en-US', 'brand.ftl');
-```
-
-Every other surface in this file is variant-aware: `checkExecutable`/`checkApplicationIni`/`checkVersion` derive their paths from `BIN_PATH` (itself driven by `--bin`), and `checkDesktopEntry` takes `--desktop`/`--config-status` overrides. `checkBrandFullName`, however, takes no override at all and always reads the **dev** tree's `brand.ftl`, always compares against the hardcoded literal `'Sourcerer Dev'`:
-
-```js
-function checkBrandFullName() {
-    const value = readBrandFullName(BRAND_FTL_PATH);
-    const expected = 'Sourcerer Dev';
-    ...
-```
-
-`scripts/verify-phase-03.sh`'s `verify-branding-identity-release` check invokes this script with `--bin .../objdir-release/dist/bin/sourcerer --desktop .../sourcerer-release.desktop --config-status .../objdir-release/config.status` -- every override this script supports -- and still gets the dev-tree assertion back. Confirmed by reading `sourcerer/branding/release/locales/en-US/brand.ftl:8` directly: it correctly says `-brand-full-name = Sourcerer` (not "Sourcerer Dev"), but no code path in this file ever reads that file. If the release `brand.ftl` were reverted, deleted, or accidentally made identical to dev's, `verify-branding-identity-release` would still report `PASS brand-full-name` every time, because it is checking a file untouched by which variant was requested. This is exactly the failure mode this phase's own validation philosophy targets: a check that stays green if its actual subject changes or disappears. It also invalidates 03-05-SUMMARY.md's D3 claim that this surface is one of BRAND-06's three independently-verified dev-vs-release distinguishing signals -- as implemented, it is not a per-variant signal at all.
-
-**Fix:** Add a `--brand-ftl <path>` override (mirroring `--desktop`/`--config-status`) and thread it through `verify-phase-03.sh`'s release invocation:
-
-```js
-const BRAND_FTL_PATH = brandFtlOverride || join(REPO_ROOT, 'sourcerer', 'branding', 'dev', 'locales', 'en-US', 'brand.ftl');
-```
-
-```js
-const brandFtlOverride = argValue('--brand-ftl');
-```
-
-```js
-function checkBrandFullName({ expected = 'Sourcerer Dev' } = {}) {
-    const value = readBrandFullName(BRAND_FTL_PATH);
-    const pass = value === expected;
-    ...
-```
-
-And in `scripts/verify-phase-03.sh`'s `verify-branding-identity-release` entry, add `--brand-ftl $REPO_ROOT/sourcerer/branding/release/locales/en-US/brand.ftl` (plus an `--expect-brand-full-name Sourcerer` style override, or infer the expectation the same way `checkDesktopEntry` infers `MOZ_APP_DISPLAYNAME` from `--config-status` rather than hardcoding it).
-
----
-
-### CR-02: Positive controls mutate the real installed branding pref file with no interrupt-safe restore
-
-**File:** `scripts/verify-endpoints.sh:183-214` (layer 1 control), `311-364` (layer 3, `run_layer3_impl`), trap setup at `104-117`
-
-**Issue:** `run_layer1_control` and `run_layer3_impl` (when `control=1`) both back up and then mutate `$BRANDING_PREF_FILE`, which resolves to the **installed, live** pref file the actual built binary reads at startup (`$REPO_ROOT/objdir/dist/bin/browser/defaults/preferences/firefox-branding.js`), not a scratch copy:
-
-```bash
-backup="$(mktemp)"
-cp "$BRANDING_PREF_FILE" "$backup"
-cat >> "$BRANDING_PREF_FILE" <<'PREFEOF'
-pref("media.gmp-gmpopenh264.enabled", true);
-PREFEOF
-```
-
-Restoration (`cp "$backup" "$BRANDING_PREF_FILE"`) only happens on the normal, uninterrupted code path. The file's own top-level trap handlers only manage `ACTIVE_PID` and `TEMP_PATHS` (`cleanup()`, lines 104-115) -- the pref-file `backup` variable is never registered with `track_temp`, and no trap restores it. Layer 3's control runs a real backgrounded `sourcerer` process for a fixed **35-second sleep** (`run_layer3_impl`, line 341) with the mutated pref file already in place; a SIGINT delivered anywhere in that 35-second window (a routine, plausible action for anyone impatiently watching a test run) fires `trap 'cleanup; exit 130' INT TERM`, which kills the backgrounded process and exits -- but the appended `media.gmp-gmpopenh264.enabled=true` / restored stock `media.gmp-manager.url` line is never reverted. The actual built `objdir/dist/bin/sourcerer` binary is then left, silently, with OpenH264's unattended-download path and the stock GMP-manager URL re-enabled -- exactly the two endpoints BRAND-04/D-87 exist to close -- until the next full `./mach build` (measured at 2368s-2822s this phase; not something anyone reruns just to check a pref file). This is a real robustness gap in the tool whose entire purpose is proving those endpoints stay closed.
-
-**Fix:** Register the backup path with the same trap-covered cleanup mechanism the rest of the script already uses, e.g.:
-
-```bash
-run_layer3_impl() {
-  local control="$1"
-  local backup=""
-  if [ "$control" -eq 1 ]; then
-    backup="$(mktemp)"
-    cp "$BRANDING_PREF_FILE" "$backup"
-    PREF_BACKUP_SRC="$backup"
-    PREF_BACKUP_DST="$BRANDING_PREF_FILE"
-    ...
-```
-
-and extend `cleanup()`:
-
-```bash
-cleanup() {
-  if [ -n "${PREF_BACKUP_SRC:-}" ]; then
-    cp "$PREF_BACKUP_SRC" "$PREF_BACKUP_DST"
-    rm -f "$PREF_BACKUP_SRC"
-    PREF_BACKUP_SRC=""
-  fi
-  ...
-```
-
-so a SIGINT/TERM restores the real pref file before the process exits, exactly as it already does for `ACTIVE_PID` and `TEMP_PATHS`.
+This pass also found three new issues, all in the branding data itself
+rather than the verification harness: one confirms and localizes a gap
+already flagged in project context (BRAND-06, `brand.properties` byte-identical
+across variants), and two are newly found — an unpackaged `aboutDialog.css`
+shipped in both branding trees, and `distribution/policies.json` having no
+automated build-time or verify-time proof it ever lands in a built objdir.
+None of these are crashes or security issues; all are real behavior/coverage
+gaps, hence Warning, not Critical.
 
 ## Warnings
 
-### WR-01: `readBrandFullName` anchors its regex to the untrimmed line, while its own `.find()` predicate checks the trimmed one
+### WR-01: `brand.properties` is byte-identical between dev and release, defeating BRAND-06's per-variant distinguishability
 
-**File:** `scripts/verify-branding-identity.mjs:181-188`
+**File:** `sourcerer/branding/dev/locales/en-US/brand.properties:7`, `sourcerer/branding/release/locales/en-US/brand.properties:7`
 
-**Issue:**
+**Issue:** Both variants' `brand.properties` set `brandFullName=Sourcerer` — the files are byte-identical (confirmed via diff). Meanwhile the two variants' `brand.ftl` correctly diverge: dev's `-brand-full-name = Sourcerer Dev` (`sourcerer/branding/dev/locales/en-US/brand.ftl:8`) vs. release's `-brand-full-name = Sourcerer` (`sourcerer/branding/release/locales/en-US/brand.ftl:8`). Any UI surface in this Firefox version that still reads the legacy non-Fluent `brand.properties` string bundle (rather than the Fluent `-brand-full-name` term) — the properties file is still packaged via `locales/jar.mn`'s `locale/branding/brand.properties (en-US/brand.properties)` mapping in both trees — renders "Sourcerer" for both dev and release, identical to each other, defeating the entire point of shipping two branding variants (BRAND-06's stated purpose). `verify-branding-identity.mjs`'s brand-full-name surface (correctly fixed for CR-01) only reads `brand.ftl`, so this divergence is invisible to the phase's own automated checks — a green `verify-phase-03` run does not prove the two variants are visually distinguishable everywhere the requirement needs them to be.
 
-```js
-function readBrandFullName(path) {
-    const line = readFileSync(path, 'utf8').split(/\r?\n/).find(l => l.trim().startsWith('-brand-full-name'));
-    ...
-    const m = line.match(/^-brand-full-name\s*=\s*(.+)$/);
+**Fix:** Make `brand.properties` per-variant, matching `brand.ftl`:
+
+```properties
+# sourcerer/branding/dev/locales/en-US/brand.properties
+brandShorterName=Sourcerer
+brandShortName=Sourcerer
+brandFullName=Sourcerer Dev
 ```
 
-`.find()` selects a line based on its **trimmed** content but returns the **original, untrimmed** `l`. `line.match(/^-brand-full-name.../)` then anchors `^` against that untrimmed string. Both current `brand.ftl` files happen to have zero leading whitespace on this line, so this does not currently misfire, but it is one indentation character away from throwing `"... -brand-full-name line has an unexpected or empty shape"` on an otherwise well-formed file -- a latent fragility in a file this harness is supposed to robustly read.
+and add a `brand-properties`-equivalent surface (or extend the existing
+brand-full-name surface) to `verify-branding-identity.mjs` so this file is
+asserted per-variant the same way `brand.ftl` now is — otherwise this exact
+regression can recur silently.
 
-**Fix:** Match against the trimmed line:
+### WR-02: `aboutDialog.css` is shipped in both branding trees but never packaged — dead file, unreachable at the `chrome://branding/content/aboutDialog.css` URI upstream's own `aboutDialog.xhtml` requests
 
-```js
-const line = readFileSync(path, 'utf8').split(/\r?\n/)
-    .map(l => l.trim())
-    .find(l => l.startsWith('-brand-full-name'));
+**File:** `sourcerer/branding/dev/content/aboutDialog.css`, `sourcerer/branding/release/content/aboutDialog.css` (byte-identical, confirmed via diff); `sourcerer/branding/dev/content/jar.mn:6-9`, `sourcerer/branding/release/content/jar.mn:6-9`
+
+**Issue:** Both trees' `content/jar.mn` is a deliberate stub that maps only the five `icon*.png` entries into `content/branding/` and explicitly documents, in its own header comment, that it does **not** reference `aboutDialog.css`, `about-logo*`, or `about-wordmark.svg`. Yet `content/aboutDialog.css` exists as a real, non-trivial file (dark-theme `#aboutDialogContainer`/`#bottomBox`/`#rightBox` rules) in both trees. Since neither `jar.mn` maps it into `browser.jar`, it is never installed under `chrome://branding/content/` — it is dead source, unreachable at runtime. This matters beyond simple dead-code: Firefox's own `browser/base/content/aboutDialog.xhtml` unconditionally links `chrome://branding/content/aboutDialog.css`, so the About dialog will resolve that chrome URI to nothing and silently render without the intended dark background/logo sizing — compounding the already-known gap that `chrome://branding/content/about-logo@2x.png` is also unshipped. The file's presence gives the false impression this styling is live.
+
+**Fix:** Either wire it in —
+
+```
+# content/jar.mn
+  content/branding/aboutDialog.css              (aboutDialog.css)
 ```
 
-### WR-02: `verify-phase-03.sh` uses `eval` for statically-known function names
+— or delete the file from both trees if the dark-theme About dialog was intentionally descoped for this phase (matching the jar.mn comment's own stated intent), so the tree doesn't carry a plausible-looking file that silently does nothing.
 
-**File:** `scripts/verify-phase-03.sh:180`
+### WR-03: `sourcerer/distribution/policies.json` has no build-time wiring and no verify-time coverage proving it reaches a built objdir
 
-**Issue:**
+**File:** `sourcerer/distribution/policies.json`; documented manual step at `docs/BUILD.md:380-387`
 
-```bash
-*)
-  if eval "$cmd"; then
-```
+**Issue:** `policies.json` carries `DisableAppUpdate`, `DisableTelemetry`, and `DisableFirefoxStudies` — three of this phase's own BRAND-04 lockdown guarantees. No `moz.build` anywhere in the tree references `sourcerer/distribution/` (confirmed: no `moz.build` file under `sourcerer/distribution/`, and no other `moz.build` in the repo mentions `distribution`), so the only path that ever installs this file into a built tree is the manual command `docs/BUILD.md` documents: `cp sourcerer/distribution/policies.json objdir/dist/bin/distribution/policies.json`, which the doc itself says "must be re-copied after any clobber." Neither `scripts/verify-phase-03.sh` nor `scripts/verify-endpoints.sh` asserts that `objdir/dist/bin/distribution/policies.json` exists or matches the source file in a built tree — the three policies it encodes have zero automated coverage. A developer (or CI, once it builds Firefox) who clobbers `objdir/` and rebuilds without remembering the manual copy ships a binary with `DisableAppUpdate`/`DisableTelemetry`/`DisableFirefoxStudies` silently reverted to unset, and nothing in this phase's verification suite would catch it.
 
-`$cmd` here is always one of the literal function names in the script's own `CHECKS` array (`check_allowlist_schema`, `check_desktop_entry_quick`) -- not attacker- or user-controlled in this script's current form, so this is not currently exploitable. `eval` is still the wrong tool for "call this function by name"; it invites a real injection bug the day a future plan adds a `CHECKS` entry built from any external input (a CLI flag, an env var, a file read).
-
-**Fix:** Call the function directly rather than through `eval`, since the non-external branch only ever needs to invoke a shell function:
-
-```bash
-*)
-  if "$cmd"; then
-```
-
-(Bash already supports calling a function stored in a plain variable this way; no `eval` needed for a bareword function name.)
+**Fix:** At minimum, add a quick check (in `verify-phase-03.sh --quick`, since it needs no browser launch) asserting `objdir/dist/bin/distribution/policies.json` exists and its content matches `sourcerer/distribution/policies.json` byte-for-byte. Longer-term, wire the copy into the build itself via a `moz.build` `FINAL_TARGET_FILES.distribution` rule (or an equivalent packaging hook) so the manual step is not a standing operational risk.
 
 ## Info
 
-### IN-01: `firefox-bidi.mjs`'s top-of-file header comment is stale
+### IN-01: `firefox-bidi.mjs`'s header comment is still stale (unfixed since 03-REVIEW.md)
 
-**File:** `scripts/lib/firefox-bidi.mjs:1-20`
+**File:** `scripts/lib/firefox-bidi.mjs:1-3`
 
-**Issue:** The file's opening comment block still describes the driver as being "for `objdir/dist/bin/firefox`, the Firefox build this repo already produces (Phase 1)" and says "this driver spawns it directly" referring to that path. `FIREFOX_BIN` was repointed to `objdir/dist/bin/sourcerer` in this same phase (plan 03-02), and a second comment block further down (lines 32-38) correctly documents the rename -- the top header was never updated to match, so a reader stops at the first (wrong) description before reaching the correct one.
+**Issue:** The file's opening comment still reads "Zero-dependency WebDriver BiDi driver for `objdir/dist/bin/firefox`, the Firefox build this repo already produces (Phase 1)." `FIREFOX_BIN` was repointed to `objdir/dist/bin/sourcerer` in this same phase (`scripts/lib/firefox-bidi.mjs:39`), and a second, correct comment block further down (lines 32-38) already documents the rename — the top header was never updated to match. This was flagged in the prior review (IN-01) and is still present verbatim; it was evidently out of scope for the two gap-closure plans that addressed CR-01/CR-02.
 
 **Fix:** Update the opening comment's binary name to `sourcerer`, or delete the now-redundant restatement and let the lines-32-38 comment be the single source of truth.
 
-### IN-02: `home_count` is not scoped `local`, unlike its sibling `exact_count`
-
-**File:** `scripts/verify-endpoints.sh:260`
-
-**Issue:** In `run_layer2_impl`, `exact_count` is read via a bare assignment without `local` either (line 261 also lacks `local`, only `mozilla_count` at line 247's comment references a variable that isn't actually declared/used at all -- dead reference in the comment). Neither `home_count` nor `exact_count` is declared `local` in this function, unlike `sandbox`/`log`/`shot`/`home_for_run`/`extra_args` in the same function. Harmless today since `run_layer2_impl` only runs once per script invocation, but inconsistent scoping discipline that would leak state if the function were ever called twice in one process (e.g., a future `--layer 2 --layer 2` style loop).
-
-**Fix:** Add `local home_count exact_count` alongside the function's other `local` declarations.
-
-### IN-03: `.github/workflows/rebase-upstream.yml` pins `actions/checkout` by tag, not by commit SHA
-
-**File:** `.github/workflows/rebase-upstream.yml:35`
-
-**Issue:** `uses: actions/checkout@v4` resolves a mutable tag rather than an immutable commit SHA. This is a standard supply-chain hardening recommendation for GitHub Actions (a compromised or re-tagged `v4` would run in this workflow with `workflow_dispatch`'s write-level trigger permissions) -- low practical risk here since `workflow_dispatch` already requires repo write access to trigger at all, but worth noting since this is the phase's only CI workflow.
-
-**Fix:** Pin to a specific commit SHA with a version comment, e.g. `uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2`.
-
 ---
 
-_Reviewed: 2026-08-21_
+_Reviewed: 2026-08-22_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
