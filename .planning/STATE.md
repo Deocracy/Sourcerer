@@ -154,6 +154,12 @@ None yet.
 - Phase 4: verify the pinned Theia release is >= 1.73.1 and that the CVE-2026-61891 token check fires on plain HTTP, not only WebSocket upgrade.
 - All phases: Theia has no API stability tier. Review every `@theia/*` import against `doc/Migration.md` and record it in INTERNAL-APIS.md.
 
+## Quick Tasks Completed
+
+| Date | Slug | Description |
+|------|------|-------------|
+| 2026-08-22 | stream-model-docs | Recorded the three-layer stream model (Power Browser as midstream platform, Sourcerer as downstream distribution) in PRODUCT-REQUIREMENTS.md and sourcerer-architecture.md |
+
 ## Deferred Items
 
 Items acknowledged and carried forward from previous milestone close:
