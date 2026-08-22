@@ -49,19 +49,25 @@ ALLOWLIST="$REPO_ROOT/sourcerer/endpoint-allowlist.json"
 BRANDING_PREF_FILE="$BIN_DIR/browser/defaults/preferences/firefox-branding.js"
 
 HELP="Usage: verify-endpoints.sh [--layer 1|2|3] [--positive-control] [--help]
+       verify-endpoints.sh --interrupt-self-test
 
 Runs BRAND-04's three endpoint/telemetry proof layers against the built
 binary. No flag runs all three layers' real assertions.
 
-  --layer 1|2|3       Run only the named layer
-  --positive-control  Run the selected layer(s)' positive control instead of
-                       their real assertion; exits 0 only if the control(s)
-                       correctly went red
-  --help              Print this message and exit 0
+  --layer 1|2|3          Run only the named layer
+  --positive-control     Run the selected layer(s)' positive control instead
+                          of their real assertion; exits 0 only if the
+                          control(s) correctly went red
+  --interrupt-self-test  Sends a real SIGINT into a real running layer-3
+                          positive control on purpose, and asserts the
+                          installed pref file survives byte-identical.
+                          Mutually exclusive with --layer/--positive-control.
+  --help                 Print this message and exit 0
 "
 
 LAYER_ARG=""
 DO_CONTROL=0
+INTERRUPT_SELF_TEST=0
 
 args=("$@")
 i=0
@@ -80,6 +86,7 @@ while [ "$i" -lt "${#args[@]}" ]; do
       esac
       ;;
     --positive-control) DO_CONTROL=1 ;;
+    --interrupt-self-test) INTERRUPT_SELF_TEST=1 ;;
     --help)
       echo "$HELP"
       exit 0
@@ -91,6 +98,11 @@ while [ "$i" -lt "${#args[@]}" ]; do
   esac
   i=$((i + 1))
 done
+
+if [ "$INTERRUPT_SELF_TEST" -eq 1 ] && { [ -n "$LAYER_ARG" ] || [ "$DO_CONTROL" -eq 1 ]; }; then
+  echo "verify-endpoints: FAIL -- --interrupt-self-test is mutually exclusive with --layer/--positive-control" >&2
+  exit 1
+fi
 
 # ---------------------------------------------------------------------------
 # Process/temp-file hygiene, shared by every layer. Split trap: EXIT alone is
@@ -447,8 +459,123 @@ run_layer3_control() {
 }
 
 # ---------------------------------------------------------------------------
+# Interrupt self-test -- proves the Task 1 fix with a real SIGINT sent to a
+# real running control, not an assertion that the code looks correct.
+# ---------------------------------------------------------------------------
+run_interrupt_self_test() {
+  echo "verify-endpoints: interrupt self-test..."
+
+  if [ ! -f "$BRANDING_PREF_FILE" ]; then
+    echo "verify-endpoints: interrupt self-test FAIL -- $BRANDING_PREF_FILE does not exist" >&2
+    return 1
+  fi
+
+  # Independent guard copy -- this self-test's own safety net, entirely
+  # separate from the child process's own PREF_BACKUP_SRC/DST below.
+  # Restored unconditionally at the end regardless of outcome, and
+  # registered with track_temp so this script's own cleanup() removes it
+  # even if this function itself is interrupted.
+  local guard expected_sha
+  guard="$(mktemp)"
+  track_temp "$guard"
+  cp "$BRANDING_PREF_FILE" "$guard"
+  expected_sha="$(sha256sum "$BRANDING_PREF_FILE" | awk '{print $1}')"
+
+  # Launch the layer-3 positive control as the leader of its own process
+  # group, so a negative-PID kill below reaches both this script instance
+  # and the real browser it backgrounds of its own -- necessary because a
+  # bare PID kill would orphan that browser instead of killing it.
+  #
+  # `set -m` (job control), not `setsid`: bash's async-command SIGINT/SIGQUIT
+  # handling means a plain `cmd &` launched from a non-interactive script
+  # (job control off, the default for a sourced/executed script) is forked
+  # with SIGINT already SIG_IGN -- POSIX/bash then permanently refuse to let
+  # `trap ... INT` un-ignore a signal that was "ignored upon entry to the
+  # shell," so the recursed script's own INT trap (and everything downstream
+  # of it, including this fix) would silently never fire. `set -m` makes
+  # bash assign the job its own fresh process group and NOT pre-ignore
+  # INT/QUIT for it, which is what actually lets the SIGINT below reach and
+  # be trapped by the child. `setsid` was tried first and rejected: layered
+  # under `set -m` it forces an internal fork (a process already made its
+  # own group leader by job control cannot setsid() without forking), which
+  # decouples $! from the real leader's PID and defeats PID-based tracking.
+  local child_log
+  child_log="$(mktemp)"
+  track_temp "$child_log"
+  set -m
+  bash "$0" --layer 3 --positive-control >"$child_log" 2>&1 &
+  local group_pid=$!
+  set +m
+
+  # Poll for the mutation rather than sleeping blind: wait until the control
+  # has actually appended media.gmp-gmpopenh264.enabled to the pref file, so
+  # the SIGINT below lands inside its real 35-second capture window rather
+  # than before the control has mutated anything at all.
+  local waited=0 max_wait=30 mutated=0
+  while [ "$waited" -lt "$max_wait" ]; do
+    # The pristine pref file already contains this key set to false (it's
+    # one of layer 1's own asserted prefs) -- match the APPENDED true value
+    # specifically, not the bare key name, or this would fire instantly on
+    # the pre-existing line and never actually observe the control's mutation.
+    if grep -qE 'pref\("media\.gmp-gmpopenh264\.enabled",[[:space:]]*true\)' "$BRANDING_PREF_FILE" 2>/dev/null; then
+      mutated=1
+      break
+    fi
+    sleep 1
+    waited=$((waited + 1))
+  done
+
+  if [ "$mutated" -eq 0 ]; then
+    echo "verify-endpoints: interrupt self-test FAIL -- control never mutated the pref file within ${max_wait}s" >&2
+    kill -- "-$group_pid" 2>/dev/null || true
+    wait "$group_pid" 2>/dev/null || true
+    cp "$guard" "$BRANDING_PREF_FILE"
+    return 1
+  fi
+
+  echo "verify-endpoints: interrupt self-test observed the mutated pref after ${waited}s -- sending SIGINT to the control's process group"
+  kill -INT -- "-$group_pid" 2>/dev/null || true
+  wait "$group_pid" 2>/dev/null
+
+  local actual_sha
+  actual_sha="$(sha256sum "$BRANDING_PREF_FILE" | awk '{print $1}')"
+
+  local rc=0
+  if [ "$actual_sha" = "$expected_sha" ]; then
+    echo "verify-endpoints: interrupt self-test PASS -- pref file digest unchanged after interrupt ($actual_sha)"
+  else
+    echo "verify-endpoints: interrupt self-test FAIL -- pref file digest mismatch after interrupt" >&2
+    echo "  expected: $expected_sha" >&2
+    echo "  observed: $actual_sha" >&2
+    diff "$guard" "$BRANDING_PREF_FILE" >&2 || true
+    rc=1
+  fi
+
+  # Restore the guard copy unconditionally regardless of outcome, then
+  # re-verify the digest after restore before returning -- this is what
+  # keeps a FAILED self-test from leaving the real binary corrupted.
+  cp "$guard" "$BRANDING_PREF_FILE"
+  local restored_sha
+  restored_sha="$(sha256sum "$BRANDING_PREF_FILE" | awk '{print $1}')"
+  if [ "$restored_sha" != "$expected_sha" ]; then
+    echo "verify-endpoints: interrupt self-test FAIL -- guard restore itself did not converge to the pre-run digest" >&2
+    return 1
+  fi
+
+  return "$rc"
+}
+
+# ---------------------------------------------------------------------------
 # Driver
 # ---------------------------------------------------------------------------
+if [ "$INTERRUPT_SELF_TEST" -eq 1 ]; then
+  if run_interrupt_self_test; then
+    exit 0
+  else
+    exit 1
+  fi
+fi
+
 LAYERS_TO_RUN=(1 2 3)
 if [ -n "$LAYER_ARG" ]; then
   LAYERS_TO_RUN=("$LAYER_ARG")
