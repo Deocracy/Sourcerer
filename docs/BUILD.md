@@ -420,6 +420,14 @@ titlebar default); its self-test proves it goes red if either is removed.
 It cannot verify the perceptual claim itself — "tellable apart at a
 glance" is a human judgment, recorded in `03-MANUAL-VERIFICATION.md`.
 
+`branding-variant-divergence` reads the installed `brand.properties` and
+`firefox-branding.js` under both `objdir/dist/bin/...` and
+`objdir-release/dist/bin/...`, so it needs a full dev build **and** a full
+release build (`SOURCERER_OBJDIR=objdir-release ... ./mach build`, Tier 3)
+already in place — it runs only under `scripts/verify-phase-03.sh`'s full
+mode, never under `--quick`. `--quick` still runs the check's self-test
+(synthetic temp files, no build required).
+
 All of these files (`brand.properties`, `firefox-branding.js`) are symlinked
 into `dist/bin` (D-70 tier 1), so editing them and re-running needs no
 rebuild.

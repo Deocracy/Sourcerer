@@ -7,13 +7,20 @@
 # append to rather than forking a sibling driver, and a per-check PASS/FAIL
 # summary table with a non-zero exit if anything failed.
 #
-# `--quick` runs only the checks that need no browser launch: the patch
-# surface guard, its self-test, the apply-patches self-test, the allowlist
-# schema check, and the .desktop/config.status string equalities (BRAND-01
-# surface 5, duplicated here in miniature rather than invoking
+# `--quick` runs only the checks that need no browser launch and no built
+# tree: the patch surface guard, its self-test, the apply-patches
+# self-test, the fetch-upstream self-test, the allowlist schema check, the
+# allowlist doc-consistency check and its self-test, the
+# branding-variant-divergence self-test (synthesises its own temp files,
+# never touches objdir), and the .desktop/config.status string equalities
+# (BRAND-01 surface 5, duplicated here in miniature rather than invoking
 # verify-branding-identity.mjs's full six-surface run, since that run's
 # about-support surface launches a real browser session -- exactly what
-# --quick exists to avoid). No flag runs everything, including
+# --quick exists to avoid). `branding-variant-divergence` itself (the
+# non-self-test half) reads from both `objdir/dist/bin/...` and
+# `objdir-release/dist/bin/...`, requiring a full dev AND release build
+# (see "Tiered rebuild loop", Tier 3) -- it runs only in full mode, never
+# under --quick. No flag runs everything, including
 # verify-branding-identity.mjs and verify-endpoints.sh.
 #
 # verify-endpoints.sh's layers 2 and 3 background a `sourcerer` process of
@@ -447,7 +454,6 @@ declare -a CHECKS=(
   "allowlist-schema|check_allowlist_schema"
   "allowlist-doc-consistency|check_allowlist_doc_consistency"
   "allowlist-doc-consistency-self-test|check_allowlist_doc_consistency_self_test"
-  "branding-variant-divergence|check_branding_variant_divergence"
   "branding-variant-divergence-self-test|check_branding_variant_divergence_self_test"
 )
 
@@ -455,6 +461,7 @@ if [ "$QUICK" -eq 1 ]; then
   CHECKS+=("desktop-entry-quick|check_desktop_entry_quick")
 else
   CHECKS+=(
+    "branding-variant-divergence|check_branding_variant_divergence"
     "verify-branding-identity-dev|node $REPO_ROOT/scripts/verify-branding-identity.mjs"
     "verify-branding-identity-release|node $REPO_ROOT/scripts/verify-branding-identity.mjs --variant release"
     "verify-branding-identity-brand-ftl-control|node $REPO_ROOT/scripts/verify-branding-identity.mjs --variant release --positive-control brand-full-name"
