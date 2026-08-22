@@ -19,6 +19,7 @@ plugins/
 # Firefox fork build spill (D-01 containment)
 upstream/
 objdir/
+objdir-release/
 .mozbuild/
 
 # Logs
