@@ -5,13 +5,13 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: branded-firefox-fork
 status: executing
-stopped_at: Completed 03-10-PLAN.md -- Item A FAILED (open gap), Item B PASSED
-last_updated: "2026-08-22T16:34:31.971Z"
-last_activity: 2026-08-21
-last_activity_desc: Phase 3 planning complete
+stopped_at: Paused 03-11-PLAN.md at Task 3 checkpoint (human-verify) -- Tasks 1-2 committed
+last_updated: "2026-08-22T16:43:40.061Z"
+last_activity: 2026-08-22
+last_activity_desc: Phase 03 execution started
 progress:
   total_phases: 3
-  completed_phases: 3
+  completed_phases: 2
   total_plans: 22
   completed_plans: 21
 ---
@@ -28,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 ## Current Position
 
 Phase: 03 (branded-firefox-fork) — EXECUTING
-Plan: 5 of 10
-Status: Ready to execute
-Last activity: 2026-08-21 — Phase 03 execution started
+Plan: 11 of 11 (paused at Task 3 checkpoint -- Tasks 1-2 committed)
+Status: Executing Phase 03
+Last activity: 2026-08-22 — Paused 03-11-PLAN.md at Task 3 human-verify checkpoint
 
 Progress: [██████████] 100%
 
@@ -152,6 +152,7 @@ None yet.
 - Phase 4: verify the pinned Theia release is >= 1.73.1 and that the CVE-2026-61891 token check fires on plain HTTP, not only WebSocket upgrade.
 - All phases: Theia has no API stability tier. Review every `@theia/*` import against `doc/Migration.md` and record it in INTERNAL-APIS.md.
 - Phase 3: Item A human-verification (dev-vs-release distinguishable at a glance, BRAND-06) recorded FAILED on 2026-08-22 -- see 03-MANUAL-VERIFICATION.md. Root causes identified (brand.properties/brand.ftl mismatch, CSD hides title bar, icon badge weak) but not fixed. Requires a follow-up gap-closure plan before Phase 3's human-verification gate is satisfied.
+- Phase 3: 03-11 Task 3 (BRAND-06 re-verification) is a blocking human checkpoint -- launch objdir/dist/bin/sourcerer -no-remote and objdir-release/dist/bin/sourcerer -no-remote side by side, read the dev window's title bar text, and record the verdict in 03-MANUAL-VERIFICATION.md's Item A re-verification section.
 
 ## Deferred Items
 
@@ -163,6 +164,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-22T15:57:25.037Z
-Stopped at: Completed 03-10-PLAN.md -- Item A FAILED (open gap), Item B PASSED
-Resume file: None
+Last session: 2026-08-22T16:43:33.117Z
+Stopped at: Paused 03-11-PLAN.md at Task 3 checkpoint (human-verify) -- Tasks 1-2 committed
+Resume file: 03-11-PLAN.md
