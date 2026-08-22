@@ -146,7 +146,8 @@ if [ "$QUICK" -eq 1 ]; then
 else
   CHECKS+=(
     "verify-branding-identity-dev|node $REPO_ROOT/scripts/verify-branding-identity.mjs"
-    "verify-branding-identity-release|node $REPO_ROOT/scripts/verify-branding-identity.mjs --bin $REPO_ROOT/objdir-release/dist/bin/sourcerer --desktop $REPO_ROOT/sourcerer/sourcerer-release.desktop --config-status $REPO_ROOT/objdir-release/config.status"
+    "verify-branding-identity-release|node $REPO_ROOT/scripts/verify-branding-identity.mjs --variant release"
+    "verify-branding-identity-brand-ftl-control|node $REPO_ROOT/scripts/verify-branding-identity.mjs --variant release --positive-control brand-full-name"
     "verify-endpoints|bash $REPO_ROOT/scripts/verify-endpoints.sh"
   )
 fi
