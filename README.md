@@ -41,7 +41,9 @@ requirements document so the internals do not preclude them.
 Two Nix dev shells build the two halves: `nix develop .#theia` for the
 Theia sidecar, `nix develop .#firefox` for the Firefox-ESR fork. The repo
 must live at a space-free path. See [docs/BUILD.md](docs/BUILD.md) for the
-exact commands, measured durations, and a fresh-clone verification.
+exact commands, measured durations, and a fresh-clone verification —
+including the tiered rebuild loop, the compiled-file patch boundary, the
+endpoint allowlist, and the rebase/desktop-install procedures.
 
 ## History
 
