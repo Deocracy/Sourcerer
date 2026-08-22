@@ -158,6 +158,7 @@ None yet.
 
 | Date | Slug | Description |
 |------|------|-------------|
+| 2026-08-22 | repo-homes-decided | Recorded decided repo homes: powerbrowser under DeBIOS-Foundation, Sourcerer stays at Deocracy |
 | 2026-08-22 | stream-model-docs | Recorded the three-layer stream model (Power Browser as midstream platform, Sourcerer as downstream distribution) in PRODUCT-REQUIREMENTS.md and sourcerer-architecture.md |
 
 ## Deferred Items
