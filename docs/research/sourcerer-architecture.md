@@ -9,6 +9,84 @@ Shell customization mechanics (URL bar, chrome rebind seams, build cost) live in
 Extension model, registry strategy, and plugin-facing API decisions live in
 `extension-model-decisions.md` (2026-08-19).
 
+## Stream model (project layering)
+
+Added 2026-08-22. Two different layerings appear in this document and they
+are not the same axis. This section is the **stream** axis — which project
+owns what, and who consumes whom. The **Layer diagram** below is the *runtime*
+axis — which process talks to which inside a running build. Sourcerer is the
+downstream end of the stream stack. The middle layer, **Power Browser**, is a platform that
+ships on its own: many people want the browser without Sourcerer's opinions.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  UPSTREAM            we consume, never modify               │
+│                                                             │
+│   Firefox ESR 153            Eclipse Theia 1.74.1           │
+│   (patch stack on top)       (npm deps, never forked)       │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            │  rebase ~4-weekly / re-pin
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│  MIDSTREAM           Power Browser — the platform           │
+│                                                             │
+│   • Firefox fork: upstream/ + patches/ + browser tree       │
+│   • Theia sidecar supervision (Node backend on localhost)   │
+│   • PowerBrowserAPI.sys.mjs  ← anti-corruption layer        │
+│   • @powerbrowser/* Theia extensions (base chrome)          │
+│                                                             │
+│   Ships standalone. Unopinionated. No Databasise.           │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            │  composed, not patched
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│  DOWNSTREAM          Sourcerer — a distribution             │
+│                                                             │
+│   Power Browser + Databasise + curated addons + branding    │
+│                                                             │
+│   First consumer of the platform. Not the platform.         │
+└─────────────────────────────────────────────────────────────┘
+
+              ▲ anyone else can also sit here
+              │ (other distributions of Power Browser)
+```
+
+|                        | Upstream        | Midstream          | Downstream                     |
+|------------------------|-----------------|--------------------|--------------------------------|
+| **Is**                 | Firefox, Theia  | Power Browser      | Sourcerer                      |
+| **Role**               | substrate       | platform           | distribution                   |
+| **We modify?**         | never           | yes, it's ours     | yes, it's ours                 |
+| **Gets updates by**    | —               | rebase / re-pin    | consuming platform releases    |
+| **Ships alone?**       | yes             | **yes**            | yes                            |
+| **Contains Databasise?**| no             | **no**             | yes                            |
+
+**Boundary rule — Sourcerer adds, never patches.** If Sourcerer ever needs to
+change a file inside Power Browser, that is a bug in the boundary: the platform
+needs an extension point instead. Power Browser must build and ship with
+Sourcerer absent from the tree. This is the same discipline already applied
+upstream — we never fork Theia core, we compose extensions — pushed one layer
+down so that Sourcerer relates to Power Browser the way Power Browser relates
+to Theia.
+
+Consequences:
+
+- Databasise and the curated addon set live outside the Power Browser tree and
+  are composed in. They are never `#ifdef`-ed out of a single codebase.
+- Power Browser owns the branding manifest and ships `docs/REBRANDING.md`, so
+  any downstream can rename the product, swap icons, and repoint or disable
+  telemetry in one place. Mozilla's trademark rules make rebranding mandatory
+  for anyone redistributing a Firefox fork, so this is load-bearing for
+  downstreams, not a courtesy.
+- Names carried by platform code take the platform's name, not the
+  distribution's: `@powerbrowser/*`, `PowerBrowserAPI.sys.mjs`. (Rename pass
+  not yet executed across this tree.)
+
+
+The requirements-level statement of this model is in
+`docs/PRODUCT-REQUIREMENTS.md`, § Product layering (stream model).
+
 ## Layer diagram
 
 ```
@@ -97,6 +175,11 @@ plugin-facing browser API exists.
   trademark rules require full rename — done: Sourcerer).
 - Theia app is a separate npm workspace; ships as versioned sidecar, updates
   independently of the browser build.
+- Everything in this section belongs to **Power Browser**, the midstream
+  platform — the fork, the patch stack, the frontend tree, and the sidecar.
+  Sourcerer consumes Power Browser releases and adds Databasise, curated
+  addons, and its own branding; it never patches platform files. See
+  § Stream model above.
 
 ## What we get for free (why Firefox, not Electron)
 Widevine DRM (streaming works) · full WebExtensions (uBlock, LastPass —

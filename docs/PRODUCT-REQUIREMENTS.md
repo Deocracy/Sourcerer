@@ -25,6 +25,77 @@ history at `/home/chris/Vibe Coding/Sourcerer-Archived`. The research under
 `docs/research/` is **current and authoritative** for this direction —
 `sourcerer-architecture.md` above all.
 
+## Product layering (stream model)
+
+Added 2026-08-22. Sourcerer is not one product but the downstream end of a
+three-layer stack. The middle layer, **Power Browser**, is a platform that
+ships on its own: many people want the browser without Sourcerer's opinions.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  UPSTREAM            we consume, never modify               │
+│                                                             │
+│   Firefox ESR 153            Eclipse Theia 1.74.1           │
+│   (patch stack on top)       (npm deps, never forked)       │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            │  rebase ~4-weekly / re-pin
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│  MIDSTREAM           Power Browser — the platform           │
+│                                                             │
+│   • Firefox fork: upstream/ + patches/ + browser tree       │
+│   • Theia sidecar supervision (Node backend on localhost)   │
+│   • PowerBrowserAPI.sys.mjs  ← anti-corruption layer        │
+│   • @powerbrowser/* Theia extensions (base chrome)          │
+│                                                             │
+│   Ships standalone. Unopinionated. No Databasise.           │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            │  composed, not patched
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│  DOWNSTREAM          Sourcerer — a distribution             │
+│                                                             │
+│   Power Browser + Databasise + curated addons + branding    │
+│                                                             │
+│   First consumer of the platform. Not the platform.         │
+└─────────────────────────────────────────────────────────────┘
+
+              ▲ anyone else can also sit here
+              │ (other distributions of Power Browser)
+```
+
+|                        | Upstream        | Midstream          | Downstream                     |
+|------------------------|-----------------|--------------------|--------------------------------|
+| **Is**                 | Firefox, Theia  | Power Browser      | Sourcerer                      |
+| **Role**               | substrate       | platform           | distribution                   |
+| **We modify?**         | never           | yes, it's ours     | yes, it's ours                 |
+| **Gets updates by**    | —               | rebase / re-pin    | consuming platform releases    |
+| **Ships alone?**       | yes             | **yes**            | yes                            |
+| **Contains Databasise?**| no             | **no**             | yes                            |
+
+**Boundary rule — Sourcerer adds, never patches.** If Sourcerer ever needs to
+change a file inside Power Browser, that is a bug in the boundary: the platform
+needs an extension point instead. Power Browser must build and ship with
+Sourcerer absent from the tree. This is the same discipline already applied
+upstream — we never fork Theia core, we compose extensions — pushed one layer
+down so that Sourcerer relates to Power Browser the way Power Browser relates
+to Theia.
+
+Consequences:
+
+- Databasise and the curated addon set live outside the Power Browser tree and
+  are composed in. They are never `#ifdef`-ed out of a single codebase.
+- Power Browser owns the branding manifest and ships `docs/REBRANDING.md`, so
+  any downstream can rename the product, swap icons, and repoint or disable
+  telemetry in one place. Mozilla's trademark rules make rebranding mandatory
+  for anyone redistributing a Firefox fork, so this is load-bearing for
+  downstreams, not a courtesy.
+- Names carried by platform code take the platform's name, not the
+  distribution's: `@powerbrowser/*`, `PowerBrowserAPI.sys.mjs`. (Rename pass
+  not yet executed across this tree.)
+
 ## v4.0 requirements
 
 - **R1 — Rebrand.** The product ships as **Sourcerer**: application name,
@@ -106,6 +177,13 @@ months-scale build, not a weeks-scale rebrand.
 - Opt-in telemetry (wanted; design undecided).
 - Enterprise collaboration (@theia/collaboration / OCT) — relevance TBD.
 - Docker-based deployment — understanding TBD.
+- Repo homes for the stream split. Power Browser and Sourcerer get separate
+  GitHub repos under **DeBIOS** (a Deocracy subsidiary); that organisation does
+  not exist yet. Whether Sourcerer sits under DeBIOS or stays under Deocracy is
+  undecided.
+- Executing the platform rename across the tree (`@sourcerer/*` →
+  `@powerbrowser/*`, `SourcererAPI.sys.mjs` → `PowerBrowserAPI.sys.mjs`,
+  `sourcerer/` → `powerbrowser/`). Agreed in principle, not yet applied.
 
 ## Explicitly out of scope for now
 
