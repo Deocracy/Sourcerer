@@ -137,6 +137,7 @@ declare -a CHECKS=(
   "check-patch-surface|bash $REPO_ROOT/scripts/check-patch-surface.sh"
   "check-patch-surface-self-test|bash $REPO_ROOT/scripts/check-patch-surface.sh --self-test"
   "apply-patches-self-test|bash $REPO_ROOT/scripts/apply-patches.sh --self-test"
+  "fetch-upstream-self-test|bash $REPO_ROOT/scripts/fetch-upstream.sh --self-test"
   "allowlist-schema|check_allowlist_schema"
 )
 
@@ -144,7 +145,8 @@ if [ "$QUICK" -eq 1 ]; then
   CHECKS+=("desktop-entry-quick|check_desktop_entry_quick")
 else
   CHECKS+=(
-    "verify-branding-identity|node $REPO_ROOT/scripts/verify-branding-identity.mjs"
+    "verify-branding-identity-dev|node $REPO_ROOT/scripts/verify-branding-identity.mjs"
+    "verify-branding-identity-release|node $REPO_ROOT/scripts/verify-branding-identity.mjs --bin $REPO_ROOT/objdir-release/dist/bin/sourcerer --desktop $REPO_ROOT/sourcerer/sourcerer-release.desktop --config-status $REPO_ROOT/objdir-release/config.status"
     "verify-endpoints|bash $REPO_ROOT/scripts/verify-endpoints.sh"
   )
 fi
