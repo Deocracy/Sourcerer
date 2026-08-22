@@ -46,12 +46,22 @@ for arg in "$@"; do
 done
 
 CURRENT_CHECK_PID=""
+declare -a TEMP_PATHS=()
+track_temp() { TEMP_PATHS+=("$1"); }
 cleanup() {
   if [ -n "$CURRENT_CHECK_PID" ]; then
     kill -- "-$CURRENT_CHECK_PID" 2>/dev/null || kill "$CURRENT_CHECK_PID" 2>/dev/null || true
     wait "$CURRENT_CHECK_PID" 2>/dev/null || true
     CURRENT_CHECK_PID=""
   fi
+  # allowlist-doc-consistency-self-test's planted-mutation temp allowlist
+  # copy, registered via track_temp -- removed on every exit path (EXIT and
+  # INT/TERM both invoke this same cleanup()) so an interrupted self-test
+  # leaves no residue and never touches the real endpoint-allowlist.json.
+  for p in "${TEMP_PATHS[@]:-}"; do
+    [ -n "$p" ] && rm -f "$p"
+  done
+  TEMP_PATHS=()
 }
 # EXIT alone is not enough: bash resumes the rest of the script after a
 # non-EXIT trap handler returns unless that handler exits itself
@@ -131,6 +141,125 @@ check_allowlist_schema() {
   ' "$REPO_ROOT/sourcerer/endpoint-allowlist.json"
 }
 
+# --- allowlist-to-document consistency (03-VERIFICATION.md Gap 2) ---
+#
+# Shared inner helper: takes an allowlist path as its one argument, always
+# reads the real ROADMAP.md/REQUIREMENTS.md (the documents Task 1 amended).
+# Selects every allow-dispositioned mozilla.com/mozilla.net host and requires
+# a whole-token occurrence of each in both documents. Whole-token matching is
+# load-bearing: a plain substring search would let a documented host's own
+# suffix (e.g. "cdn.mozilla.net" inside "content-signature-2.cdn.mozilla.net")
+# pass vacuously, so the regex requires the character on each side of the
+# match to be absent or outside the hostname character class
+# (letters/digits/dot/hyphen). An empty filtered set is a FAIL, not a vacuous
+# PASS. Output (host list order, violation order) is fully determined by the
+# allowlist's own on-disk order plus a sort of the violation list, so two runs
+# against unchanged input are byte-identical.
+_allowlist_doc_consistency_impl() {
+  local allowlist_path="$1"
+  node -e '
+    const fs = require("fs");
+    const [allowlistPath, roadmapPath, requirementsPath] = process.argv.slice(1);
+    const a = JSON.parse(fs.readFileSync(allowlistPath, "utf8"));
+    const roadmap = fs.readFileSync(roadmapPath, "utf8");
+    const requirements = fs.readFileSync(requirementsPath, "utf8");
+
+    const hosts = (a.hosts || [])
+      .filter(h => h.disposition === "allow" && /(^|\.)mozilla\.(com|net)$/i.test(h.host))
+      .map(h => h.host);
+
+    if (hosts.length === 0) {
+      console.error(`allowlist-doc-consistency: FAIL -- filter matched no allow-dispositioned mozilla.com/mozilla.net host in ${allowlistPath}`);
+      process.exit(1);
+    }
+
+    function hasWholeToken(text, host) {
+      const escaped = host.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const re = new RegExp("(^|[^A-Za-z0-9.-])" + escaped + "($|[^A-Za-z0-9.-])");
+      return re.test(text);
+    }
+
+    const violations = [];
+    let roadmapFound = 0, requirementsFound = 0;
+    for (const host of hosts) {
+      const inRoadmap = hasWholeToken(roadmap, host);
+      const inRequirements = hasWholeToken(requirements, host);
+      if (inRoadmap) roadmapFound++;
+      if (inRequirements) requirementsFound++;
+      if (!inRoadmap || !inRequirements) {
+        const missing = [];
+        if (!inRoadmap) missing.push("ROADMAP.md");
+        if (!inRequirements) missing.push("REQUIREMENTS.md");
+        violations.push(`${host}: missing from ${missing.join(", ")}`);
+      }
+    }
+    violations.sort();
+
+    if (violations.length > 0) {
+      console.error(`allowlist-doc-consistency: FAIL -- ${hosts.length} Mozilla allow host(s) checked, ${violations.length} violation(s):`);
+      for (const v of violations) console.error(`  ${v}`);
+      process.exit(1);
+    }
+
+    console.log(`allowlist-doc-consistency: PASS -- ${hosts.length} Mozilla allow host(s) checked, found in both ROADMAP.md (${roadmapFound}) and REQUIREMENTS.md (${requirementsFound})`);
+  ' "$allowlist_path" "$REPO_ROOT/.planning/ROADMAP.md" "$REPO_ROOT/.planning/REQUIREMENTS.md"
+}
+
+# Argument-free wrapper for the CHECKS array (see the dispatch guard below --
+# a function-branch CHECKS entry must be a bare name, never a command carrying
+# arguments).
+check_allowlist_doc_consistency() {
+  _allowlist_doc_consistency_impl "$REPO_ROOT/sourcerer/endpoint-allowlist.json"
+}
+
+# Plants a temp copy of the real allowlist carrying two additional allow
+# entries -- one undocumented host, one that is a proper suffix of two
+# genuinely-documented hosts (proving whole-token, not substring, matching --
+# a bare substring search would let this second one pass vacuously) -- and
+# requires the helper to reject both. Never writes to the real allowlist; the
+# temp copy is registered with track_temp so the script's own trap-covered
+# cleanup() removes it on every exit path, including an interrupt mid-test.
+check_allowlist_doc_consistency_self_test() {
+  local real="$REPO_ROOT/sourcerer/endpoint-allowlist.json"
+  local tmp
+  tmp="$(mktemp)"
+  track_temp "$tmp"
+
+  node -e '
+    const fs = require("fs");
+    const [realPath, outPath] = process.argv.slice(1);
+    const a = JSON.parse(fs.readFileSync(realPath, "utf8"));
+    a.hosts.push({
+      host: "sourcerer-selftest-control.cdn.mozilla.net",
+      disposition: "allow",
+      reason: "allowlist-doc-consistency-self-test: undocumented host, must be rejected"
+    });
+    a.hosts.push({
+      host: "cdn.mozilla.net",
+      disposition: "allow",
+      reason: "allowlist-doc-consistency-self-test: proper suffix of two documented hosts, must be rejected (proves whole-token matching)"
+    });
+    fs.writeFileSync(outPath, JSON.stringify(a, null, 2));
+  ' "$real" "$tmp"
+
+  local out
+  if out="$(_allowlist_doc_consistency_impl "$tmp" 2>&1)"; then
+    echo "allowlist-doc-consistency-self-test: FAIL -- planted undocumented/suffix hosts were NOT rejected" >&2
+    echo "$out" >&2
+    return 1
+  fi
+
+  if echo "$out" | grep -qF 'sourcerer-selftest-control.cdn.mozilla.net' \
+     && echo "$out" | grep -qE '^  cdn\.mozilla\.net:'; then
+    echo "allowlist-doc-consistency-self-test: PASS -- both planted hosts (undocumented control, suffix-adjacency) correctly rejected"
+    return 0
+  fi
+
+  echo "allowlist-doc-consistency-self-test: FAIL -- rejected, but output doesn't name both planted hosts" >&2
+  echo "$out" >&2
+  return 1
+}
+
 # Each entry: "label|command...". Later plans append here, not as a sibling
 # driver script.
 declare -a CHECKS=(
@@ -139,6 +268,8 @@ declare -a CHECKS=(
   "apply-patches-self-test|bash $REPO_ROOT/scripts/apply-patches.sh --self-test"
   "fetch-upstream-self-test|bash $REPO_ROOT/scripts/fetch-upstream.sh --self-test"
   "allowlist-schema|check_allowlist_schema"
+  "allowlist-doc-consistency|check_allowlist_doc_consistency"
+  "allowlist-doc-consistency-self-test|check_allowlist_doc_consistency_self_test"
 )
 
 if [ "$QUICK" -eq 1 ]; then
