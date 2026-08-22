@@ -362,6 +362,7 @@ and why:
 | `safebrowsing.googleapis.com` | D-85: Google Safe Browsing v4 API — same waiver as v2 |
 | `update.googleapis.com` | D-86 extension: Widevine's Chromium-Omaha update-check host, fired by the same periodic AddonManager timer regardless of `media.eme.enabled` — corrects C-4's premise that Widevine is fully idle-gated (it is idle-gated for the EME-toggle path, not this periodic path) |
 | `www.google.com` | D-86 extension: the Omaha check's own redirect target, observed immediately after `update.googleapis.com` in the same session |
+| `dl.google.com` | D-86 extension: a second real redirect target in the same Widevine Omaha update-check flow, surfaced during this plan's own phase-gate close-out run — the redirect response names a different Google-owned download host between runs; same waiver category as `www.google.com`, not a new concern |
 
 The three proof layers and their positive-control forms:
 
