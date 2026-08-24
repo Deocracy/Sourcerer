@@ -415,6 +415,55 @@ they do not.
 - Whatever is chosen, the schema should not depend on engine-specific features early —
   keep the option to swap while the store is still small.
 
+## Caching — open, and measure before building
+
+Raised 2026-08-24. Whether a cache layer (Redis-like, or in-process) is needed at all, and
+where, is unresolved and should be settled by measurement rather than argument.
+
+**The framing that matters:** Firefox's current design already *is* a cache. In-memory state
+(the DOM attributes, the live tab objects) is authoritative; the disk blob is a periodic
+snapshot behind it. This seed proposes inverting that — the DB becomes authoritative and
+writes go through on transition. The cache question is therefore not "should we add a cache"
+but **"how much of the in-memory model do we keep in front of the DB, and is it a cache or
+just the live object graph?"**
+
+The live tab model will be in memory regardless, because the strip renders from it. That is
+not a cache decision, it is unavoidable. The open part is everything below it.
+
+**Prior expectation, to be tested not assumed:** a separate cache daemon is very likely
+unnecessary here. This is single-user, single-machine, with a working set measured in
+thousands of rows — SQLite's page cache plus the OS page cache already sit in front of the
+file, and a warm SQLite point lookup is microseconds. Redis would add a third supervised
+process to a lifecycle that already juggles the browser and the Node sidecar, plus a
+serialisation boundary, to cache data that fits in RAM anyway. If caching turns out to matter,
+an in-process map is the first thing to try, not a daemon.
+
+**Where it might genuinely matter — the things worth measuring:**
+- **Snapshot thumbnails.** Not rows: file reads plus image decode, on the critical path of
+  strip rendering. If anything needs a real cache (decoded, size-bounded, LRU), it is this.
+- **Startup.** Reading N tab rows plus N thumbnails before the window is interactive. Whether
+  this needs a precomputed "startup set" rather than a general cache.
+- **Organiser aggregate queries.** Wide scans over history — but this is the case the engine
+  question already covers, and a columnar read path may beat any cache.
+- **Write amplification, the opposite problem.** Write-on-blur form data could produce enough
+  small transactions to want *buffering* — a write-behind queue — which is a cache in the
+  other direction and has real crash-semantics consequences.
+
+**Testing plan sketch (do this before choosing anything):**
+1. Build the store with no cache at all beyond the live tab model.
+2. Generate a realistic corpus — thousands of tabs, a year of history, matching thumbnails.
+3. Measure the four paths above: cold start to interactive, tab switch to first paint,
+   write-on-blur throughput, organiser query latency.
+4. Only add a layer where a number is actually bad, and re-measure to prove it helped.
+
+**Open:**
+- Does anything beyond the live tab model and a thumbnail cache justify a layer?
+- Write-behind buffering for form data: how much can be buffered before the durability
+  promise it exists to deliver is broken?
+- If encryption is on, does that change the cost profile enough to move the answer?
+- What are the actual thresholds — how many tabs and how much history before any of this
+  stops being free?
+
 ## Open Questions
 
 ### GUI / presentation
