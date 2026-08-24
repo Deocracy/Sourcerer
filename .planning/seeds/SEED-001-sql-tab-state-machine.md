@@ -3,27 +3,43 @@ id: SEED-001
 status: dormant
 planted: 2026-08-24
 planted_during: "v4.0 — Phase 4 (Full-Window Theia Shell), planning"
-trigger_when: when the chrome-owned tab model / unified tab strip is scoped (post-4.0 browser GUI milestone)
+trigger_when: when the chrome-owned tab model / unified tab strip is scoped (post-4.0 browser GUI milestone), or when any persistent store for browsing data is designed
 scope: Large
 ---
 
-# SEED-001: SQL-backed persistent tab state machine, with snapshot-rendered suspended tabs
+# SEED-001: Unified SQL store for tabs, history, sessions and bookmarks
+
+_Was: "SQL-backed persistent tab state machine." Widened 2026-08-24 — the state machine is
+one part of a single store, alongside an MCP organiser, an organiser GUI, and optional
+encryption._
 
 ## Goal
 
-Give Sourcerer's chrome-owned tab model an explicit, persisted, queryable state
-machine — one row per tab, with real transitions and real timestamps — instead of
-Firefox's model of "DOM attributes on a live element, plus one whole-file JSON blob
-rewritten every 15 seconds."
+**One store for everything that is "a place you have been or want to go back to."**
+Tabs, tab history (back/forward), closed-tab tombstones, sessions, saved tab groups,
+browsing history, and bookmarks are today four disconnected mechanisms in two storage
+formats. They are the same kind of object at different lifetimes. Merge them into a
+single queryable store, with lifetime as a column rather than as a choice of file format.
 
-Two halves, which are separable but reinforce each other:
+On top of that store, give Sourcerer's chrome-owned tab model an explicit, persisted
+state machine — one row per tab, real transitions, real timestamps — instead of Firefox's
+model of "DOM attributes on a live element, plus one whole-file JSON blob rewritten every
+15 seconds."
 
-1. **State in SQLite.** Tab lifetime (live / suspended / saved / closed) becomes
-   persisted rows with transition timestamps, group membership, and TTLs — not
-   ephemeral element attributes.
-2. **Snapshot presentation.** A suspended tab renders its last painted frame (PNG)
-   instantly on selection, with the real page swapping in underneath once loaded.
-   The app-switcher trick: suspension stops feeling like degradation.
+Five parts, separable in delivery but sharing one schema decision:
+
+1. **Unified store.** Tabs, history, sessions, groups, bookmarks in one SQLite database.
+   Lifetime (live / suspended / saved / closed / bookmarked / historical) is a state
+   column, not a separate subsystem.
+2. **State machine.** Persisted transitions with timestamps and TTLs, replacing ephemeral
+   DOM attributes and the single coarse `lastAccessed` integer.
+3. **Snapshot presentation.** A suspended tab renders its last painted frame (PNG)
+   instantly on selection, real page swapping in underneath. The app-switcher trick:
+   suspension stops feeling like degradation.
+4. **MCP server over the store.** Expose the store to an LLM so it can organise it —
+   cluster, name groups, prune, resurface, answer "what was I working on."
+5. **Organiser GUI.** A real surface for the above, with encryption of the database
+   offered as an option.
 
 ## Why This Matters
 
@@ -150,6 +166,86 @@ lazy/pending ──restore──> RESTORING ──> live ──suspend──> su
 
 Thumbnail is a **file path in a row**, not a blob in the row.
 
+## The Unified Store
+
+The merge is the reframe, and it is the part that makes everything else cheap.
+
+Today: open tabs and sessions live in `recovery.jsonlz4` (blob, no queries); bookmarks and
+history live in `places.sqlite` (relational, queryable); saved tab groups live in the blob
+despite being long-lived named objects. A tab, a closed tab, a bookmark, and a history
+entry are all "a URL with a title, a time, and some context" — the difference is lifetime
+and intent, not kind.
+
+One store means:
+- **"Where have I seen this URL?"** is one query across every lifetime, not three lookups
+  in two formats.
+- **Promotion is an UPDATE, not an export.** Tab → saved group → bookmark stops being three
+  serialisation paths.
+- **Nothing falls between the cracks.** A closed tab that ages out today is simply gone;
+  in a unified store it degrades into history rather than vanishing.
+- **The LLM has one thing to read.** See below — an organiser that has to reconcile a blob
+  and a database is doing archaeology, not organising.
+
+Open question, and it is the load-bearing one: does this **replace** `places.sqlite` for
+our tabs' purposes, **wrap** it, or **sit alongside** it? Firefox's own machinery (awesomebar
+frecency, history sidebar, sync) reads places directly and we do not patch Gecko. Most likely
+shape: places stays as Gecko's, our store is authoritative for the Sourcerer tab model, and
+one of the two mirrors into the other. Which direction that mirror runs is unresolved.
+
+## LLM Organiser (MCP Server)
+
+Expose the unified store as an MCP server so an LLM can do the organising that no heuristic
+does well.
+
+Plausible tools: query tabs/history/bookmarks by time, domain, group, or content; propose
+and apply groupings; name a group from its contents; suggest what to suspend, archive, or
+close; reconstruct "what was I working on last Tuesday"; find duplicates and near-duplicates;
+surface stale bookmarks that were never revisited.
+
+This is the payoff for putting the data in SQL: an LLM can write a query, but it cannot
+usefully grep a 15-second-stale LZ4 blob. It is also why the transition/event history matters
+more than current state alone — "you opened these eleven tabs in one burst on Tuesday
+afternoon and never returned to nine of them" needs timestamps that Firefox does not keep.
+
+Hard boundary: the MCP server reads the user's entire browsing life. Read/write scoping,
+which fields are exposed at all, whether page snapshots or titles are visible, and whether
+this ever reaches a remote model are gating design decisions, not implementation details.
+See Encryption below — they interact.
+
+## Organiser GUI
+
+A real surface for organising, not a context menu. Groups, workspaces, archived sets,
+snapshot thumbnails as the visual unit, drag-to-group, bulk suspend/archive/close, and the
+LLM's proposals shown as reviewable suggestions rather than applied silently.
+
+Post-4.0 by definition — v4.0 has no custom browser chrome. Whether this is browser chrome,
+a Theia view, or a page is open. A Theia view is cheapest to build and the most natural home
+for an IDE-shaped audience; browser chrome is the correct long-term answer for something that
+manages tabs. It may be both, over time.
+
+## Encryption at Rest
+
+Offer encryption of the database as an option. Checked during capture — the "easy" depends
+entirely on which process owns the DB, and this is the sharpest fork in the whole design:
+
+- **Gecko side: not easy.** The bundled SQLite has no encryption support — no `SQLITE_HAS_CODEC`,
+  no SQLCipher anywhere in `storage/` or `third_party/sqlite3/`. mozStorage cannot encrypt a
+  database file. Adding it means patching Gecko's SQLite build, which the hard rules forbid.
+  What *does* exist is NSS's Secret Decoder Ring (`security/manager/ssl/nsISecretDecoderRing.idl`),
+  which the password manager uses to encrypt individual values into `logins.json` under the
+  primary password. That gives per-field encryption, not an encrypted database.
+- **Node/Theia side: genuinely easy.** The sidecar is an ordinary Node process; SQLCipher via
+  a native binding is a normal dependency, and `PRAGMA key` is one line. If our store lives
+  with the sidecar rather than in Gecko, "encrypt the DB" is close to free.
+
+So this question is not really about encryption — it is about **where the store lives**, and
+encryption is the forcing function that makes the answer obvious. That is a useful thing to
+have learned before designing the schema.
+
+Either way: key management is the real work. Primary-password integration, key at rest, what
+happens on a forgotten password, whether snapshots (which are files on disk, not rows) are
+encrypted too, and whether the MCP server can read the store while it is locked.
+
 ## Open Questions
 
 ### GUI / presentation
@@ -205,6 +301,36 @@ Thumbnail is a **file path in a row**, not a blob in the row.
   actively reshaping the window record. How much of our model do their changes churn?
 - Migration: if a user has an existing `recovery.jsonlz4`, do we import it once?
 
+### Unified store
+- Replace, wrap, or sit alongside `places.sqlite`? Which direction does the mirror run?
+- What breaks in Gecko if places stops being the whole truth — awesomebar frecency, history
+  sidebar, Firefox Sync?
+- Is bookmark import/export (the `bookmarkbackups/` JSON path) preserved for portability?
+- Retention: history grows unbounded today by design. Does a unified store inherit that, or
+  does everything get a TTL?
+
+### LLM organiser
+- Which tools does the MCP server expose — read-only query, or propose-and-apply?
+- Does the LLM see URLs and titles only, page content, or snapshots?
+- Local model, or does this data leave the machine? What is the default, and is it opt-in?
+- Are the LLM's changes reversible — an undo log, or a proposals-then-review flow?
+- What does it cost to run continuously versus on demand?
+
+### Organiser GUI
+- Browser chrome, Theia view, or a page? (Chrome is correct long-term; a Theia view is
+  cheapest first.)
+- Are snapshot thumbnails the primary visual unit, or a detail?
+- How are LLM suggestions surfaced without feeling like the browser is rearranging itself?
+
+### Encryption
+- Where does the store live — Gecko process or Node sidecar? Encryption forces this answer.
+- If sidecar: SQLCipher via native binding, and how does that interact with the Nix dev
+  shell's node-gyp toolchain?
+- Primary-password integration, or an independent key? Where is the key at rest?
+- Are PNG snapshots on disk encrypted too, or is an encrypted DB with plaintext thumbnails
+  of every page a false promise?
+- Can the MCP server read the store while it is locked? Presumably not — what does it do then?
+
 ## Constraints (non-negotiable, from CLAUDE.md)
 
 - **Never modify Gecko.** This is a Sourcerer-side model, not a `SessionStore.sys.mjs`
@@ -230,7 +356,8 @@ Thumbnail is a **file path in a row**, not a blob in the row.
 ## Notes
 
 Captured 2026-08-24 from a design conversation that started as "why does Firefox lose my
-tabs." Verified against the pinned ESR 153 tree rather than recall; one earlier claim
+tabs," then expanded the same day into the unified-store framing (tabs + history + sessions +
+bookmarks as one thing) plus the MCP organiser, organiser GUI, and optional encryption. Verified against the pinned ESR 153 tree rather than recall; one earlier claim
 (saved groups in `places.sqlite`) was wrong and is corrected above.
 
 A throwaway mozLz4 decoder was written during capture and is worth rebuilding if needed —
