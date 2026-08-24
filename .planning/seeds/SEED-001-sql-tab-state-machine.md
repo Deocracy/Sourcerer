@@ -486,6 +486,51 @@ for the feel we want**, and the honest possibilities are:
 
 Prior expectation is (1) or (2). (3) should have to prove itself.
 
+### What is in RAM vs on disk today — verified 2026-08-24
+
+Checked because it changes the caching answer. Firefox's session state is RAM-first; the file
+is a periodic snapshot of memory and is **never read during normal operation**.
+
+**RAM only, never persisted:** `TAB_STATE_FOR_BROWSER` (the restore-state WeakMap); the DOM
+attributes `pending` / `discarded` / `crashed` / `busy` / `muted`; `_lastSeenActive`;
+`_lastUnloaded`; live browser objects and content processes; bfcached documents; the restore
+queue buckets and `_restoreCount`.
+
+**RAM and disk:** `TabStateCache._data` — a WeakMap keyed by `permanentKey`
+([TabStateCache.sys.mjs:44](upstream/browser/components/sessionstore/TabStateCache.sys.mjs#L44)) —
+where per-tab data pushed up from content processes accumulates (entries, scroll, formdata).
+Being a WeakMap it dies with the browser element: no eviction policy, no bound, not
+enumerable. Also `SessionStoreInternal._windows` (including `_closedTabs` and the tabData of
+lazy tabs never restored), `_closedWindows`, window geometry, session cookies.
+
+**Disk only:** effectively nothing of the current session — just the older backup generations
+(`recovery.baklz4`, `previous.jsonlz4`, `upgrade.jsonlz4-*`), which exist so a corrupt write
+has a fallback.
+
+**Write path:** `SessionFile.write()` → `getWriter()` → a ChromeWorker off the main thread
+([SessionFile.sys.mjs:440](upstream/browser/components/sessionstore/SessionFile.sys.mjs#L440)),
+which does the LZ4 compression and the atomic write.
+
+**Read path:** once, at startup, whole. `SessionFile.read()` then `JSON.parse` of the entire
+blob into `_initialState`
+([SessionStartup.sys.mjs:116-168](upstream/browser/components/sessionstore/SessionStartup.sys.mjs#L116-L168)).
+Not lazy, not partial, not indexed — the whole session graph is materialised before the first
+window is usable.
+
+**Two consequences for the caching question above:**
+
+1. **The blob is not a cache and never was** — it is write-only during a session. So "is
+   Firefox's existing cache enough?" cannot be answered by looking at the session store at
+   all. The caches that affect feel are bfcache, cache2, and the image cache. This rules out
+   one framing of possibility (1) above: our DB would not be replacing a cache, it would be
+   replacing a write-only snapshot.
+2. **Startup costs everything at once**, and that is the one place a row store wins
+   structurally rather than incidentally: reading the selected tab's row plus a few thumbnails
+   and deferring the rest makes the access pattern *partial*, which `JSON.parse` of a whole
+   file can never be. Note this is a different and stronger claim than "SQLite is faster than
+   JSON" — worth keeping the distinction, because the weak version of the claim is the one
+   that would not survive measurement.
+
 ### The acceptance criterion is real-world feel, not benchmark numbers
 
 Explicit decision 2026-08-24: this gets settled by daily-driving, not by a synthetic
