@@ -246,6 +246,60 @@ Either way: key management is the real work. Primary-password integration, key a
 happens on a forgotten password, whether snapshots (which are files on disk, not rows) are
 encrypted too, and whether the MCP server can read the store while it is locked.
 
+## Cookies and Certificates — probably not ours
+
+Raised as an open question 2026-08-24. Current reading: **no, keep them out of the store**,
+but the tab model has to reference them, and one narrow case does land in our DB.
+
+**Cookies are already SQLite, and already someone else's.** `cookies.sqlite`, table
+`moz_cookies`, owned by C++ `CookiePersistentStorage`
+([netwerk/cookie/CookiePersistentStorage.cpp:52](upstream/netwerk/cookie/CookiePersistentStorage.cpp#L52)),
+partitioned by origin attributes and `partitionKey`. Nothing is gained by moving it — it is
+not a blob problem, it is not queried by the tab model, and every network request depends on
+it. Taking it over means reimplementing cookie policy, partitioning, and expiry inside our
+process. That is a Gecko rewrite wearing a schema.
+
+**Certificates are not even mozStorage.** `cert9.db` and `key4.db` are NSS-owned softoken
+databases with their own format, plus `pkcs11.txt` for modules
+([security/manager/ssl/nsNSSComponent.cpp:1437-1480](upstream/security/manager/ssl/nsNSSComponent.cpp#L1437-L1480));
+user-accepted cert exceptions live in `cert_override.txt`
+([nsCertOverrideService.cpp:38](upstream/security/manager/ssl/nsCertOverrideService.cpp#L38)).
+These are the trust root of the browser. Reimplementing them is out of the question, and they
+are not "places you have been" — they are capabilities and credentials, a different kind of
+object with a different lifetime.
+
+**The general principle worth keeping:** our store owns *navigational intent* — where you
+went, where you want to go back to, how it was arranged. It does not own *authority* — what
+you are allowed to do there. Cookies and certs are authority. Merging authority into a store
+whose whole purpose is to be freely queried by a GUI and an LLM is the wrong direction.
+
+**But three real touchpoints:**
+
+1. **Container / partition identity must be a column.** A tab is already stamped with
+   `userContextId`, and cookie storage is keyed by origin attributes including `partitionKey`.
+   A restored tab that loses its container identity restores into the wrong cookie jar. We
+   store the key, never the cookies.
+2. **Session-only cookies are the one genuine overlap.** `SessionCookies.sys.mjs` already
+   copies `isSession` cookies into the session blob, gated by `PrivacyLevel.canSave`
+   ([SessionCookies.sys.mjs:170-195](upstream/browser/components/sessionstore/SessionCookies.sys.mjs#L170-L195)) —
+   that is what the `cookies` array at the top of the blob is. If our store becomes
+   authoritative for restoring our tabs, we inherit that job for suspended and saved tabs.
+   That is the case where the DB really does hold credentials, and it is the strongest
+   argument for the encryption option being on by default rather than optional. It also
+   means `PrivacyLevel` (or our equivalent) has to exist before we save anything.
+3. **The MCP organiser must never see any of it.** If session cookies land in the store,
+   that table is outside the organiser's view, full stop — not filtered at the query layer,
+   but not exposed as a tool at all.
+
+**Open:**
+- Do we save session cookies for saved/archived tabs, or deliberately not — accepting that a
+  restored saved tab is logged out? "Logged out" may be the better default.
+- Does an encrypted DB become mandatory the moment session cookies are in it?
+- Is there any case for *referencing* cert exceptions from a tab row (this tab was accepted
+  under an override), or is that just a footgun?
+- Does the store record enough origin-attribute detail to restore a container tab exactly,
+  including partitioned state?
+
 ## Open Questions
 
 ### GUI / presentation
