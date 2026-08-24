@@ -449,12 +449,58 @@ an in-process map is the first thing to try, not a daemon.
   small transactions to want *buffering* — a write-behind queue — which is a cache in the
   other direction and has real crash-semantics consequences.
 
-**Testing plan sketch (do this before choosing anything):**
-1. Build the store with no cache at all beyond the live tab model.
-2. Generate a realistic corpus — thousands of tabs, a year of history, matching thumbnails.
-3. Measure the four paths above: cold start to interactive, tab switch to first paint,
-   write-on-blur throughput, organiser query latency.
-4. Only add a layer where a number is actually bad, and re-measure to prove it helped.
+### Firefox already has several caches — name which one before adding another
+
+"Firefox cache" is ambiguous and the distinction decides the answer. What already exists,
+underneath anything we would build:
+
+- **bfcache** (back/forward cache) — keeps whole live documents parked in memory so back and
+  forward are instant. `browser.sessionhistory.max_total_viewers`
+  ([all.js:166](upstream/modules/libpref/init/all.js#L166)), implemented across
+  `nsDocShell` / `CanonicalBrowsingContext`. This is the closest existing thing to "a
+  suspended tab that comes back instantly" — worth understanding thoroughly before inventing
+  a parallel mechanism, because a bfcached tab already achieves the feel we are chasing, for
+  a small number of tabs, at full memory cost.
+- **HTTP cache (cache2)** — `netwerk/cache2/`, disk and memory. Decides whether a restored
+  tab refetches from network or from disk. Much of the perceived cost of "restoring a tab"
+  is really this, not our store.
+- **Image cache** — `image/imgLoader.cpp`, decoded surfaces.
+- **In-memory session state** — the live tab objects and DOM attributes, which as noted are
+  themselves the cache in front of today's blob.
+
+So the real question is not "do we need a cache" but **which layer is actually responsible
+for the feel we want**, and the honest possibilities are:
+
+1. Firefox's existing caches already carry it, and our DB is only ever on the cold path
+   (startup, restore-after-days). No new layer at all.
+2. Firefox's caches plus one thin layer of ours — most likely decoded thumbnails, which no
+   existing Firefox cache holds.
+3. A genuine hierarchy: Firefox caches → our cache → DB. Only justified if measurement shows
+   the middle actually earns its keep.
+
+Prior expectation is (1) or (2). (3) should have to prove itself.
+
+### The acceptance criterion is real-world feel, not benchmark numbers
+
+Explicit decision 2026-08-24: this gets settled by daily-driving, not by a synthetic
+throughput chart. Benchmarks will happily show a cache "working" while the browser still
+feels slow, because what users perceive is time-to-first-paint on the paths they hit
+constantly, not aggregate throughput.
+
+**Method:**
+1. Build the store with no new cache at all beyond the live tab model.
+2. Daily-drive it on a real profile with a real tab load, for long enough that the cold paths
+   (restore after days, a large archived set) actually get hit.
+3. Instrument the paths, but treat the numbers as *explanation* for a felt problem, not as
+   the trigger. The sequence is: notice it feels bad → look at the numbers → find which layer
+   → fix that layer. Not: find a slow number → add a cache → declare victory.
+4. Realistic corpus for the cold paths daily use will not reach quickly: thousands of tabs,
+   a year of history, matching thumbnails.
+5. Add a layer only where feel is bad and a number explains it. Re-drive to confirm it helped.
+
+**Paths where feel is the whole product:** tab switch to first paint (hit hundreds of times a
+day), cold start to interactive, clicking a suspended tab, opening the organiser on a large
+set. Everything else is secondary.
 
 **Open:**
 - Does anything beyond the live tab model and a thumbnail cache justify a layer?
