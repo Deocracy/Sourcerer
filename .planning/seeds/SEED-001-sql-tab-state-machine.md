@@ -13,6 +13,11 @@ _Was: "SQL-backed persistent tab state machine." Widened 2026-08-24 — the stat
 one part of a single store, alongside an MCP organiser, an organiser GUI, and optional
 encryption._
 
+> **Status: capture only.** Nothing here is scheduled. No spike, no phase, no prototype, and
+> no plan to create one. Every "order", "method", and "first" below is reasoning recorded so
+> it does not have to be re-derived — not a queue. This seed sits dormant until
+> `/gsd-new-milestone` surfaces it and someone decides to act on it.
+
 ## Goal
 
 **One store for everything that is "a place you have been or want to go back to."**
@@ -322,7 +327,8 @@ losing a half-written form is the part people actually swear about.
 is **write cadence**, not schema. Firefox throttles at ~15s and accepts the loss. Form data is
 exactly where that tradeoff hurts most, and a row-level store can afford to write a single
 field's state on blur without rewriting the world. That is the concrete "row-level beats blob"
-win, and it is worth prototyping first because it proves the whole thesis cheaply.
+win, and it is the cheapest thing that would prove the whole thesis — if and when anyone
+decides to test the thesis at all.
 
 **2. Form history — the real merge candidate.** Already SQLite
 ([FormHistory.sys.mjs:97](upstream/toolkit/components/satchel/FormHistory.sys.mjs#L97), table
@@ -347,7 +353,7 @@ server is the single worst idea available in this design space.
 **The line, restated:** if losing it costs you *work*, it belongs in our store. If leaking it
 costs you *money or identity*, it stays where the OS or NSS put it.
 
-**Plan sketch (order matters):**
+**If this is ever built, the order that makes sense (recorded, not scheduled):**
 1. Per-tab `formdata` in our store from day one, with a write-on-blur cadence — the cheapest
    proof that row-level persistence beats the blob.
 2. Form history second, folded into whatever places decision we make. Not before.
@@ -487,7 +493,7 @@ throughput chart. Benchmarks will happily show a cache "working" while the brows
 feels slow, because what users perceive is time-to-first-paint on the paths they hit
 constantly, not aggregate throughput.
 
-**Method:**
+**How this would be settled, if it is ever built:**
 1. Build the store with no new cache at all beyond the live tab model.
 2. Daily-drive it on a real profile with a real tab load, for long enough that the cold paths
    (restore after days, a large archived set) actually get hit.
