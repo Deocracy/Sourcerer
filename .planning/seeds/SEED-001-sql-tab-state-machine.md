@@ -365,6 +365,56 @@ costs you *money or identity*, it stays where the OS or NSS put it.
 - If form data is in the store and the store is encrypted, does that change the answer on
   whether encryption is optional?
 
+## Which Engine — open, not decided
+
+Flagged 2026-08-24: "SQL" in this seed means *relational and queryable*, not specifically
+SQLite. Engine choice is deliberately open. What is known so far:
+
+**The workload has two halves that want opposite things.**
+
+- *Transactional half* — the tab state machine, write-on-blur form data, transitions,
+  tombstones. Thousands of tiny writes, point lookups by id, one writer, many readers,
+  latency-sensitive, must survive a crash mid-write.
+- *Analytical half* — the LLM organiser and the GUI's "what was I working on Tuesday",
+  duplicate detection, clustering, aggregate scans over a large history table. Few writes,
+  wide reads, latency-tolerant.
+
+**SQLite** fits the first half almost exactly: WAL gives concurrent readers with one writer,
+tiny transactions are cheap, crash semantics are proven, the binary is ~1MB, and SQLCipher
+covers the encryption requirement. It is also already embedded in Gecko, and `better-sqlite3`
+is a routine Node dependency on the sidecar side. It is mediocre at the analytical half —
+large aggregate scans are row-wise and unhelped by indexes.
+
+**DuckDB** inverts that. Columnar, vectorised, genuinely excellent at the analytical half —
+the exact queries the organiser wants. Against it, for this workload:
+- Built for bulk/analytical writes, not thousands of small point updates per session. The
+  transactional half is its weak case, and that half is the load-bearing one.
+- Concurrency model is narrower than SQLite's — historically single-process write access,
+  which matters if both Gecko and the sidecar ever need to touch the store.
+- Materially larger to ship (tens of MB against ~1MB) inside a browser we distribute.
+- Native Node binding is a heavier build dependency in the Nix dev shell than
+  `better-sqlite3`. Not a blocker, but not free either.
+- Encryption at rest exists in recent versions (1.4+), so it is not disqualified on the
+  encryption requirement — **verify this against the version we would actually pin.**
+
+**The likely shape, if the split holds:** SQLite as the system of record, DuckDB attached
+read-only over it for the organiser's analytics (DuckDB can read SQLite files directly via
+its sqlite scanner). That gets the transactional guarantees where they matter and the
+columnar scans where they matter, with one copy of the data. It is also reversible — start
+SQLite-only, add DuckDB when the organiser's queries actually get slow, and never add it if
+they do not.
+
+**Open:**
+- Does the analytical half ever get big enough to justify a second engine? A single user's
+  browsing history is large by human standards and trivial by database standards. Measure
+  before adding.
+- If encryption lands, does the DuckDB-over-SQLite read path still work on an encrypted file?
+  Likely not without decryption in between — this may settle the question by itself.
+- Other candidates not yet considered: libSQL (SQLite fork with encryption built in and a
+  server mode), plain SQLite with FTS5 for the search half.
+- Whatever is chosen, the schema should not depend on engine-specific features early —
+  keep the option to swap while the store is still small.
+
 ## Open Questions
 
 ### GUI / presentation
