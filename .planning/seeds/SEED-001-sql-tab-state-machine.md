@@ -300,6 +300,71 @@ whose whole purpose is to be freely queried by a GUI and an LLM is the wrong dir
 - Does the store record enough origin-attribute detail to restore a container tab exactly,
   including partitioned state?
 
+## Form Data — three different things, three different answers
+
+Raised 2026-08-24. "Form fillers" is really three subsystems that Firefox stores three ways,
+and they do not get one answer. Verified in the ESR 153 tree:
+
+| what | where today | verdict |
+|---|---|---|
+| per-tab form state (restore-what-I-typed) | inside the session blob, `entries[].formdata` | **ours, definitely** |
+| form history (the input-field dropdown) | `formhistory.sqlite`, `moz_formhistory` | **merge candidate** |
+| autofill profiles (addresses, cards) | `autofill-profiles.json`, cards via `OSKeyStore` | **not ours** |
+
+**1. Per-tab form data — ours, and non-negotiable.** `formdata` already rides in the session
+blob per history entry ([SessionStore.sys.mjs:6581](upstream/browser/components/sessionstore/SessionStore.sys.mjs#L6581)),
+with a nested `children[]` for iframes. It is tab state by definition: the half-written
+comment you want back after a crash. If our store owns tab restore, it owns this. It is also
+the thing that most directly delivers "prevent lost data" — losing a session is annoying,
+losing a half-written form is the part people actually swear about.
+
+*How:* store it with the entry it belongs to, same shape, opaque to us. The design question
+is **write cadence**, not schema. Firefox throttles at ~15s and accepts the loss. Form data is
+exactly where that tradeoff hurts most, and a row-level store can afford to write a single
+field's state on blur without rewriting the world. That is the concrete "row-level beats blob"
+win, and it is worth prototyping first because it proves the whole thesis cheaply.
+
+**2. Form history — the real merge candidate.** Already SQLite
+([FormHistory.sys.mjs:97](upstream/toolkit/components/satchel/FormHistory.sys.mjs#L97), table
+`moz_formhistory` with a `moz_history_to_...` join and its own index), Gecko-owned but
+satellite — nothing in the network stack depends on it, unlike cookies. It is genuinely the
+same kind of object as our store's contents: *things you typed, with timestamps, that you
+might want back*. Same "navigational intent" test that cookies fail, it passes.
+
+*How:* same question as `places.sqlite` — replace, wrap, or mirror. Same likely answer:
+Gecko keeps its copy so the built-in dropdown keeps working, ours is authoritative for our
+surfaces, one direction mirrors. Do not solve this twice; whatever we decide for places
+decides this too.
+
+**3. Autofill profiles — not ours.** Addresses and credit cards live in a `JSONFile`, not
+SQLite, and card numbers are encrypted through `OSKeyStore`
+([FormAutofillStorageBase.sys.mjs:143, 1819](upstream/toolkit/components/formautofill/FormAutofillStorageBase.sys.mjs#L143))
+— OS-level keychain, not our key, deliberately. Passwords are the same story via NSS SDR into
+`logins.json`. These are authority, not intent: they fail the same test cookies fail, harder.
+Pulling a credit card number out of the OS keychain and into a DB we hand to a GUI and an MCP
+server is the single worst idea available in this design space.
+
+**The line, restated:** if losing it costs you *work*, it belongs in our store. If leaking it
+costs you *money or identity*, it stays where the OS or NSS put it.
+
+**Plan sketch (order matters):**
+1. Per-tab `formdata` in our store from day one, with a write-on-blur cadence — the cheapest
+   proof that row-level persistence beats the blob.
+2. Form history second, folded into whatever places decision we make. Not before.
+3. Autofill and passwords: never. Reference them if a tab needs to know a field was
+   autofilled; never store the values.
+
+**Open:**
+- Write cadence for form data: on blur, debounced on input, or on navigation? What is the
+  durability promise, and what does it cost in writes per minute on a heavy form?
+- Does form data belong in the tab row, the entry row, or its own table keyed by entry?
+- Privacy gate: Firefox has `PrivacyLevel` deciding whether form data on HTTPS pages is saved
+  at all. We need an equivalent before we save anything, not after.
+- Does the MCP organiser see form history? It is genuinely useful for "what was I working on"
+  and genuinely creepy. Probably opt-in, separate from the rest.
+- If form data is in the store and the store is encrypted, does that change the answer on
+  whether encryption is optional?
+
 ## Open Questions
 
 ### GUI / presentation
