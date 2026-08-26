@@ -88,12 +88,17 @@ export const SourcererAPI = Object.freeze({
   /**
    * Spawns `command` with an explicit argument vector -- never through a
    * shell interpreter -- returning the process handle with stderr piped.
+   * `environmentAppend: true` merges `environment` onto the parent
+   * process's own environment (PATH, HOME, ...) rather than replacing it
+   * outright -- the spawned Node backend and anything it shells out to
+   * (a terminal, npm) still needs a normal environment, plus our overrides.
    */
   spawnProcess({ command, args, environment }) {
     return lazy.Subprocess.call({
       command,
       arguments: args,
       environment,
+      environmentAppend: true,
       stderr: "pipe",
     });
   },
@@ -115,6 +120,55 @@ export const SourcererAPI = Object.freeze({
     const pipe = which === "stderr" ? proc.stderr : proc.stdout;
     const chunk = await pipe.readString();
     return chunk === "" ? null : chunk;
+  },
+
+  /**
+   * Resolves after `ms` milliseconds. The window-global delay timer is not
+   * available in a sys.mjs module's scope (confirmed against multiple
+   * in-tree modules that either import Timer.sys.mjs or hand-roll it with
+   * nsITimer) -- TheiaService may not import Timer.sys.mjs itself (D-96: it
+   * imports nothing but this file), so the platform timer lives here
+   * instead.
+   */
+  sleep(ms) {
+    return new Promise(resolve => {
+      const timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+      timer.initWithCallback(
+        { observe: () => resolve() },
+        ms,
+        Ci.nsITimer.TYPE_ONE_SHOT
+      );
+    });
+  },
+
+  /**
+   * GETs `url`, sending the sidecar token as a `Cookie` header. Used only
+   * for the pre-cookie health probe (D-99: the real chrome-set cookie
+   * doesn't exist until this probe first passes) and the steady-state
+   * health loop.
+   *
+   * `fetch()`'s Headers object silently drops "Cookie" -- it's a forbidden
+   * request-header name per the Fetch spec (dom/fetch/InternalHeaders.cpp),
+   * and that check has no privileged-caller carve-out. `XMLHttpRequest`'s
+   * `setRequestHeader` has exactly that carve-out for a system-principal
+   * caller (dom/xhr/XMLHttpRequestMainThread.cpp: `isPrivilegedCaller`),
+   * confirmed against the same escape hatch's use in-tree
+   * (netwerk/test/unit/test_cookie_header.js's raw-channel equivalent).
+   * Resolves `true` for a 200 response, `false` for anything else
+   * (non-200, network error, or the request exceeding `timeoutMs`) --
+   * never throws, so a caller never needs a try/catch around a probe.
+   */
+  probeHealth(url, token, timeoutMs) {
+    return new Promise(resolve => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", url, true);
+      xhr.timeout = timeoutMs;
+      xhr.setRequestHeader("Cookie", `SOURCERER_TOKEN=${token}`);
+      xhr.onload = () => resolve(xhr.status === 200);
+      xhr.onerror = () => resolve(false);
+      xhr.ontimeout = () => resolve(false);
+      xhr.send();
+    });
   },
 
   /**
