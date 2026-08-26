@@ -199,14 +199,14 @@ Plans:
   4. `sourcerer/INTERNAL-APIS.md` catalogues every Firefox-internals touchpoint, and a repo-wide search confirms `SourcererAPI.sys.mjs` is the only file importing Firefox internals
   5. Killing the backend while Sourcerer runs causes the health-check loop to restart it with backoff and the session recovers without relaunching the browser
 
-**Plans**: 2/5 plans executed
+**Plans**: 3/5 plans executed
 
 Plans:
 **Wave 1**
 
 - [x] 04-01-PLAN.md — Wave 0 verification harness: boundary guard with self-test, phase aggregator, red by design
 - [x] 04-02-PLAN.md — `@sourcerer/token-gate` backend extension: HTTP token gate, gated health route, OS-assigned port announcement
-- [ ] 04-03-PLAN.md — Repoint `BROWSER_CHROME_URL`, register `chrome://sourcerer/`, minimal window, `SourcererAPI.sys.mjs`, the one full build
+- [x] 04-03-PLAN.md — Repoint `BROWSER_CHROME_URL`, register `chrome://sourcerer/`, minimal window, `SourcererAPI.sys.mjs`, the one full build
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -260,7 +260,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 (2 and 3 may run in p
 | 1. Build Infrastructure | 4/4 | Complete   | 2026-08-20 |
 | 2. Sourcerer Theia Extensions | 7/7 | Complete   | 2026-08-20 |
 | 3. Branded Firefox Fork | 11/11 | Complete    | 2026-08-22 |
-| 4. Full-Window Theia Shell | 2/5 | In Progress|  |
+| 4. Full-Window Theia Shell | 3/5 | In Progress|  |
 | 5. Lifecycle & Failure Hardening | 0/TBD | Not started | - |
 
 ---

@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: full-window-theia-shell
 status: executing
-stopped_at: Completed 04-02-PLAN.md
-last_updated: "2026-08-26T20:59:54.762Z"
+stopped_at: Completed 04-03-PLAN.md
+last_updated: "2026-08-26T22:18:23.889Z"
 last_activity: 2026-08-26
 last_activity_desc: Phase 04 execution started
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 27
-  completed_plans: 24
+  completed_plans: 25
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 ## Current Position
 
 Phase: 04 (full-window-theia-shell) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-08-26 — Phase 04 execution started
 
-Progress: [█████████░] 89%
+Progress: [█████████░] 93%
 
 ## Performance Metrics
 
@@ -82,6 +82,7 @@ Progress: [█████████░] 89%
 | Phase 03 P11 | 50min | 3 tasks | 9 files |
 | Phase 04 P01 | 30min | 3 tasks | 2 files |
 | Phase 04 P02 | 26min | 3 tasks | 8 files |
+| Phase 04 P03 | 190min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -150,6 +151,10 @@ Recent decisions affecting current work:
 - [Phase ?]: 04-02: bind-scope failure reuses exit code 78 (same class of failure as fail-closed startup)
 - [Phase ?]: 04-02: theia/package.json build:extensions extended to build token-gate before the app build -- theia build bundles from each extension's already-compiled lib/
 - [Phase ?]: 04-02: SOURCERER_BACKEND_READY sentinel measured at ~0.62-0.63s since backend process start across five live spawns -- floor for 04-04's supervisor startup timeout
+- [Phase ?]: 04-03: sourcerer.js navigates the content browser via document.nodePrincipal (a chrome document's own system principal), not Services.scriptSecurityManager -- keeps the file outside check-internals-boundary.sh's exemption
+- [Phase ?]: 04-03: JS_PREFERENCE_PP_FILES .js files need an explicit #filter substitution directive -- @VAR@ substitution and even the preprocessor's own non-vacuity check are both inert without it, confirmed against browser/app/profile/firefox.js's own header
+- [Phase ?]: 04-03: fixed a stale mozilla-config.h bug -- reusing Phase 3's objdir meant ./mach build reported success without ever regenerating the compiled BROWSER_CHROME_URL define; cleared .deps/mozilla-config.h.stub to force real regeneration before the real full build
+- [Phase ?]: 04-03: fetch-upstream.sh excludes .mozbuild/ (repo-local MOZBUILD_STATE_PATH build-tooling state) from its D-76 dirt classifier via a git pathspec, not a patch to upstream/.gitignore
 
 ### Pending Todos
 
@@ -160,6 +165,7 @@ None yet.
 - Phase 1: nixpkgs Firefox-toolchain attributes are unverified. Check every attribute against the nixos MCP before writing the flake (research STACK.md gap).
 - Phase 4: verify the pinned Theia release is >= 1.73.1 and that the CVE-2026-61891 token check fires on plain HTTP, not only WebSocket upgrade.
 - All phases: Theia has no API stability tier. Review every `@theia/*` import against `doc/Migration.md` and record it in INTERNAL-APIS.md.
+- Phase 4: this executor's sandboxed session cannot get a Firefox content process past RenderCompositorSWGL/IPC channel setup in headless or Xvfb mode (reproduced on the untouched Phase-3 binary too) -- blocks live launch verification for plans 04-03's own <verify> and 04-04's kill-and-recover check; try a different runner/interactive session.
 
 ## Quick Tasks Completed
 
@@ -178,6 +184,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-26T20:59:54.752Z
-Stopped at: Completed 04-02-PLAN.md
+Last session: 2026-08-26T22:18:23.877Z
+Stopped at: Completed 04-03-PLAN.md
 Resume file: None
