@@ -202,10 +202,18 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 04-01-PLAN.md — Wave 0 verification harness: boundary guard with self-test, phase aggregator, red by design
 - [ ] 04-02-PLAN.md — `@sourcerer/token-gate` backend extension: HTTP token gate, gated health route, OS-assigned port announcement
 - [ ] 04-03-PLAN.md — Repoint `BROWSER_CHROME_URL`, register `chrome://sourcerer/`, minimal window, `SourcererAPI.sys.mjs`, the one full build
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 04-04-PLAN.md — `TheiaService.sys.mjs`: spawn, health gate, cookie, swap, backoff restart, bounded quit, log ring buffer
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 04-05-PLAN.md — `sourcerer/INTERNAL-APIS.md` with a self-enforcing catalogue check, full-suite green, human verdict on launch paint
 
 ### Phase 5: Lifecycle & Failure Hardening
