@@ -17,6 +17,13 @@ const { SourcererAPI } = ChromeUtils.importESModule("chrome://sourcerer/content/
 
 const HEALTH_PATH = "/sourcerer/health";
 
+// Discretionary constants (plan 04-04 recorded_decisions) -- no pref exists
+// for these (04-03's sourcerer-sidecar.js ships only the health/timeout/
+// grace/log-buffer prefs), so they stay literal here.
+const RESTART_BACKOFF_INITIAL_MS = 500;
+const RESTART_BACKOFF_CAP_MS = 5000;
+const CONSECUTIVE_FAILURES_THRESHOLD = 2;
+
 export const TheiaService = {
   // Per-launch state (D-104): minted/resolved once, reused across every
   // restart within this browser session.
@@ -30,6 +37,10 @@ export const TheiaService = {
   _configDir: null,
   _swapped: false,
   _shuttingDown: false,
+
+  // Health-loop state (Task 2).
+  _healthy: false,
+  _restartCount: 0,
 
   // D-106 ring buffer: bounded, in-memory, mirrored to the console as each
   // line arrives (see _pushLog / _pumpOutput below).
@@ -141,6 +152,8 @@ export const TheiaService = {
       return false;
     }
 
+    this._healthy = true;
+
     if (firstSpawn) {
       SourcererAPI.setSessionCookie({
         host: "127.0.0.1",
@@ -149,11 +162,107 @@ export const TheiaService = {
         value: this._token,
       });
       this._swap();
+      // Fire-and-forget: the loop runs for the lifetime of this browser
+      // session, checking _shuttingDown at every await point rather than
+      // needing a cancelable timer handle (Task 3's stop() just flips
+      // that flag).
+      this._healthLoop();
     } else {
       this._pushLog(`Recovered on port ${this._port}, pid ${this._pid}.`);
     }
 
     return true;
+  },
+
+  /**
+   * Steady-state supervision for the lifetime of the browser session.
+   * Each iteration sleeps the steady interval, then probes once (its own
+   * bounded timeout, so a probe can never overlap the next one). Two
+   * consecutive failures (not one -- a single slow response shouldn't
+   * churn a healthy backend) trigger a restart; a restart resets the
+   * failure count so the loop returns to steady-state polling once healthy
+   * again.
+   */
+  async _healthLoop() {
+    let consecutiveFailures = 0;
+
+    while (!this._shuttingDown) {
+      const steadyIntervalMs = SourcererAPI.getIntPref("sourcerer.sidecar.healthIntervalSteadyMs", 5000);
+      await SourcererAPI.sleep(steadyIntervalMs);
+      if (this._shuttingDown) {
+        break;
+      }
+
+      const healthTimeoutMs = SourcererAPI.getIntPref("sourcerer.sidecar.healthTimeoutMs", 4000);
+      const ok = await this._probeHealth(healthTimeoutMs);
+      if (this._shuttingDown) {
+        break;
+      }
+
+      if (ok) {
+        consecutiveFailures = 0;
+        this._healthy = true;
+        continue;
+      }
+
+      consecutiveFailures += 1;
+      this._pushLog(`Health probe failed (${consecutiveFailures} consecutive).`);
+      if (consecutiveFailures < CONSECUTIVE_FAILURES_THRESHOLD) {
+        continue;
+      }
+
+      consecutiveFailures = 0;
+      this._healthy = false;
+      await this._restart();
+    }
+  },
+
+  /**
+   * Reaps the dead process handle and respawns on the SAME pinned port
+   * with the SAME token (D-104), retrying indefinitely (D-103: Phase 4 has
+   * no give-up threshold) with exponential backoff between failed
+   * respawn attempts. Returns once a respawn's health probe has passed.
+   */
+  async _restart() {
+    this._restartCount += 1;
+    let backoffMs = RESTART_BACKOFF_INITIAL_MS;
+    this._pushLog(`Restarting backend (attempt ${this._restartCount}).`);
+
+    await this._reap();
+
+    for (;;) {
+      if (this._shuttingDown) {
+        return;
+      }
+
+      const ok = await this._spawnAndGate(/* firstSpawn */ false);
+      if (ok) {
+        return;
+      }
+
+      await this._reap();
+      if (this._shuttingDown) {
+        return;
+      }
+
+      this._pushLog(`Respawn attempt failed; waiting ${backoffMs}ms before retrying.`);
+      await SourcererAPI.sleep(backoffMs);
+      backoffMs = Math.min(backoffMs * 2, RESTART_BACKOFF_CAP_MS);
+    }
+  },
+
+  /** Kills the current process handle, if it's still alive, and clears it. */
+  async _reap() {
+    if (this._proc && this._proc.exitCode == null) {
+      const graceMs = SourcererAPI.getIntPref("sourcerer.sidecar.killGraceMs", 3000);
+      try {
+        await SourcererAPI.killProcess(this._proc, graceMs);
+      } catch {
+        // Already exited, or the platform kill failed on an already-dead
+        // handle -- nothing more to do either way.
+      }
+    }
+    this._proc = null;
   },
 
   /**
