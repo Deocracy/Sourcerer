@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: milestone
-current_phase: 4
-current_phase_name: Full-Window Theia Shell
+current_phase: 04
+current_phase_name: full-window-theia-shell
 status: executing
 stopped_at: Phase 4 context gathered
-last_updated: "2026-08-26T19:55:44.942Z"
-last_activity: 2026-08-22
-last_activity_desc: Phase 03 execution started
+last_updated: "2026-08-26T19:59:27.961Z"
+last_activity: 2026-08-26
+last_activity_desc: Phase 04 execution started
 progress:
   total_phases: 4
   completed_phases: 3
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-19)
 
 **Core value:** A daily-drivable IDE whose substrate is a real browser (DRM, WebExtensions, site isolation inherited from Firefox), built so every later plan lands as an addition, never a rework.
-**Current focus:** Phase 03 — branded-firefox-fork
+**Current focus:** Phase 04 — full-window-theia-shell
 
 ## Current Position
 
-Phase: 4 — Full-Window Theia Shell
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-08-22 — Phase 03 complete, transitioned to Phase 4
+Phase: 04 (full-window-theia-shell) — EXECUTING
+Plan: 1 of 5
+Status: Executing Phase 04
+Last activity: 2026-08-26 — Phase 04 execution started
 
 Progress: [██████████] 95%
 
