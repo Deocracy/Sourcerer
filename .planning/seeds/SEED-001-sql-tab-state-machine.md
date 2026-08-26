@@ -668,6 +668,14 @@ set. Everything else is secondary.
   - [upstream/browser/components/tabbrowser/content/tab.js](upstream/browser/components/tabbrowser/content/tab.js)
   - [upstream/browser/components/tabbrowser/TabUnloader.sys.mjs](upstream/browser/components/tabbrowser/TabUnloader.sys.mjs)
 
+- 2026-08-26, Phase 4 discussion: user asked whether to build the store before
+  continuing Phase 4. Concluded no — Phase 4 has no tab model and no
+  persistence, so the store has no consumer yet. Phase 4 records two
+  guardrails instead (`.planning/phases/04-full-window-theia-shell/04-CONTEXT.md`
+  D-107: no new persistence, in-memory launch state only; D-108: SessionStore
+  catalogued in `sourcerer/INTERNAL-APIS.md` as deliberately untouched), so
+  this store later lands on clean ground. Seed remains dormant.
+
 ## Notes
 
 Captured 2026-08-24 from a design conversation that started as "why does Firefox lose my
