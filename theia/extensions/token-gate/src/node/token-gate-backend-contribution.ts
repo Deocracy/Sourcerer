@@ -1,0 +1,128 @@
+import * as crypto from 'crypto';
+import * as http from 'http';
+import * as https from 'https';
+import { injectable, inject } from '@theia/core/shared/inversify';
+import * as express from '@theia/core/shared/express';
+import { BackendApplicationContribution, EarlyExpressMiddleware } from '@theia/core/lib/node';
+
+// D-98: replaces the trust root for backend access on plain HTTP -- the
+// stock BrowserConnectionTokenBackendContribution (browser-connection-token.js)
+// only rejects WebSocket upgrades and opt-in routes; it never rejects a plain
+// GET of the index document or static assets, and it unconditionally issues
+// its own cookie regardless of what this contribution decides. This gate
+// sits ahead of it (see initialize() below) so a rejected request never
+// reaches that stock middleware.
+export const SOURCERER_TOKEN_COOKIE_NAME = 'SOURCERER_TOKEN';
+const TOKEN_ENV_VAR = 'SOURCERER_TOKEN';
+const TOKEN_DISABLE_ENV_VAR = 'SOURCERER_TOKEN_DISABLE';
+
+@injectable()
+export class SourcererTokenGateContribution implements BackendApplicationContribution {
+
+    @inject(EarlyExpressMiddleware)
+    protected readonly earlyMiddleware: EarlyExpressMiddleware;
+
+    protected token: string | undefined;
+    protected disabled = false;
+    protected port: number | undefined;
+
+    initialize(): void {
+        const disable = process.env[TOKEN_DISABLE_ENV_VAR] === '1';
+        if (disable) {
+            // Named legacy-dev bypass (scripts/smoke-theia.sh,
+            // scripts/verify-phase-02.sh only). The supervised Sourcerer path
+            // never sets this -- it is a deliberately-typed name, not an
+            // omission, so an unconfigured token never silently passes
+            // through.
+            this.disabled = true;
+            process.stderr.write(
+                `SourcererTokenGateContribution: WARNING -- ${TOKEN_DISABLE_ENV_VAR}=1 is set. The token gate is DISABLED and this backend is reachable without a token.\n`
+            );
+            return;
+        }
+
+        const token = process.env[TOKEN_ENV_VAR];
+        if (!token) {
+            // Fail-closed (D-98/SIDE-02): an unconfigured token is a startup
+            // failure, never an inert/pass-through gate. This must run before
+            // the HTTP server ever calls listen() -- initialize() is the
+            // earliest BackendApplicationContribution hook, invoked from
+            // BackendApplication#configure() which itself runs before
+            // BackendApplication#start() binds the socket.
+            process.stderr.write(
+                `SourcererTokenGateContribution: FATAL -- ${TOKEN_ENV_VAR} is not set. Refusing to start an ungated backend.\n`
+            );
+            process.exit(78);
+            return;
+        }
+
+        this.token = token;
+        // unshift, not push: the stock BrowserConnectionTokenBackendContribution
+        // registers its own middleware via push() and unconditionally calls
+        // next(), so if it ran first a rejected caller would still receive a
+        // valid theia-connection-token cookie. Front-inserting guarantees this
+        // handler runs first regardless of contribution registration order.
+        this.earlyMiddleware.handlers.unshift((req, res, next) => this.gate(req, res, next));
+    }
+
+    configure(app: express.Application): void {
+        // Gated for free: this route is registered in configure(), which
+        // BackendApplication runs after applying earlyMiddleware.handlers, so
+        // every request here has already passed (or been rejected by) gate().
+        app.get('/sourcerer/health', (_req, res) => {
+            res.json({ ok: true, pid: process.pid, port: this.port ?? null });
+        });
+    }
+
+    onStart(server: http.Server | https.Server): void {
+        const address = server.address();
+        const port = address !== null && typeof address !== 'string' ? address.port : undefined;
+        this.port = port;
+        // SIDE-01's port read-back channel: a stdout sentinel line, not a
+        // file -- the supervisor already reads this stdout stream, it dies
+        // with the process, and it needs no atomic-write/stale-file handling.
+        process.stdout.write(`SOURCERER_BACKEND_READY ${JSON.stringify({ port, pid: process.pid })}\n`);
+    }
+
+    protected gate(req: express.Request, res: express.Response, next: express.NextFunction): void {
+        const token = this.getTokenFromCookie(req);
+        if (token !== undefined && this.isTokenValid(token)) {
+            next();
+            return;
+        }
+        // No next() on reject: stops the chain before the stock cookie
+        // bootstrap (or any other downstream handler) ever runs for this
+        // request. No header of any kind is set on this path.
+        res.sendStatus(403);
+    }
+
+    protected getTokenFromCookie(req: express.Request): string | undefined {
+        const header = req.headers.cookie;
+        if (!header) {
+            return undefined;
+        }
+        for (const part of header.split(';')) {
+            const eq = part.indexOf('=');
+            if (eq === -1) {
+                continue;
+            }
+            const name = part.slice(0, eq).trim();
+            if (name === SOURCERER_TOKEN_COOKIE_NAME) {
+                return part.slice(eq + 1).trim();
+            }
+        }
+        return undefined;
+    }
+
+    protected isTokenValid(candidate: string): boolean {
+        if (this.token === undefined) {
+            return false;
+        }
+        const received = Buffer.from(candidate, 'utf8');
+        const expected = Buffer.from(this.token, 'utf8');
+        if (received.byteLength !== expected.byteLength) {
+            return false;
+        }
+        return crypto.timingSafeEqual(received, expected);
+    }
+}

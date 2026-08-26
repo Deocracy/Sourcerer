@@ -22,6 +22,7 @@
     "@sourcerer/branding": "0.1.0",
     "@sourcerer/customize": "0.1.0",
     "@sourcerer/tab-uris": "0.1.0",
+    "@sourcerer/token-gate": "0.1.0",
     "@theia/ai-anthropic": "1.74.1",
     "@theia/ai-chat": "1.74.1",
     "@theia/ai-chat-ui": "1.74.1",
