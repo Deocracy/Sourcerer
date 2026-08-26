@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: full-window-theia-shell
 status: executing
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-08-26T20:31:01.125Z"
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-08-26T20:59:54.762Z"
 last_activity: 2026-08-26
 last_activity_desc: Phase 04 execution started
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 27
-  completed_plans: 23
+  completed_plans: 24
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 ## Current Position
 
 Phase: 04 (full-window-theia-shell) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-08-26 — Phase 04 execution started
 
-Progress: [█████████░] 85%
+Progress: [█████████░] 89%
 
 ## Performance Metrics
 
@@ -81,6 +81,7 @@ Progress: [█████████░] 85%
 | Phase 03 P10 | ~13h (spans human checkpoint pause) | 3 tasks | 2 files |
 | Phase 03 P11 | 50min | 3 tasks | 9 files |
 | Phase 04 P01 | 30min | 3 tasks | 2 files |
+| Phase 04 P02 | 26min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -146,6 +147,9 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 3] 03-11: BRAND-06 gap closed -- dev brand.properties suffixed to match brand.ftl (WR-01), dev-only browser.tabs.inTitlebar=0 default paints a real title bar, verify-branding-identity.mjs brand-full-name surface now reads brand.properties too; human re-verification PASS 2026-08-22 (icon badge deliberately left un-rebadged)
 - [Phase ?]: 04-01: check-internals-boundary.sh default scan target is sourcerer/shell/, not the whole sourcerer/ tree D-97 names literally -- existing sourcerer/branding/*/pref/firefox-branding.js files match the *.js glob with zero offenses, so scanning all of sourcerer/ would make internals-boundary a false PASS before any Phase 4 code exists, defeating Wave 0's red-by-design requirement
 - [Phase ?]: 04-01: side03-kill-and-recover asserts D-104's pid/port recovery half only, not cookie continuity -- a bash/curl driver cannot read the chrome-set token cookie without a WebDriver BiDi storage.getCookies call, which scripts/lib/firefox-bidi.mjs (required to stay unchanged) does not export; deferred to a future task
+- [Phase ?]: 04-02: bind-scope failure reuses exit code 78 (same class of failure as fail-closed startup)
+- [Phase ?]: 04-02: theia/package.json build:extensions extended to build token-gate before the app build -- theia build bundles from each extension's already-compiled lib/
+- [Phase ?]: 04-02: SOURCERER_BACKEND_READY sentinel measured at ~0.62-0.63s since backend process start across five live spawns -- floor for 04-04's supervisor startup timeout
 
 ### Pending Todos
 
@@ -174,6 +178,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-26T20:31:01.114Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-08-26T20:59:54.752Z
+Stopped at: Completed 04-02-PLAN.md
 Resume file: None
