@@ -5,12 +5,12 @@ milestone_name: milestone
 current_phase: 4
 current_phase_name: Full-Window Theia Shell
 status: planning
-stopped_at: Completed 03-11-PLAN.md -- BRAND-06 gap closed, human re-verification PASS
-last_updated: "2026-08-22T19:23:50.613Z"
+stopped_at: Phase 4 context gathered
+last_updated: "2026-08-26T19:10:53.901Z"
 last_activity: 2026-08-22
 last_activity_desc: Phase 03 execution started
 progress:
-  total_phases: 3
+  total_phases: 4
   completed_phases: 3
   total_plans: 22
   completed_plans: 22
@@ -171,6 +171,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-22T19:04:48.294Z
-Stopped at: Completed 03-11-PLAN.md -- BRAND-06 gap closed, human re-verification PASS
-Resume file: None
+Last session: 2026-08-26T19:10:53.869Z
+Stopped at: Phase 4 context gathered
+Resume file: .planning/phases/04-full-window-theia-shell/04-CONTEXT.md
