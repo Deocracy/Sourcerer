@@ -25,19 +25,19 @@ Requirements for v4.0. Each maps to roadmap phases.
 
 ### Sidecar Supervision
 
-- [ ] **SIDE-01**: `TheiaService.sys.mjs` spawns the bundled Node + Theia browser-target backend at startup via `Subprocess.sys.mjs`, bound explicitly to 127.0.0.1 on an OS-assigned free port (bind port 0, read back)
-- [ ] **SIDE-02**: Backend access requires a per-launch token minted before first load; token enforcement verified on plain HTTP requests, not only WebSocket upgrade (CVE-2026-61891 class)
-- [ ] **SIDE-03**: A health-check loop gates first load and restarts the backend with backoff on crash
+- [x] **SIDE-01**: `TheiaService.sys.mjs` spawns the bundled Node + Theia browser-target backend at startup via `Subprocess.sys.mjs`, bound explicitly to 127.0.0.1 on an OS-assigned free port (bind port 0, read back)
+- [x] **SIDE-02**: Backend access requires a per-launch token minted before first load; token enforcement verified on plain HTTP requests, not only WebSocket upgrade (CVE-2026-61891 class)
+- [x] **SIDE-03**: A health-check loop gates first load and restarts the backend with backoff on crash
 - [ ] **SIDE-04**: Quitting or killing the browser (including SIGKILL) leaves zero orphaned backend processes — process-group kill semantics plus startup cleanup of leftovers
 - [ ] **SIDE-05**: Launching Sourcerer a second time focuses the existing window and never spawns a second backend (Firefox's native single-instance behavior preserved)
 
 ### Shell Presentation
 
-- [ ] **SHELL-01**: `sourcerer.xhtml` presents one full-window `<browser>` loading Theia; Theia's own shell (menu bar, status bar, tab bar) is the entire UI, unsuppressed — no custom chrome
-- [ ] **SHELL-02**: Every Firefox-internals touch goes through `SourcererAPI.sys.mjs` and is catalogued in `sourcerer/INTERNAL-APIS.md`; nothing else imports Firefox internals
+- [x] **SHELL-01**: `sourcerer.xhtml` presents one full-window `<browser>` loading Theia; Theia's own shell (menu bar, status bar, tab bar) is the entire UI, unsuppressed — no custom chrome
+- [x] **SHELL-02**: Every Firefox-internals touch goes through `SourcererAPI.sys.mjs` and is catalogued in `sourcerer/INTERNAL-APIS.md`; nothing else imports Firefox internals
 - [ ] **SHELL-03**: When the backend dies and restart fails, the user sees a branded, chrome-rendered error state with retry — never a blank/frozen window
 - [ ] **SHELL-04**: A diagnostics page (about:sourcerer-style) shows sidecar port, PID, health status, and recent log output
-- [ ] **SHELL-05**: The window paints immediately with a loading state and swaps to Theia when the health check passes — window show is not blocked on backend readiness
+- [x] **SHELL-05**: The window paints immediately with a loading state and swaps to Theia when the health check passes — window show is not blocked on backend readiness
 
 ### Customization Bridge (R4a)
 
@@ -174,12 +174,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BRAND-03 | Phase 3 | Complete |
 | BRAND-04 | Phase 3 | Complete |
 | BRAND-06 | Phase 3 | Complete |
-| SHELL-01 | Phase 4 | Pending |
-| SHELL-02 | Phase 4 | Pending |
-| SHELL-05 | Phase 4 | Pending |
-| SIDE-01 | Phase 4 | Pending |
-| SIDE-02 | Phase 4 | Pending |
-| SIDE-03 | Phase 4 | Pending |
+| SHELL-01 | Phase 4 | Complete |
+| SHELL-02 | Phase 4 | Complete |
+| SHELL-05 | Phase 4 | Complete |
+| SIDE-01 | Phase 4 | Complete |
+| SIDE-02 | Phase 4 | Complete |
+| SIDE-03 | Phase 4 | Complete |
 | SIDE-04 | Phase 5 | Pending |
 | SIDE-05 | Phase 5 | Pending |
 | SHELL-03 | Phase 5 | Pending |
