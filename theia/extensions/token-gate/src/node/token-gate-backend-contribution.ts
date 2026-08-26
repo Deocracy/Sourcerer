@@ -76,12 +76,37 @@ export class SourcererTokenGateContribution implements BackendApplicationContrib
 
     onStart(server: http.Server | https.Server): void {
         const address = server.address();
-        const port = address !== null && typeof address !== 'string' ? address.port : undefined;
-        this.port = port;
+        if (address === null || typeof address === 'string') {
+            process.stderr.write(
+                `SourcererTokenGateContribution: FATAL -- could not determine the bound address (got ${JSON.stringify(address)}). Refusing to announce readiness.\n`
+            );
+            process.exit(78);
+            return;
+        }
+
+        // SIDE-01: an accidental 0.0.0.0/:: bind must be a startup failure,
+        // not a silently reachable backend -- never announce readiness for a
+        // non-loopback bind.
+        const isLoopback = (address.family === 'IPv4' && address.address === '127.0.0.1')
+            || (address.family === 'IPv6' && address.address === '::1');
+        if (!isLoopback) {
+            process.stderr.write(
+                `SourcererTokenGateContribution: FATAL -- backend bound to non-loopback address ${address.address} (family ${address.family}). Refusing to announce readiness.\n`
+            );
+            process.exit(78);
+            return;
+        }
+
+        this.port = address.port;
         // SIDE-01's port read-back channel: a stdout sentinel line, not a
         // file -- the supervisor already reads this stdout stream, it dies
         // with the process, and it needs no atomic-write/stale-file handling.
-        process.stdout.write(`SOURCERER_BACKEND_READY ${JSON.stringify({ port, pid: process.pid })}\n`);
+        // D-104: this contribution stores no state and reads SOURCERER_TOKEN
+        // fresh from process.env on every start (see initialize() above), so
+        // a supervisor that respawns this process with the same environment
+        // and the same requested port produces a backend that accepts the
+        // same already-issued token cookie with no re-handshake.
+        process.stdout.write(`SOURCERER_BACKEND_READY ${JSON.stringify({ port: this.port, pid: process.pid })}\n`);
     }
 
     protected gate(req: express.Request, res: express.Response, next: express.NextFunction): void {
