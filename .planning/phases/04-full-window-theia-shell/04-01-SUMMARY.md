@@ -147,3 +147,13 @@ None - no external service configuration required.
 ---
 *Phase: 04-full-window-theia-shell*
 *Completed: 2026-08-26*
+
+## Self-Check: PASSED
+
+- FOUND: scripts/check-internals-boundary.sh
+- FOUND: scripts/verify-phase-04.sh
+- FOUND: .planning/phases/04-full-window-theia-shell/04-01-SUMMARY.md
+- FOUND: 03e5e97 (Task 1 commit)
+- FOUND: 9213099 (Task 2 commit)
+- FOUND: e3f409c (Task 3 commit)
+- FOUND: 434c17e (SUMMARY commit)
