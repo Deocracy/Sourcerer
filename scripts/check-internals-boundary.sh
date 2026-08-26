@@ -129,15 +129,102 @@ scan_internals_boundary() {
   return 0
 }
 
+# --- Catalogue consistency (04-05, SHELL-02's second half) -----------------
+#
+# SHELL-02 has two halves: nothing outside SourcererAPI.sys.mjs imports a
+# Firefox internal (the scan above), and every internal that file DOES
+# import is catalogued in sourcerer/INTERNAL-APIS.md. This mode scans
+# SourcererAPI.sys.mjs itself -- normally excluded above by
+# BOUNDARY_FILE_BASENAME -- with the exact same FORBIDDEN_PATTERNS/
+# is_conditional_pattern/is_comment_line logic, so the rule is written once
+# and the catalogue is derived from the code rather than maintained beside
+# it.
+CATALOGUE_PATH="$REPO_ROOT/sourcerer/INTERNAL-APIS.md"
+CATALOGUE_TARGET="$REPO_ROOT/sourcerer/shell/SourcererAPI.sys.mjs"
+
+# Prints one distinct line number per output line for every forbidden-
+# pattern occurrence in <file>. Two offending patterns on the same line
+# (e.g. Cc[...]/Ci. on one nsITimer construction) collapse to one line
+# number -- one catalogue row covers both, matching the doc's own
+# "one row = one touchpoint" grain.
+catalogue_occurrence_lines() {
+  local file="$1"
+  local line_no line pattern offense
+  local -A seen=()
+  line_no=0
+  while IFS= read -r line || [ -n "$line" ]; do
+    line_no=$((line_no + 1))
+    is_comment_line "$line" && continue
+    for pattern in "${FORBIDDEN_PATTERNS[@]}"; do
+      case "$line" in
+        *"$pattern"*)
+          offense=1
+          if is_conditional_pattern "$pattern"; then
+            case "$line" in
+              *'chrome://sourcerer/'*) offense=0 ;;
+            esac
+          fi
+          if [ "$offense" -eq 1 ] && [ -z "${seen[$line_no]:-}" ]; then
+            seen[$line_no]=1
+            echo "$line_no"
+          fi
+          ;;
+      esac
+    done
+  done < "$file"
+}
+
+# Fails when any occurrence line in <target> has no matching
+# "<basename>:<line>" row in <catalogue>, naming the uncatalogued
+# file:line. <catalogue>/<target> are parameters, not the module-level
+# defaults, so --self-test can point this at scratch copies without ever
+# touching the real files.
+check_catalogue_consistency() {
+  local catalogue="$1"
+  local target="$2"
+  local base escaped_base
+  base="$(basename -- "$target")"
+  escaped_base="${base//./\\.}"
+
+  if [ ! -f "$catalogue" ]; then
+    echo "internals-catalogue: FAIL -- $catalogue does not exist" >&2
+    return 1
+  fi
+  if [ ! -f "$target" ]; then
+    echo "internals-catalogue: FAIL -- $target does not exist" >&2
+    return 1
+  fi
+
+  local -a missing=()
+  local line_no
+  while IFS= read -r line_no; do
+    if ! grep -Eq "${escaped_base}:${line_no}([^0-9]|\$)" "$catalogue"; then
+      missing+=("$base:$line_no")
+    fi
+  done < <(catalogue_occurrence_lines "$target")
+
+  if [ "${#missing[@]}" -ne 0 ]; then
+    echo "internals-catalogue: FAIL -- ${#missing[@]} occurrence(s) with no catalogue row: ${missing[*]}" >&2
+    return 1
+  fi
+
+  echo "internals-catalogue: PASS -- every forbidden-pattern occurrence in $target has a catalogue row in $catalogue"
+  return 0
+}
+
 # --self-test: plants one fixture module carrying exactly one unconditional
 # forbidden pattern in a mktemp -d directory (never a real repo file), and
 # asserts scan_internals_boundary rejects it AND names the planted path.
 # D-68 idiom: a negative assertion without a demonstrated-red control proves
-# nothing.
+# nothing. Also plants a mutated scratch copy of the real catalogue with one
+# row removed and asserts check_catalogue_consistency rejects it and names
+# the missing row -- never mutates the real sourcerer/INTERNAL-APIS.md.
 run_self_test() {
   local tmp
   tmp="$(mktemp -d)"
   trap 'find "$tmp" -delete' RETURN
+
+  local overall=0
 
   cat > "$tmp/planted-violation.sys.mjs" <<'EOF'
 // planted-violation.sys.mjs -- check-internals-boundary.sh --self-test
@@ -150,21 +237,45 @@ EOF
   if scan_internals_boundary "$tmp" >/dev/null 2>"$tmp/self-test.err"; then
     echo "check-internals-boundary: --self-test FAIL -- planted violation was NOT rejected" >&2
     cat "$tmp/self-test.err" >&2
-    return 1
-  fi
-
-  if grep -q 'planted-violation.sys.mjs' "$tmp/self-test.err"; then
+    overall=1
+  elif grep -q 'planted-violation.sys.mjs' "$tmp/self-test.err"; then
     echo "check-internals-boundary: --self-test PASS -- planted violation (planted-violation.sys.mjs, Services.) was correctly rejected"
-    return 0
+  else
+    echo "check-internals-boundary: --self-test FAIL -- rejected, but message doesn't name the planted path" >&2
+    cat "$tmp/self-test.err" >&2
+    overall=1
   fi
 
-  echo "check-internals-boundary: --self-test FAIL -- rejected, but message doesn't name the planted path" >&2
-  cat "$tmp/self-test.err" >&2
-  return 1
+  local mutated="$tmp/INTERNAL-APIS-mutated.md"
+  if [ ! -f "$CATALOGUE_PATH" ]; then
+    echo "check-internals-boundary: --self-test FAIL -- $CATALOGUE_PATH does not exist, cannot run the catalogue self-test" >&2
+    overall=1
+  else
+    grep -v 'SourcererAPI.sys.mjs:72' "$CATALOGUE_PATH" > "$mutated"
+    local out
+    if out="$(check_catalogue_consistency "$mutated" "$CATALOGUE_TARGET" 2>&1)"; then
+      echo "check-internals-boundary: --self-test FAIL -- catalogue mutated copy with SourcererAPI.sys.mjs:72's row removed was NOT rejected" >&2
+      echo "$out" >&2
+      overall=1
+    elif echo "$out" | grep -q 'SourcererAPI.sys.mjs:72'; then
+      echo "check-internals-boundary: --self-test PASS -- catalogue mutation (removed row for SourcererAPI.sys.mjs:72) was correctly rejected"
+    else
+      echo "check-internals-boundary: --self-test FAIL -- catalogue mutation rejected, but message doesn't name the removed row" >&2
+      echo "$out" >&2
+      overall=1
+    fi
+  fi
+
+  return "$overall"
 }
 
 if [ "${1:-}" = "--self-test" ]; then
   run_self_test
+  exit $?
+fi
+
+if [ "${1:-}" = "--catalogue" ]; then
+  check_catalogue_consistency "$CATALOGUE_PATH" "$CATALOGUE_TARGET"
   exit $?
 fi
 

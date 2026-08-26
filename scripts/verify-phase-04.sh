@@ -16,7 +16,10 @@
 # set -- they spawn the Node sidecar. Task 3 appends end-to-end checks
 # (shell presence, paint ordering, kill-and-recover) outside the quick set
 # -- they launch the built `objdir/dist/bin/sourcerer` binary and reuse
-# scripts/lib/firefox-bidi.mjs, never a second driver.
+# scripts/lib/firefox-bidi.mjs, never a second driver. Plan 04-05 appends a
+# third quick check, internals-catalogue, covering SHELL-02's second half
+# (every internal SourcererAPI.sys.mjs reaches is catalogued in
+# sourcerer/INTERNAL-APIS.md) -- 10 checks total.
 #
 # Every external script invocation runs under `setsid`, exactly like
 # scripts/verify-phase-02.sh's and scripts/verify-phase-03.sh's own
@@ -531,6 +534,7 @@ fi
 declare -a CHECKS=(
   "internals-boundary-self-test|bash $REPO_ROOT/scripts/check-internals-boundary.sh --self-test"
   "internals-boundary|bash $REPO_ROOT/scripts/check-internals-boundary.sh"
+  "internals-catalogue|bash $REPO_ROOT/scripts/check-internals-boundary.sh --catalogue"
 )
 
 if [ "$QUICK" -eq 0 ]; then
