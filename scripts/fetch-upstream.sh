@@ -42,7 +42,15 @@ classify_upstream_dirt() {
   local git_dir="$1" patches_dir="$2" label="$3"
   local actual expected
 
-  actual="$(git -C "$git_dir" status --porcelain 2>/dev/null | sed -E 's/^.{3}//' | sort -u)"
+  # .mozbuild/ is Firefox build-tooling state (MOZBUILD_STATE_PATH, set by
+  # flake.nix's firefox devShell to keep it repo-local rather than
+  # ~/.mozbuild), created the first time any `./mach` command runs inside
+  # upstream/ -- it is not Gecko source content, so it is excluded from
+  # D-76's dirt scan the same way objdir/ is kept a sibling of upstream/
+  # rather than inside it. Discovered live (04-03): a full `./mach build`
+  # leaves it behind, which without this exclusion made a correct,
+  # fully-patched tree read as "unaccounted dirt".
+  actual="$(git -C "$git_dir" status --porcelain -- . ':!.mozbuild' 2>/dev/null | sed -E 's/^.{3}//' | sort -u)"
 
   if [ -z "$actual" ]; then
     echo "$label: pristine -- nothing to account for"
