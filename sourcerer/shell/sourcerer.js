@@ -42,13 +42,19 @@ document.addEventListener(
       return browserElement;
     };
 
-    // Task 2 proof-of-resolution: import SourcererAPI.sys.mjs and read
-    // back two sidecar prefs through it, emitting an additional sentinel.
-    // Left in place -- plan 04-04 keeps it.
+    // Task 2 (04-03) proof-of-resolution: import SourcererAPI.sys.mjs and
+    // read back two sidecar prefs through it, emitting an additional
+    // sentinel. Left in place -- plan 04-04 keeps it.
     const { SourcererAPI } = ChromeUtils.importESModule("chrome://sourcerer/content/SourcererAPI.sys.mjs");
     const backendMain = SourcererAPI.getStringPref("sourcerer.sidecar.backendMain", "");
     const nodePath = SourcererAPI.getStringPref("sourcerer.sidecar.nodePath", "");
     dump(`SOURCERER_SIDECAR_PREFS backendMain=${backendMain} nodePath=${nodePath}\n`);
+
+    // 04-04: hand off to the backend supervisor. The shell-ready sentinel
+    // above is already written -- nothing in this spawn path may run
+    // before it.
+    const { TheiaService } = ChromeUtils.importESModule("chrome://sourcerer/content/TheiaService.sys.mjs");
+    TheiaService.start(browserElement);
   },
   { once: true }
 );
