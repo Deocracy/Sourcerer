@@ -4,16 +4,16 @@ milestone: v4.0
 milestone_name: milestone
 current_phase: 04
 current_phase_name: full-window-theia-shell
-status: executing
-stopped_at: Completed 04-04-PLAN.md
-last_updated: "2026-08-26T22:37:27.384Z"
+status: verifying
+stopped_at: Completed 04-05-PLAN.md (Phase 4 code-complete; 2 open items in WINDOWS.md pending an environment where Firefox headless bring-up completes)
+last_updated: "2026-08-26T22:57:48.332Z"
 last_activity: 2026-08-26
 last_activity_desc: Phase 04 execution started
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 27
-  completed_plans: 26
+  completed_plans: 27
 ---
 
 # Project State
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 
 Phase: 04 (full-window-theia-shell) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-08-26 — Phase 04 execution started
 
-Progress: [██████████] 96%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -84,6 +84,7 @@ Progress: [██████████] 96%
 | Phase 04 P02 | 26min | 3 tasks | 8 files |
 | Phase 04 P03 | 190min | 3 tasks | 8 files |
 | Phase 04 P04 | 35min | 3 tasks | 4 files |
+| Phase 04 P05 | 19min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -160,6 +161,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 04-04: health probe uses a system-privileged XMLHttpRequest, not fetch() -- fetch() silently drops the Cookie header (forbidden Fetch-spec header, no privileged-caller carve-out); XHR's setRequestHeader has that carve-out
 - [Phase ?]: 04-04: restart backoff constants (500ms->5000ms cap) stay literal in TheiaService.sys.mjs, not prefs -- no such pref exists in 04-03's shipped set and this plan doesn't touch sourcerer-sidecar.js
 - [Phase ?]: 04-04: health-loop cancellation is a checked _shuttingDown flag at every await point, not a cancelable timer handle -- stop() bounds purely on the platform kill call's own grace period
+- [Phase ?]: 04-05: Catalogue row grain is the distinct occurrence LINE in SourcererAPI.sys.mjs, not the distinct pattern match -- two forbidden patterns on one line (Cc[.../Ci.) collapse to one required catalogue row, matched by file:line
+- [Phase ?]: 04-05: 04-VALIDATION.md set to status: validated / nyquist_compliant: false (honest PARTIAL) -- 7/10 verify-phase-04.sh checks green and non-flaky across 3 live runs, 3/10 (SHELL-01, SHELL-05, SIDE-03) blocked by the pre-existing RenderCompositorSWGL environmental failure (WINDOWS.md entries 2-3), no assertion weakened to force a false green
+- [Phase ?]: 04-05: 04-MANUAL-VERIFICATION.md's launch-paint verdict recorded as genuinely pending, not fabricated -- this autonomous session has no attached desktop and has never achieved a live paint across three plans (04-03/04-04/04-05); WINDOWS.md entry 4 tracks the gap
 
 ### Pending Todos
 
@@ -189,6 +193,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-26T22:37:27.371Z
-Stopped at: Completed 04-04-PLAN.md
+Last session: 2026-08-26T22:57:48.320Z
+Stopped at: Completed 04-05-PLAN.md (Phase 4 code-complete; 2 open items in WINDOWS.md pending an environment where Firefox headless bring-up completes)
 Resume file: None
