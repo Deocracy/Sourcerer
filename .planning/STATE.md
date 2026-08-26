@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: full-window-theia-shell
 status: executing
-stopped_at: Completed 04-03-PLAN.md
-last_updated: "2026-08-26T22:18:23.889Z"
+stopped_at: Completed 04-04-PLAN.md
+last_updated: "2026-08-26T22:37:27.384Z"
 last_activity: 2026-08-26
 last_activity_desc: Phase 04 execution started
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 27
-  completed_plans: 25
+  completed_plans: 26
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 ## Current Position
 
 Phase: 04 (full-window-theia-shell) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-08-26 — Phase 04 execution started
 
-Progress: [█████████░] 93%
+Progress: [██████████] 96%
 
 ## Performance Metrics
 
@@ -83,6 +83,7 @@ Progress: [█████████░] 93%
 | Phase 04 P01 | 30min | 3 tasks | 2 files |
 | Phase 04 P02 | 26min | 3 tasks | 8 files |
 | Phase 04 P03 | 190min | 3 tasks | 8 files |
+| Phase 04 P04 | 35min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -155,6 +156,10 @@ Recent decisions affecting current work:
 - [Phase ?]: 04-03: JS_PREFERENCE_PP_FILES .js files need an explicit #filter substitution directive -- @VAR@ substitution and even the preprocessor's own non-vacuity check are both inert without it, confirmed against browser/app/profile/firefox.js's own header
 - [Phase ?]: 04-03: fixed a stale mozilla-config.h bug -- reusing Phase 3's objdir meant ./mach build reported success without ever regenerating the compiled BROWSER_CHROME_URL define; cleared .deps/mozilla-config.h.stub to force real regeneration before the real full build
 - [Phase ?]: 04-03: fetch-upstream.sh excludes .mozbuild/ (repo-local MOZBUILD_STATE_PATH build-tooling state) from its D-76 dirt classifier via a git pathspec, not a patch to upstream/.gitignore
+- [Phase ?]: 04-04: spawnProcess now passes environmentAppend: true -- the prior shape replaced the child's entire environment with just the 3 sidecar vars, dropping PATH/HOME
+- [Phase ?]: 04-04: health probe uses a system-privileged XMLHttpRequest, not fetch() -- fetch() silently drops the Cookie header (forbidden Fetch-spec header, no privileged-caller carve-out); XHR's setRequestHeader has that carve-out
+- [Phase ?]: 04-04: restart backoff constants (500ms->5000ms cap) stay literal in TheiaService.sys.mjs, not prefs -- no such pref exists in 04-03's shipped set and this plan doesn't touch sourcerer-sidecar.js
+- [Phase ?]: 04-04: health-loop cancellation is a checked _shuttingDown flag at every await point, not a cancelable timer handle -- stop() bounds purely on the platform kill call's own grace period
 
 ### Pending Todos
 
@@ -184,6 +189,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-26T22:18:23.877Z
-Stopped at: Completed 04-03-PLAN.md
+Last session: 2026-08-26T22:37:27.371Z
+Stopped at: Completed 04-04-PLAN.md
 Resume file: None
