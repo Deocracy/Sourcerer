@@ -42,6 +42,7 @@ done
 
 CURRENT_CHECK_PID=""
 BACKEND_SPAWN_PID=""
+BROWSER_SPAWN_PID=""
 declare -a TEMP_PATHS=()
 track_temp() { TEMP_PATHS+=("$1"); }
 cleanup() {
@@ -60,8 +61,17 @@ cleanup() {
     wait "$BACKEND_SPAWN_PID" 2>/dev/null || true
     BACKEND_SPAWN_PID=""
   fi
+  # Same safety net for a check that started the built browser binary via
+  # start_shell() (shell05-paint-before-backend, side03-kill-and-recover).
+  if [ -n "$BROWSER_SPAWN_PID" ]; then
+    kill -- "-$BROWSER_SPAWN_PID" 2>/dev/null || kill "$BROWSER_SPAWN_PID" 2>/dev/null || true
+    wait "$BROWSER_SPAWN_PID" 2>/dev/null || true
+    BROWSER_SPAWN_PID=""
+  fi
+  # -rf (not -f): TEMP_PATHS also carries start_shell's throwaway profile
+  # directories, not only plain temp files.
   for p in "${TEMP_PATHS[@]:-}"; do
-    [ -n "$p" ] && rm -f "$p"
+    [ -n "$p" ] && rm -rf "$p"
   done
   TEMP_PATHS=()
 }
@@ -262,6 +272,260 @@ check_side01_bind_scope() {
   return "$result"
 }
 
+# --- Task 3: end-to-end checks (SHELL-01, SHELL-05, SIDE-03) ----------------
+#
+# All three launch $REPO_ROOT/objdir/dist/bin/sourcerer, the same binary
+# scripts/lib/firefox-bidi.mjs targets by default (its FIREFOX_BIN export).
+# shell05/side03 need the launched process's own stdout+stderr (to read the
+# SOURCERER_SHELL_READY/SOURCERER_BACKEND_READY/SOURCERER_SHELL_SWAP
+# sentinels) -- withFirefoxPage's spawn discards stdout, so those two use
+# start_shell/stop_shell below (this script's own setsid + log-file
+# capture, exactly like start_backend/stop_backend). shell01 needs real
+# page evaluation (DOM presence of Theia's own shell) instead, so it is
+# generated as a small temp .mjs runner that imports
+# scripts/lib/firefox-bidi.mjs's withFirefoxPage/waitFor UNCHANGED
+# (04-PATTERNS.md key_link) -- never a second driver, and never a
+# persisted sibling file: the runner lives only under mktemp, registered
+# with track_temp like every other self-test fixture in this file.
+BROWSER_LOG=""
+
+# Spawns the built binary headless with a throwaway profile, capturing its
+# combined stdout+stderr to a track_temp-registered log file. Callers poll
+# BROWSER_LOG for whatever sentinel they need; stop_shell() always tears
+# the process (and setsid process group) down. A missing/non-executable
+# binary is a named FAIL, not a skip (mirrors firefox-bidi.mjs's own
+# existsSync guard).
+start_shell() {
+  local bin="$REPO_ROOT/objdir/dist/bin/sourcerer"
+  if [ ! -x "$bin" ]; then
+    echo "start_shell: FAIL -- $bin does not exist or is not executable (run the Phase 1 Firefox build first)" >&2
+    return 1
+  fi
+  local log profile
+  log="$(mktemp)"; track_temp "$log"
+  profile="$(mktemp -d)"; track_temp "$profile"
+  BROWSER_LOG="$log"
+
+  setsid "$bin" --headless --profile "$profile" >"$log" 2>&1 &
+  BROWSER_SPAWN_PID=$!
+  return 0
+}
+
+stop_shell() {
+  if [ -n "$BROWSER_SPAWN_PID" ]; then
+    kill -- "-$BROWSER_SPAWN_PID" 2>/dev/null || kill "$BROWSER_SPAWN_PID" 2>/dev/null || true
+    wait "$BROWSER_SPAWN_PID" 2>/dev/null || true
+    BROWSER_SPAWN_PID=""
+  fi
+}
+
+# Byte offset (not line number -- SHELL-05's own contract) of the first
+# line beginning with the given literal prefix, or empty if absent.
+first_byte_offset() {
+  grep -abom1 "^$1" "$2" 2>/dev/null | cut -d: -f1
+}
+
+# SHELL-05: window show must never wait on backend readiness. The shell-
+# ready sentinel must appear strictly before the backend-ready sentinel,
+# and the shell-swap sentinel after both. Also the Pitfall 4 residual-risk
+# smoke check: zero occurrences of "gBrowser is undefined" in the log.
+check_shell05_paint_before_backend() {
+  if ! start_shell; then
+    echo "shell05-paint-before-backend: FAIL -- SHELL-05 -- could not launch the built binary" >&2
+    return 1
+  fi
+
+  local deadline=$((SECONDS + 60))
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    if grep -q '^SOURCERER_SHELL_SWAP ' "$BROWSER_LOG" 2>/dev/null; then
+      break
+    fi
+    if ! kill -0 "$BROWSER_SPAWN_PID" 2>/dev/null; then
+      break
+    fi
+    sleep 0.5
+  done
+
+  local result=0 shell_off backend_off swap_off
+  shell_off="$(first_byte_offset 'SOURCERER_SHELL_READY ' "$BROWSER_LOG")"
+  backend_off="$(first_byte_offset 'SOURCERER_BACKEND_READY ' "$BROWSER_LOG")"
+  swap_off="$(first_byte_offset 'SOURCERER_SHELL_SWAP ' "$BROWSER_LOG")"
+
+  if [ -z "$shell_off" ] || [ -z "$backend_off" ] || [ -z "$swap_off" ]; then
+    echo "shell05-paint-before-backend: FAIL -- SHELL-05 -- one or more of SOURCERER_SHELL_READY/SOURCERER_BACKEND_READY/SOURCERER_SHELL_SWAP never appeared within 60s; log:" >&2
+    cat "$BROWSER_LOG" >&2
+    result=1
+  else
+    if [ "$shell_off" -ge "$backend_off" ]; then
+      echo "shell05-paint-before-backend: FAIL -- SHELL-05 -- SOURCERER_SHELL_READY (byte $shell_off) did not appear strictly before SOURCERER_BACKEND_READY (byte $backend_off)" >&2
+      result=1
+    fi
+    if [ "$swap_off" -le "$backend_off" ] || [ "$swap_off" -le "$shell_off" ]; then
+      echo "shell05-paint-before-backend: FAIL -- SHELL-05 -- SOURCERER_SHELL_SWAP (byte $swap_off) did not appear after both READY sentinels (shell $shell_off, backend $backend_off)" >&2
+      result=1
+    fi
+  fi
+
+  if grep -q 'gBrowser is undefined' "$BROWSER_LOG" 2>/dev/null; then
+    echo "shell05-paint-before-backend: FAIL -- SHELL-05 -- log contains 'gBrowser is undefined' (Pitfall 4 residual-risk check)" >&2
+    result=1
+  fi
+
+  stop_shell
+  return "$result"
+}
+
+# SIDE-03: kill the backend the chrome side spawned and assert TheiaService
+# recovers it on the SAME port with a DIFFERENT pid (D-104 -- a fresh port
+# would break the already-loaded page's reconnect), without the browser
+# process itself ever exiting.
+#
+# Known limitation (documented, not silently assumed): D-99's chrome-set
+# token cookie is not observable to a bash/curl driver with no chrome-side
+# access -- reading it would need a WebDriver BiDi storage.getCookies call,
+# which scripts/lib/firefox-bidi.mjs does not currently export (adding it
+# would touch the "reused unchanged" file this phase's own key_link
+# forbids touching). This check proves the pid/port half of D-104 (the
+# actually load-bearing half -- a fresh port silently breaks reconnect)
+# against the currently-ungated health route. The cookie-continuity half
+# is deferred to whichever future task extends firefox-bidi.mjs's exported
+# surface with cookie access; recorded here rather than asserted falsely.
+check_side03_kill_and_recover() {
+  if ! start_shell; then
+    echo "side03-kill-and-recover: FAIL -- SIDE-03 -- could not launch the built binary" >&2
+    return 1
+  fi
+
+  local deadline=$((SECONDS + 60)) result=0
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    grep -q '^SOURCERER_SHELL_SWAP ' "$BROWSER_LOG" 2>/dev/null && break
+    if ! kill -0 "$BROWSER_SPAWN_PID" 2>/dev/null; then
+      echo "side03-kill-and-recover: FAIL -- SIDE-03 -- browser process exited before SOURCERER_SHELL_SWAP appeared; log:" >&2
+      cat "$BROWSER_LOG" >&2
+      stop_shell
+      return 1
+    fi
+    sleep 0.5
+  done
+  if ! grep -q '^SOURCERER_SHELL_SWAP ' "$BROWSER_LOG" 2>/dev/null; then
+    echo "side03-kill-and-recover: FAIL -- SIDE-03 -- SOURCERER_SHELL_SWAP did not appear within 60s; log:" >&2
+    cat "$BROWSER_LOG" >&2
+    stop_shell
+    return 1
+  fi
+
+  local ready_line json port
+  ready_line="$(grep -m1 '^SOURCERER_BACKEND_READY ' "$BROWSER_LOG" 2>/dev/null)"
+  if [ -z "$ready_line" ]; then
+    echo "side03-kill-and-recover: FAIL -- SIDE-03 -- SOURCERER_BACKEND_READY never appeared, cannot recover the port" >&2
+    stop_shell
+    return 1
+  fi
+  json="${ready_line#SOURCERER_BACKEND_READY }"
+  port="$(node -e 'try{const j=JSON.parse(process.argv[1]);if(typeof j.port==="number")console.log(j.port)}catch{}' "$json" 2>/dev/null)"
+  if [ -z "$port" ]; then
+    echo "side03-kill-and-recover: FAIL -- SIDE-03 -- could not parse a port out of SOURCERER_BACKEND_READY's JSON" >&2
+    stop_shell
+    return 1
+  fi
+
+  local body pid1
+  body="$(mktemp)"; track_temp "$body"
+  curl -sS -o "$body" "http://127.0.0.1:$port/sourcerer/health" >/dev/null 2>&1 || true
+  pid1="$(node -e 'try{const fs=require("fs");const b=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(typeof b.pid==="number")console.log(b.pid)}catch{}' "$body" 2>/dev/null)"
+  if [ -z "$pid1" ]; then
+    echo "side03-kill-and-recover: FAIL -- SIDE-03 -- could not read a pid from the health endpoint on port $port" >&2
+    stop_shell
+    return 1
+  fi
+
+  kill -9 "$pid1" 2>/dev/null || true
+
+  local recover_deadline=$((SECONDS + 60)) pid2="" status
+  while [ "$SECONDS" -lt "$recover_deadline" ]; do
+    status="$(curl -sS -o "$body" -w '%{http_code}' "http://127.0.0.1:$port/sourcerer/health" 2>/dev/null)"
+    if [ "$status" = "200" ]; then
+      pid2="$(node -e 'try{const fs=require("fs");const b=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(typeof b.pid==="number")console.log(b.pid)}catch{}' "$body" 2>/dev/null)"
+      [ -n "$pid2" ] && [ "$pid2" != "$pid1" ] && break
+      pid2=""
+    fi
+    if ! kill -0 "$BROWSER_SPAWN_PID" 2>/dev/null; then
+      echo "side03-kill-and-recover: FAIL -- SIDE-03 -- browser process exited during the recovery wait" >&2
+      result=1
+      break
+    fi
+    sleep 0.5
+  done
+
+  if [ -z "$pid2" ] && [ "$result" -eq 0 ]; then
+    echo "side03-kill-and-recover: FAIL -- SIDE-03 -- health endpoint on port $port did not return 200 with a pid different from $pid1 within 60s of killing it" >&2
+    result=1
+  fi
+
+  if ! kill -0 "$BROWSER_SPAWN_PID" 2>/dev/null; then
+    echo "side03-kill-and-recover: FAIL -- SIDE-03 -- browser process itself exited during the check" >&2
+    result=1
+  fi
+
+  stop_shell
+  return "$result"
+}
+
+# SHELL-01: builds a temp .mjs runner (never a persisted repo file) that
+# imports withFirefoxPage/waitFor from scripts/lib/firefox-bidi.mjs
+# unchanged. Asserts the top-level content context's URL starts with
+# http://127.0.0.1: and that Theia's own application shell, a menu bar and
+# a status bar are all present after a bounded 60s poll -- never a point-
+# in-time assertion (02-LEARNINGS). Paired with a static assertion that
+# sourcerer/shell/sourcerer.xhtml adds no custom chrome (zero occurrences
+# of tabbrowser/nav-bar/toolbarbutton/urlbar).
+SHELL01_MJS=""
+if [ "$QUICK" -eq 0 ]; then
+  SHELL01_MJS="$(mktemp --suffix=.mjs)"
+  track_temp "$SHELL01_MJS"
+  cat > "$SHELL01_MJS" <<MJSEOF
+import { withFirefoxPage } from '$REPO_ROOT/scripts/lib/firefox-bidi.mjs';
+import { readFileSync, existsSync } from 'node:fs';
+
+const xhtmlPath = '$REPO_ROOT/sourcerer/shell/sourcerer.xhtml';
+const forbidden = ['tabbrowser', 'nav-bar', 'toolbarbutton', 'urlbar'];
+let ok = true;
+
+if (!existsSync(xhtmlPath)) {
+  console.error(\`shell01-theia-is-the-window: FAIL -- SHELL-01 -- \${xhtmlPath} does not exist yet\`);
+  ok = false;
+} else {
+  const text = readFileSync(xhtmlPath, 'utf8');
+  for (const term of forbidden) {
+    if (text.includes(term)) {
+      console.error(\`shell01-theia-is-the-window: FAIL -- SHELL-01 -- \${xhtmlPath} contains forbidden custom-chrome string '\${term}'\`);
+      ok = false;
+    }
+  }
+}
+
+try {
+  await withFirefoxPage('about:blank', async ({ evaluate, waitFor }) => {
+    const contextUrl = await evaluate('location.href');
+    if (typeof contextUrl !== 'string' || !contextUrl.startsWith('http://127.0.0.1:')) {
+      console.error(\`shell01-theia-is-the-window: FAIL -- SHELL-01 -- top-level context URL '\${contextUrl}' does not start with http://127.0.0.1:\`);
+      ok = false;
+    }
+    await waitFor('!!document.querySelector("#theia-app-shell")', { timeoutMs: 60000 });
+    await waitFor('!!document.querySelector(".theia-menubar, #theia-app-shell .p-MenuBar")', { timeoutMs: 60000 });
+    await waitFor('!!document.querySelector(".theia-statusBar")', { timeoutMs: 60000 });
+  });
+} catch (err) {
+  console.error(\`shell01-theia-is-the-window: FAIL -- SHELL-01 -- \${err.message}\`);
+  ok = false;
+}
+
+if (!ok) process.exitCode = 1;
+else console.log('shell01-theia-is-the-window: PASS');
+process.exit(process.exitCode || 0);
+MJSEOF
+fi
+
 # Each entry: "label|command...". Later tasks append here, never as a
 # sibling driver script.
 declare -a CHECKS=(
@@ -275,6 +539,9 @@ if [ "$QUICK" -eq 0 ]; then
     "side02-token-positive|check_side02_token_positive"
     "side02-index-gated|check_side02_index_gated"
     "side01-bind-scope|check_side01_bind_scope"
+    "shell01-theia-is-the-window|node $SHELL01_MJS"
+    "shell05-paint-before-backend|check_shell05_paint_before_backend"
+    "side03-kill-and-recover|check_side03_kill_and_recover"
   )
 fi
 
