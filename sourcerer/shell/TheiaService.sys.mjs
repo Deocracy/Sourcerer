@@ -64,7 +64,52 @@ export const TheiaService = {
     this._configDir = this._resolveConfigDir();
     await SourcererAPI.ensureDirectory(this._configDir);
 
+    // D-105: observe the topic that fires once quit is final and can no
+    // longer be cancelled -- beginning an irreversible shutdown under a
+    // quit that gets aborted would kill a backend the user still wants.
+    SourcererAPI.onQuitGranted(() => this.stop());
+
     await this._spawnAndGate(/* firstSpawn */ true);
+  },
+
+  /**
+   * Normal quit (D-105), in order: stop the health loop (no restart can
+   * begin after this), then signal and await the backend's exit via a
+   * single bounded platform call -- never a hand-rolled timer around it.
+   * Idempotent: a second call while the first is still in flight is a
+   * no-op.
+   */
+  async stop() {
+    if (this._shuttingDown) {
+      return;
+    }
+    this._shuttingDown = true;
+
+    if (this._proc && this._proc.exitCode == null) {
+      const graceMs = SourcererAPI.getIntPref("sourcerer.sidecar.killGraceMs", 3000);
+      try {
+        await SourcererAPI.killProcess(this._proc, graceMs);
+      } catch {
+        // Already exited.
+      }
+    }
+    this._proc = null;
+    this._healthy = false;
+  },
+
+  /** D-106: the buffered lines, newest last. Phase 5's diagnostics page reads this. */
+  getRecentLog() {
+    return this._log.slice();
+  },
+
+  /** Current port, pid, health status and restart count. Phase 5's diagnostics page reads this too. */
+  getState() {
+    return {
+      port: this._port,
+      pid: this._pid,
+      healthy: this._healthy,
+      restartCount: this._restartCount,
+    };
   },
 
   async _resolveSidecar() {
@@ -383,9 +428,16 @@ export const TheiaService = {
     SourcererAPI.log("error", `[TheiaService] ${message}`);
   },
 
+  /**
+   * Buffers one line, oldest dropped first, sized from
+   * sourcerer.sidecar.logBufferLines. Timestamped (Date.now(), not the raw
+   * pipe text) so a restart's actual backoff gaps are independently
+   * measurable from getRecentLog() alone -- the acceptance bar for the
+   * backoff-is-observable check.
+   */
   _pushLog(line) {
     const max = SourcererAPI.getIntPref("sourcerer.sidecar.logBufferLines", 500);
-    this._log.push(line);
+    this._log.push(`[${Date.now()}] ${line}`);
     while (this._log.length > max) {
       this._log.shift();
     }
