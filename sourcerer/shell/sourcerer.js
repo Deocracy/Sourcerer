@@ -41,6 +41,14 @@ document.addEventListener(
     window.sourcererGetBrowser = function sourcererGetBrowser() {
       return browserElement;
     };
+
+    // Task 2 proof-of-resolution: import SourcererAPI.sys.mjs and read
+    // back two sidecar prefs through it, emitting an additional sentinel.
+    // Left in place -- plan 04-04 keeps it.
+    const { SourcererAPI } = ChromeUtils.importESModule("chrome://sourcerer/content/SourcererAPI.sys.mjs");
+    const backendMain = SourcererAPI.getStringPref("sourcerer.sidecar.backendMain", "");
+    const nodePath = SourcererAPI.getStringPref("sourcerer.sidecar.nodePath", "");
+    dump(`SOURCERER_SIDECAR_PREFS backendMain=${backendMain} nodePath=${nodePath}\n`);
   },
   { once: true }
 );
