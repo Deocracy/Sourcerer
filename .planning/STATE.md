@@ -5,7 +5,7 @@ milestone_name: milestone
 current_phase: 5
 current_phase_name: Lifecycle & Failure Hardening
 status: planning
-stopped_at: Completed 04-05-PLAN.md (Phase 4 code-complete; 2 open items in WINDOWS.md pending an environment where Firefox headless bring-up completes)
+stopped_at: Phase 4 complete — verification 7/7, UAT passed, verify-phase-04.sh 10/10. 2 open WINDOWS.md items (5, 6) need PRODUCT decisions, not an environment.
 last_updated: "2026-08-27T17:00:25.063Z"
 last_activity: 2026-08-27
 last_activity_desc: Phase 04 complete, transitioned to Phase 5
@@ -23,7 +23,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-19)
 
 **Core value:** A daily-drivable IDE whose substrate is a real browser (DRM, WebExtensions, site isolation inherited from Firefox), built so every later plan lands as an addition, never a rework.
-**Current focus:** Phase 04 — full-window-theia-shell
+**Current focus:** Phase 05 — lifecycle-&-failure-hardening
 
 ## Current Position
 
