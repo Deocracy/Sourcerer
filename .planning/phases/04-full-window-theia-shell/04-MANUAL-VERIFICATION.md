@@ -5,11 +5,17 @@ status: blocked
 # This file matches the `*-VERIFICATION.md` glob and shadows
 # 04-VERIFICATION.md in gsd-tools' verification.status reader (see
 # 03-MANUAL-VERIFICATION.md's own precedent note) -- `status:` here uses the
-# routing-table vocabulary. `blocked` (not `passed`/`failed`) because the
-# item below has not yet been observed by anyone: this session's sandboxed
-# executor cannot render the window at all (the same environmental gap
-# WINDOWS.md entries 2-3 already document), so there is no live human
-# session in which to gather a verdict.
+# routing-table vocabulary. Still `blocked`, but the REASON has changed and
+# the original one was wrong: WINDOWS.md entries 2-4 claimed the window could
+# not be rendered for environmental reasons. It could not be rendered because
+# sourcerer.xhtml was not well-formed XML and the shell never parsed. That is
+# fixed (commits 1bceacd, b97cb5b) and the shell now paints, spawns the
+# backend and loads Theia at a full 1280x768 viewport, verified live by
+# `scripts/verify-phase-04.sh` 10/10 including shell01's assertions on Theia's
+# real application shell, Lumino menu bar and status bar. What remains
+# genuinely unobserved is only the HUMAN judgement below -- how it LOOKS to a
+# person on a real desktop -- which no automated check can supply and this
+# session has no attached display to gather.
 ---
 
 # Phase 4: Manual Verification Record
