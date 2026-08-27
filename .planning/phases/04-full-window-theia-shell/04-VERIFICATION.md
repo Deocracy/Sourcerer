@@ -1,10 +1,27 @@
 ---
 phase: 04-full-window-theia-shell
 verified: 2026-08-27T06:30:00Z
-status: human_needed
-score: 6/7 must-haves verified
-behavior_unverified: 1
+status: passed
+score: 7/7 must-haves verified
+behavior_unverified: 0
 overrides_applied: 0
+uat:
+  status: passed
+  observed: 2026-08-27
+  record: 04-UAT.md
+  detail: 04-MANUAL-VERIFICATION.md
+  note: >
+    The one behavior_unverified item (SHELL-05 launch-paint immediacy and
+    single-swap feel) was observed by the project owner on the NixOS host's own
+    desktop session and PASSED: branded state first, held, then exactly one
+    transition to Theia -- no white/blank frame, no second flash. The earlier
+    "no attached display" premise was itself wrong; a Wayland session was
+    available throughout, and the real obstacle was the XML defect that stopped
+    the shell rendering at all. One sub-point of the expected text (window
+    interactive before the swap) was NOT exercised and is recorded as
+    not-contradicted rather than verified -- see 04-UAT.md and
+    04-MANUAL-VERIFICATION.md, which state this explicitly rather than rounding
+    it up.
 re_verification:
   previous_status: gaps_found
   previous_score: 4/7
@@ -13,23 +30,33 @@ re_verification:
     - "SHELL-02: every Firefox-internals touch goes through SourcererAPI.sys.mjs -- nothing else in sourcerer/ reaches a Firefox-privileged API"
   gaps_remaining: []
   regressions: []
-behavior_unverified_items:
-  - truth: "SHELL-05: the window paints its branded loading state immediately at launch (perceived immediacy, not just sentinel ordering) and swaps to Theia exactly once with no flash"
-    test: "Launch objdir/dist/bin/sourcerer cold on a real NixOS desktop session (not headless, not under the verification harness); watch the window from process start."
-    expected: "Branded state visible at first paint with no blank/white window; window movable/responsive while backend starts; exactly one clean swap to Theia with no second flash or intermediate blank frame."
-    why_human: >
-      shell05-paint-before-backend (re-run live in this pass, PASS) proves only
-      sentinel byte-offset ORDERING (SOURCERER_SHELL_READY strictly before
-      SOURCERER_BACKEND_READY, SOURCERER_SHELL_SWAP strictly after both) -- it
-      cannot prove the paint felt instant to a person or that the swap read as
-      one clean transition rather than a flash. 04-MANUAL-VERIFICATION.md still
-      records this item as "NOT YET OBSERVED" -- unchanged since the prior
-      verification pass, and this session has no attached desktop display
-      either.
+behavior_unverified_items: []
 human_verification:
   - test: "Launch-paint immediacy and single-swap feel"
     expected: "Branded state visible at first paint, no blank/white window; window interactive before the swap; exactly one clean swap to Theia, no second flash."
-    why_human: "Perceived immediacy and 'did it flash' are not observable via sentinel byte-offset ordering -- no session running this phase's verification has had an attached display to make this judgment."
+    why_human: "Perceived immediacy and 'did it flash' are not observable via sentinel byte-offset ordering -- shell05-paint-before-backend proves only sentinel byte-offset ORDERING, not how the transition reads to a person."
+    result: pass
+    observed: 2026-08-27
+    observer: "project owner, NixOS host desktop session"
+    observer_report: "I saw sourcerer | a loading screen | the app opened fully"
+    method: >
+      The real loading phase is ~700ms and was missed twice by eye, so the
+      backend was slowed to ~8s for the observation run via a scratch-profile
+      pref pointing sourcerer.sidecar.nodePath at a `sleep 8; exec node "$@"`
+      wrapper. No repo, product or pref-default change; the shell's paint path
+      was untouched. Shell paint stayed at +0.45s; backend ready and swap moved
+      from +1.09s/+1.10s to +9.13s/+9.13s.
+    not_confirmed: >
+      "window interactive before the swap" was NOT exercised by the observer and
+      no freeze was reported either. Recorded as not-contradicted, NOT as
+      verified. If window responsiveness during backend startup is to be a hard
+      requirement it needs its own check -- Phase 5 (SIDE-04, SHELL-03/04) is
+      where that belongs.
+    prior_premise_was_wrong: >
+      Earlier passes recorded this as blocked for lack of an attached display. A
+      Wayland session on seat0 (DISPLAY=:0) was available throughout. The real
+      obstacle was the sourcerer.xhtml XML defect that stopped the shell
+      rendering at all -- see WINDOWS.md 2-4.
 ---
 
 # Phase 4: Full-Window Theia Shell Verification Report
