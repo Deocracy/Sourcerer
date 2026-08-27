@@ -5,12 +5,12 @@ milestone_name: milestone
 current_phase: 5
 current_phase_name: Lifecycle & Failure Hardening
 status: planning
-stopped_at: Phase 4 complete — verification 7/7, UAT passed, verify-phase-04.sh 10/10. 2 open WINDOWS.md items (5, 6) need PRODUCT decisions, not an environment.
-last_updated: "2026-08-27T17:00:25.063Z"
+stopped_at: Phase 5 context gathered
+last_updated: "2026-08-27T22:25:00.707Z"
 last_activity: 2026-08-27
 last_activity_desc: Phase 04 complete, transitioned to Phase 5
 progress:
-  total_phases: 4
+  total_phases: 5
   completed_phases: 4
   total_plans: 27
   completed_plans: 27
@@ -194,6 +194,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-26T22:57:48.320Z
-Stopped at: Completed 04-05-PLAN.md (Phase 4 code-complete; 2 open items in WINDOWS.md pending an environment where Firefox headless bring-up completes)
-Resume file: None
+Last session: 2026-08-27T22:25:00.694Z
+Stopped at: Phase 5 context gathered
+Resume file: .planning/phases/05-lifecycle-failure-hardening/05-CONTEXT.md
