@@ -420,7 +420,7 @@ export const TheiaService = {
       return;
     }
     this._swapped = true;
-    this._browserElement.ownerGlobal.sourcererSwapToUrl(`http://127.0.0.1:${this._port}/`);
+    this._browserElement.ownerDocument.defaultView.sourcererSwapToUrl(`http://127.0.0.1:${this._port}/`);
   },
 
   _fatal(message) {

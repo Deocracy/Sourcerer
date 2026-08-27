@@ -12,5 +12,6 @@ browser.jar:
 %  content sourcerer %content/sourcerer/
    content/sourcerer/sourcerer.xhtml         (sourcerer.xhtml)
    content/sourcerer/sourcerer.js            (sourcerer.js)
+   content/sourcerer/sourcerer.css           (sourcerer.css)
    content/sourcerer/SourcererAPI.sys.mjs    (SourcererAPI.sys.mjs)
    content/sourcerer/TheiaService.sys.mjs    (TheiaService.sys.mjs)
