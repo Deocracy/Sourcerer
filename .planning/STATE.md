@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: milestone
-current_phase: 04
-current_phase_name: full-window-theia-shell
-status: verifying
+current_phase: 5
+current_phase_name: Lifecycle & Failure Hardening
+status: planning
 stopped_at: Completed 04-05-PLAN.md (Phase 4 code-complete; 2 open items in WINDOWS.md pending an environment where Firefox headless bring-up completes)
-last_updated: "2026-08-26T22:57:48.332Z"
-last_activity: 2026-08-26
-last_activity_desc: Phase 04 execution started
+last_updated: "2026-08-27T17:00:25.063Z"
+last_activity: 2026-08-27
+last_activity_desc: Phase 04 complete, transitioned to Phase 5
 progress:
   total_phases: 4
   completed_phases: 4
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 
 ## Current Position
 
-Phase: 04 (full-window-theia-shell) — EXECUTING
-Plan: 5 of 5
-Status: Phase complete — ready for verification
-Last activity: 2026-08-26 — Phase 04 execution started
+Phase: 5 — Lifecycle & Failure Hardening
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-08-27 — Phase 04 complete, transitioned to Phase 5
 
 Progress: [██████████] 100%
 
@@ -38,7 +38,7 @@ Progress: [██████████] 100%
 
 **Velocity:**
 
-- Total plans completed: 11
+- Total plans completed: 16
 - Average duration: —
 - Total execution time: 0 hours
 
@@ -47,6 +47,7 @@ Progress: [██████████] 100%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 03 | 11 | - | - |
+| 04 | 5 | - | - |
 
 **Recent Trend:**
 

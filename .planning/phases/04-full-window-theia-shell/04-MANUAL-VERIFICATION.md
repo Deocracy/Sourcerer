@@ -1,7 +1,7 @@
 ---
 phase: 04-full-window-theia-shell
 date: 2026-08-27
-status: blocked
+status: passed
 # This file matches the `*-VERIFICATION.md` glob and shadows
 # 04-VERIFICATION.md in gsd-tools' verification.status reader (see
 # 03-MANUAL-VERIFICATION.md's own precedent note) -- `status:` here uses the
@@ -112,3 +112,49 @@ the pending one above. The ROADMAP Phase 4 success-criterion text (`2. The
 window paints a branded loading state immediately on launch and swaps to
 Theia when the health check passes; window show never waits on backend
 readiness`) is unchanged — this record does not weaken or reinterpret it.
+
+---
+
+### Outcome — OBSERVED 2026-08-27 — PASS
+
+Appended per the follow-up instruction above; the pending block is left intact
+rather than overwritten.
+
+**The premise of the pending block was wrong, and that matters.** It recorded
+this item as blocked because "no live human session" and no usable display
+existed. A display was in fact available the whole time — a Wayland session on
+`seat0`, `DISPLAY=:0`. The real obstacle was never the environment; it was that
+`sourcerer.xhtml` was not well-formed XML, so the shell never rendered anything
+for anyone to watch (see `WINDOWS.md` 2-4, now fixed and corrected). Once that
+was fixed, the item was directly observable.
+
+**Observer:** Chris (project owner), on the NixOS host's own desktop session.
+**Report, verbatim:** "I saw sourcerer | a loading screen | the app opened fully"
+
+**Method.** The real loading phase lasts ~700ms — too brief to judge by eye, and
+missed on two attempts. For the observation run the backend was slowed to ~8s by
+pointing `sourcerer.sidecar.nodePath` at a `sleep 8; exec node "$@"` wrapper, set
+only in a scratch profile's `user.js`. No repo, product, or pref-default change;
+nothing in the shell's paint path was touched. Measured effect: shell paint
+unchanged at `+0.45s`, backend ready `+1.09s` → `+9.13s`, swap `+1.10s` →
+`+9.13s`.
+
+**Verdict: PASS.** Observed order was branded state → loading screen held → app
+opened fully, in a single transition. Both failure modes this item exists to
+catch were absent: no white or blank frame preceding the branded state, and no
+second flash or intermediate blank frame at the swap.
+
+**Not confirmed, and not claimed.** The item's expected text also includes
+"window interactive (movable, resizable) before the swap". The observer did not
+report exercising this, and equally reported no freeze. It is recorded as
+not-contradicted, NOT as verified — this file's own standard forbids inferring a
+verdict nobody gave. Window responsiveness during backend startup belongs with
+Phase 5's lifecycle work (SIDE-04, SHELL-03/04) if it is to be a hard
+requirement.
+
+**On "immediately".** The slowed run is the correct instrument for "was there a
+flash" and "how many transitions" — neither depends on the delay — but it cannot
+speak to whether the real 700ms version feels instant. The evidence for that is
+the unmodified timing: the window paints at `+0.40s`, a full `0.7s` before the
+backend is ready, so window show demonstrably never waits on backend readiness.
+`shell05-paint-before-backend` enforces that ordering on every run.
