@@ -229,7 +229,29 @@ Plans:
   4. A diagnostics page shows the sidecar's port, PID, health status, and recent log output, and stays reachable while the backend is down
   5. The developer uses Sourcerer as their daily IDE on the NixOS host for a working period without a manual process cleanup or a forced relaunch
 
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+
+**Wave 1**
+
+- [ ] 05-01-PLAN.md — Tracer: parent-death watchdog, sidecar state file, verified-identity leftover reap (SIDE-04)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 05-02-PLAN.md — Display and chrome-automation discriminators, split give-up rule, branded error layer with Retry and auto-dismiss (SHELL-03)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 05-03-PLAN.md — Diagnostics layer, runtime identity accessor, repointed branding identity surface (SHELL-04, WINDOWS #6)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 05-04-PLAN.md — Single-instance command-line handler and idempotent supervisor, proven on a real display (SIDE-05)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
+- [ ] 05-05-PLAN.md — Single-commit combined phase gate and the working-day human record (D-126/D-127)
 
 ## Notes
 
@@ -261,7 +283,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 (2 and 3 may run in p
 | 2. Sourcerer Theia Extensions | 7/7 | Complete   | 2026-08-20 |
 | 3. Branded Firefox Fork | 11/11 | Complete    | 2026-08-22 |
 | 4. Full-Window Theia Shell | 5/5 | Complete    | 2026-08-27 |
-| 5. Lifecycle & Failure Hardening | 0/TBD | Not started | - |
+| 5. Lifecycle & Failure Hardening | 0/5 | Not started | - |
 
 ---
 *Roadmap created: 2026-08-20*
