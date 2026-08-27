@@ -16,6 +16,11 @@ ChromeUtils.defineESModuleGetters(lazy, {
   Subprocess: "resource://gre/modules/Subprocess.sys.mjs",
 });
 
+// Strong references to in-flight one-shot timers created by sleep(). See the
+// comment in sleep() -- without this they can be garbage-collected before they
+// fire and the awaiting promise never settles.
+const pendingTimers = new Set();
+
 export const SourcererAPI = Object.freeze({
   /**
    * Reads a string pref, returning `fallback` (never throwing) when the
@@ -67,9 +72,26 @@ export const SourcererAPI = Object.freeze({
    * Adds a session cookie for a plain-HTTP loopback host. D-99: secure is
    * always false -- the sidecar is loopback HTTP, and a secure cookie would
    * never be sent, silently defeating the whole mechanism.
+   *
+   * SameSite is Lax, not Strict, for the same class of reason: the shell's one
+   * swap is a top-level navigation from `chrome://sourcerer/...` to
+   * `http://127.0.0.1:PORT/`, which is cross-site, and Strict withholds the
+   * cookie on exactly that navigation -- the backend then answers the shell's
+   * own first request with 403 Forbidden and Theia never loads. Lax still sends
+   * it on that top-level GET while continuing to withhold it from cross-site
+   * subresource loads and POSTs, so the gate keeps its actual purpose. Once the
+   * page is on 127.0.0.1 every later request, including the WebSocket upgrade,
+   * is same-site and unaffected.
    */
   setSessionCookie({ host, path, name, value }) {
-    Services.cookies.add(
+    // aExpiry is honoured even for session cookies -- nsICookieManager.idl:
+    // "expiry time will also be honored for session cookies; in this way, the
+    // more restrictive of the two will take effect." A literal 0 is midnight
+    // 1970-01-01, i.e. already expired, so the cookie is stored and then never
+    // sent. Every in-tree caller passes a future stamp regardless of the
+    // session flag; aIsSession=true is still what ends it at session end.
+    const expiry = Date.now() + 24 * 60 * 60 * 1000;
+    const validation = Services.cookies.add(
       host,
       path,
       name,
@@ -77,12 +99,21 @@ export const SourcererAPI = Object.freeze({
       /* aIsSecure */ false,
       /* aIsHttpOnly */ true,
       /* aIsSession */ true,
-      /* aExpiry */ 0,
+      /* aExpiry */ expiry,
       /* aOriginAttributes */ {},
-      Ci.nsICookie.SAMESITE_STRICT,
+      Ci.nsICookie.SAMESITE_LAX,
       Ci.nsICookie.SCHEME_HTTP,
       /* aIsPartitioned */ false
     );
+    // add() reports a rejected cookie by returning a validation object rather
+    // than throwing. Discarding it turns "the token gate is unreachable" into a
+    // silent 403 at the far end of the swap, which is exactly how the expired
+    // aExpiry above went unnoticed. Fail loudly instead.
+    if (validation && validation.result !== Ci.nsICookieValidation.eOK) {
+      throw new Error(
+        `setSessionCookie: ${name} for ${host}${path} was rejected (${validation.result}): ${validation.errorString}`
+      );
+    }
   },
 
   /**
@@ -133,8 +164,26 @@ export const SourcererAPI = Object.freeze({
   sleep(ms) {
     return new Promise(resolve => {
       const timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+      // An nsITimer does NOT keep itself alive. Dropping the only reference
+      // when this closure returns lets it be collected before it ever fires,
+      // and the promise then never settles -- which silently stalls the
+      // supervisor's health loop at its first await, so a dead backend is
+      // never detected or restarted. Gecko's own Timer.sys.mjs keeps every
+      // live timer in a module-level table (gTimerTable) for this exact
+      // reason; hold the same kind of strong reference until it fires.
+      pendingTimers.add(timer);
+      // initWithCallback takes an nsITimerCallback, whose method is notify()
+      // (nsITimer.idl:39-45). `observe` belongs to nsIObserver, which is what
+      // the *other* initializer, init(), takes -- pass an {observe} object here
+      // and the timer fires into nothing, so the promise never settles and
+      // every awaiting caller stalls forever.
       timer.initWithCallback(
-        { observe: () => resolve() },
+        {
+          notify: () => {
+            pendingTimers.delete(timer);
+            resolve();
+          },
+        },
         ms,
         Ci.nsITimer.TYPE_ONE_SHOT
       );
@@ -190,5 +239,29 @@ export const SourcererAPI = Object.freeze({
     dump(`[SourcererAPI] ${level}: ${message}\n`);
     const fn = typeof console[level] === "function" ? console[level] : console.log;
     fn(message);
+  },
+
+  /**
+   * Announces that the shell window has finished initializing, by firing the
+   * same observer topic Firefox's own chrome fires from
+   * `browser/base/content/browser-init.js`. WebDriver's session.new blocks on
+   * this topic (`remote/components/RemoteAgent.sys.mjs`), and the Sourcerer
+   * shell is deliberately not that chrome, so nothing else would ever fire it
+   * and no automated check could drive the shell.
+   */
+  notifyStartupFinished(win) {
+    Services.obs.notifyObservers(win, "browser-idle-startup-tasks-finished");
+  },
+
+  /**
+   * Mints the `permanentKey` that WebDriver uses to identify a top-level
+   * browsing context (`remote/shared/NavigableManager.sys.mjs` returns a null
+   * context id for any browser without one). Firefox's tabbrowser assigns this
+   * per `<browser>`; the shell has no tabbrowser, so it mints its own. Created
+   * in the system global exactly as `tabbrowser.js` does, so the key stays
+   * valid if something outlives the window.
+   */
+  createPermanentKey() {
+    return new (Cu.getGlobalForObject(Services).Object)();
   },
 });

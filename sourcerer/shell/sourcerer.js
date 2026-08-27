@@ -19,8 +19,19 @@ document.addEventListener(
   () => {
     dump("SOURCERER_SHELL_READY chrome://sourcerer/content/sourcerer.xhtml\n");
 
+    const { SourcererAPI } = ChromeUtils.importESModule("chrome://sourcerer/content/SourcererAPI.sys.mjs");
+
     const browserElement = document.getElementById("sourcerer-content");
     const loadingElement = document.getElementById("sourcerer-loading");
+    // WebDriver finds content browsing contexts through `win.gBrowser.tabs`
+    // (remote/shared/TabManager.sys.mjs) and identifies each one by its
+    // browser's `permanentKey` (remote/shared/NavigableManager.sys.mjs returns
+    // a null context id without one). The shell is deliberately not Firefox
+    // chrome and has no tabbrowser, so it presents its single browser through
+    // that same shape -- also the seed of the chrome-owned tab model the
+    // post-4.0 bridge needs.
+    browserElement.permanentKey = SourcererAPI.createPermanentKey();
+    window.gBrowser = { tabs: [{ linkedBrowser: browserElement }] };
 
     // Exposed for plan 04-04's TheiaService.sys.mjs to call once the
     // backend is ready: navigates the content browser to the Theia
@@ -45,7 +56,6 @@ document.addEventListener(
     // Task 2 (04-03) proof-of-resolution: import SourcererAPI.sys.mjs and
     // read back two sidecar prefs through it, emitting an additional
     // sentinel. Left in place -- plan 04-04 keeps it.
-    const { SourcererAPI } = ChromeUtils.importESModule("chrome://sourcerer/content/SourcererAPI.sys.mjs");
     const backendMain = SourcererAPI.getStringPref("sourcerer.sidecar.backendMain", "");
     const nodePath = SourcererAPI.getStringPref("sourcerer.sidecar.nodePath", "");
     dump(`SOURCERER_SIDECAR_PREFS backendMain=${backendMain} nodePath=${nodePath}\n`);
@@ -54,6 +64,10 @@ document.addEventListener(
     // above is already written -- nothing in this spawn path may run
     // before it.
     const { TheiaService } = ChromeUtils.importESModule("chrome://sourcerer/content/TheiaService.sys.mjs");
+    // Announce shell readiness the way Firefox's own chrome does, so WebDriver
+    // will create a session against the shell window.
+    SourcererAPI.notifyStartupFinished(window);
+
     TheiaService.start(browserElement);
   },
   { once: true }
