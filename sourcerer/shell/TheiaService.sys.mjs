@@ -150,6 +150,15 @@ export const TheiaService = {
       SOURCERER_TOKEN: this._token,
       THEIA_CONFIG_DIR: this._configDir,
       VSX_REGISTRY_URL: "https://open-vsx.org",
+      // SourcererAPI.spawnProcess uses environmentAppend:true, so the child
+      // inherits this process's own environment and anything already exported
+      // in the shell that launched the browser comes along. The token gate's
+      // named dev bypass must therefore be cleared EXPLICITLY here: inherited,
+      // it silently disables authentication on a backend that has arbitrary
+      // file access and a terminal. The gate tests `=== "1"`, so an empty
+      // value is off; the point is that the supervised path never depends on
+      // the launching environment being clean.
+      SOURCERER_TOKEN_DISABLE: "",
     };
 
     let proc;

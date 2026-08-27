@@ -45,6 +45,14 @@ FORBIDDEN_PATTERNS=(
   'AppConstants'
   'ChromeUtils.import'
   'ChromeUtils.defineESModuleGetters'
+  # Privileged chrome API that is not Services/Cc/Ci-shaped and so slipped the
+  # list above: sourcerer.js reached for both directly, with a comment saying
+  # it did so to avoid SourcererAPI -- a real internals touch living outside
+  # the one boundary file and absent from the catalogue, while this guard
+  # reported PASS. That is exactly the hole SHELL-02 exists to close, so the
+  # names are enumerated here rather than left to the Services. prefix.
+  'nodePrincipal'
+  'fixupAndLoadURIString'
 )
 
 is_conditional_pattern() {

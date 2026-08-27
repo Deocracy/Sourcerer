@@ -35,17 +35,13 @@ document.addEventListener(
 
     // Exposed for plan 04-04's TheiaService.sys.mjs to call once the
     // backend is ready: navigates the content browser to the Theia
-    // backend's URL and hides the branded loading layer. Uses this
-    // chrome document's own nodePrincipal (the system principal, since
-    // this document is loaded from chrome://) as the triggering
-    // principal -- avoids reaching for Services/Cc/Ci directly, which
-    // scripts/check-internals-boundary.sh forbids outside
-    // SourcererAPI.sys.mjs.
+    // backend's URL and hides the branded loading layer. The navigation
+    // itself goes through SourcererAPI.loadURIInBrowser -- both
+    // fixupAndLoadURIString and nodePrincipal are privileged chrome API and
+    // belong behind the one boundary file, not here.
     window.sourcererSwapToUrl = function sourcererSwapToUrl(url) {
       dump(`SOURCERER_SHELL_SWAP ${url}\n`);
-      browserElement.fixupAndLoadURIString(url, {
-        triggeringPrincipal: document.nodePrincipal,
-      });
+      SourcererAPI.loadURIInBrowser(browserElement, url);
       loadingElement.style.display = "none";
     };
 
