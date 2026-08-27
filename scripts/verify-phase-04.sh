@@ -324,8 +324,33 @@ stop_shell() {
 
 # Byte offset (not line number -- SHELL-05's own contract) of the first
 # line beginning with the given literal prefix, or empty if absent.
+# The shell's own sentinels reach stdout unprefixed via dump(), but the
+# backend's are mirrored through SourcererAPI.log(), which prefixes them with
+# "[SourcererAPI] <level>: ". Accept either form, still anchored to line start
+# so a sentinel *named* inside a prose log line (e.g. the "did not announce
+# SOURCERER_BACKEND_READY within ..." fatal) can never be mistaken for the
+# real thing. Byte offsets stay line-start in both cases, so the ordering
+# assertions below compare like with like.
 first_byte_offset() {
-  grep -abom1 "^$1" "$2" 2>/dev/null | cut -d: -f1
+  grep -abom1 -E "^(\\[SourcererAPI\\] [a-z]+: )?$1" "$2" 2>/dev/null | cut -d: -f1
+}
+
+# Every pid announced by a SOURCERER_BACKEND_READY sentinel in <log>, oldest
+# first, one per line. Tolerates the SourcererAPI.log() mirror prefix exactly
+# as first_byte_offset does.
+backend_ready_pids() {
+  sed -E 's/^\[SourcererAPI\] [a-z]+: //' "$1" 2>/dev/null \
+    | grep -E '^SOURCERER_BACKEND_READY ' \
+    | sed -E 's/^SOURCERER_BACKEND_READY //' \
+    | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{for(const l of s.split("\n")){if(!l.trim())continue;try{const j=JSON.parse(l);if(typeof j.pid==="number")console.log(j.pid)}catch{}}})' 2>/dev/null
+}
+
+# The port announced alongside <pid> in <log>.
+backend_ready_port_for_pid() {
+  sed -E 's/^\[SourcererAPI\] [a-z]+: //' "$1" 2>/dev/null \
+    | grep -E '^SOURCERER_BACKEND_READY ' \
+    | sed -E 's/^SOURCERER_BACKEND_READY //' \
+    | node -e 'let s="";const want=Number(process.argv[1]);process.stdin.on("data",d=>s+=d).on("end",()=>{for(const l of s.split("\n")){if(!l.trim())continue;try{const j=JSON.parse(l);if(j.pid===want&&typeof j.port==="number"){console.log(j.port);return}}catch{}}})' "$2" 2>/dev/null
 }
 
 # SHELL-05: window show must never wait on backend readiness. The shell-
@@ -418,7 +443,9 @@ check_side03_kill_and_recover() {
   fi
 
   local ready_line json port
-  ready_line="$(grep -m1 '^SOURCERER_BACKEND_READY ' "$BROWSER_LOG" 2>/dev/null)"
+  # Same SourcererAPI.log() prefix as first_byte_offset() above: in the browser
+  # log this sentinel is mirrored, not raw. Strip any prefix before parsing.
+  ready_line="$(grep -m1 -E '^(\[SourcererAPI\] [a-z]+: )?SOURCERER_BACKEND_READY ' "$BROWSER_LOG" 2>/dev/null | sed -E 's/^\[SourcererAPI\] [a-z]+: //')"
   if [ -z "$ready_line" ]; then
     echo "side03-kill-and-recover: FAIL -- SIDE-03 -- SOURCERER_BACKEND_READY never appeared, cannot recover the port" >&2
     stop_shell
@@ -432,25 +459,31 @@ check_side03_kill_and_recover() {
     return 1
   fi
 
-  local body pid1
-  body="$(mktemp)"; track_temp "$body"
-  curl -sS -o "$body" "http://127.0.0.1:$port/sourcerer/health" >/dev/null 2>&1 || true
-  pid1="$(node -e 'try{const fs=require("fs");const b=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(typeof b.pid==="number")console.log(b.pid)}catch{}' "$body" 2>/dev/null)"
+  # D-99's chrome-minted token gates EVERY backend route including
+  # /sourcerer/health, and a bash/curl driver has no chrome-side access to it,
+  # so the health endpoint is unreadable from here (403, no body). The
+  # supervisor's own SOURCERER_BACKEND_READY sentinel carries the same
+  # {port,pid} pair and needs no token, so read both generations from the
+  # browser log instead. This asserts strictly more than the old health probe
+  # did: it proves the supervisor itself observed the respawn, not merely that
+  # something is listening on the port.
+  local pid1
+  pid1="$(backend_ready_pids "$BROWSER_LOG" | head -1)"
   if [ -z "$pid1" ]; then
-    echo "side03-kill-and-recover: FAIL -- SIDE-03 -- could not read a pid from the health endpoint on port $port" >&2
+    echo "side03-kill-and-recover: FAIL -- SIDE-03 -- could not read a pid from SOURCERER_BACKEND_READY in the browser log" >&2
     stop_shell
     return 1
   fi
 
   kill -9 "$pid1" 2>/dev/null || true
 
-  local recover_deadline=$((SECONDS + 60)) pid2="" status
+  local recover_deadline=$((SECONDS + 60)) pid2="" port2=""
   while [ "$SECONDS" -lt "$recover_deadline" ]; do
-    status="$(curl -sS -o "$body" -w '%{http_code}' "http://127.0.0.1:$port/sourcerer/health" 2>/dev/null)"
-    if [ "$status" = "200" ]; then
-      pid2="$(node -e 'try{const fs=require("fs");const b=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(typeof b.pid==="number")console.log(b.pid)}catch{}' "$body" 2>/dev/null)"
-      [ -n "$pid2" ] && [ "$pid2" != "$pid1" ] && break
-      pid2=""
+    # A respawn announces a fresh sentinel; take the newest one that is not pid1.
+    pid2="$(backend_ready_pids "$BROWSER_LOG" | grep -vx "$pid1" | tail -1)"
+    if [ -n "$pid2" ]; then
+      port2="$(backend_ready_port_for_pid "$BROWSER_LOG" "$pid2")"
+      break
     fi
     if ! kill -0 "$BROWSER_SPAWN_PID" 2>/dev/null; then
       echo "side03-kill-and-recover: FAIL -- SIDE-03 -- browser process exited during the recovery wait" >&2
@@ -461,7 +494,14 @@ check_side03_kill_and_recover() {
   done
 
   if [ -z "$pid2" ] && [ "$result" -eq 0 ]; then
-    echo "side03-kill-and-recover: FAIL -- SIDE-03 -- health endpoint on port $port did not return 200 with a pid different from $pid1 within 60s of killing it" >&2
+    echo "side03-kill-and-recover: FAIL -- SIDE-03 -- no SOURCERER_BACKEND_READY with a pid different from $pid1 appeared within 60s of killing it" >&2
+    result=1
+  fi
+
+  # D-104's load-bearing half: the respawn MUST reuse the same port, or the
+  # already-loaded page's reconnect silently breaks.
+  if [ -n "$pid2" ] && [ "$port2" != "$port" ]; then
+    echo "side03-kill-and-recover: FAIL -- SIDE-03 -- respawn (pid $pid2) came back on port $port2, not the pinned port $port (D-104)" >&2
     result=1
   fi
 
@@ -509,14 +549,30 @@ if (!existsSync(xhtmlPath)) {
 
 try {
   await withFirefoxPage('about:blank', async ({ evaluate, waitFor }) => {
+    // SHELL-05 requires the shell to paint BEFORE the backend is ready, so the
+    // swap to the Theia URL is necessarily asynchronous and the first context
+    // URL seen here is the shell's own about:blank placeholder. Poll for the
+    // swap rather than sampling once (02-LEARNINGS: never a point-in-time
+    // assertion); the assertion itself is unchanged -- the top-level content
+    // context must end up on the loopback backend.
+    try {
+      await waitFor('location.href.startsWith("http://127.0.0.1:")', { timeoutMs: 60000 });
+    } catch {
+      // fall through to report the actual URL below
+    }
     const contextUrl = await evaluate('location.href');
     if (typeof contextUrl !== 'string' || !contextUrl.startsWith('http://127.0.0.1:')) {
       console.error(\`shell01-theia-is-the-window: FAIL -- SHELL-01 -- top-level context URL '\${contextUrl}' does not start with http://127.0.0.1:\`);
       ok = false;
     }
+    // Selectors verified against the pinned Theia v1.74.1 DOM, not guessed:
+    // 1.74 renders on Lumino, so the menu bar is \`#theia:menubar\` with classes
+    // \`lm-Widget lm-MenuBar\` -- the PhosphorJS-era \`.p-MenuBar\` and a
+    // \`.theia-menubar\` class do not exist -- and the status bar is the id
+    // \`#theia-statusBar\`, not a class of that name.
     await waitFor('!!document.querySelector("#theia-app-shell")', { timeoutMs: 60000 });
-    await waitFor('!!document.querySelector(".theia-menubar, #theia-app-shell .p-MenuBar")', { timeoutMs: 60000 });
-    await waitFor('!!document.querySelector(".theia-statusBar")', { timeoutMs: 60000 });
+    await waitFor('!!document.querySelector("#theia-app-shell .lm-MenuBar")', { timeoutMs: 60000 });
+    await waitFor('!!document.querySelector("#theia-statusBar")', { timeoutMs: 60000 });
   });
 } catch (err) {
   console.error(\`shell01-theia-is-the-window: FAIL -- SHELL-01 -- \${err.message}\`);

@@ -251,14 +251,34 @@ EOF
     echo "check-internals-boundary: --self-test FAIL -- $CATALOGUE_PATH does not exist, cannot run the catalogue self-test" >&2
     overall=1
   else
-    grep -v 'SourcererAPI.sys.mjs:72' "$CATALOGUE_PATH" > "$mutated"
+    # Derive the line to remove from the code, never a hardcoded number: a
+    # pinned line silently stops testing anything the moment an edit above it
+    # shifts the file, and the mutation degrades into a no-op that always
+    # "passes". Take the first real occurrence the guard itself reports.
+    local victim_line victim
+    # Collect fully, then take the first line: piping into `head -1` closes the
+    # pipe early and kills the producing function with SIGPIPE (exit 141).
+    victim_line="$(catalogue_occurrence_lines "$CATALOGUE_TARGET")"
+    victim_line="${victim_line%%$'\n'*}"
+    if [ -z "$victim_line" ]; then
+      echo "check-internals-boundary: --self-test FAIL -- no forbidden-pattern occurrence found in $CATALOGUE_TARGET to mutate" >&2
+      return 1
+    fi
+    victim="$(basename -- "$CATALOGUE_TARGET"):$victim_line"
+
+    grep -v "$victim" "$CATALOGUE_PATH" > "$mutated"
+    # The mutation must actually remove something, or the test proves nothing.
+    if cmp -s "$CATALOGUE_PATH" "$mutated"; then
+      echo "check-internals-boundary: --self-test FAIL -- mutation removed no row for $victim; the catalogue self-test would be vacuous" >&2
+      return 1
+    fi
     local out
     if out="$(check_catalogue_consistency "$mutated" "$CATALOGUE_TARGET" 2>&1)"; then
-      echo "check-internals-boundary: --self-test FAIL -- catalogue mutated copy with SourcererAPI.sys.mjs:72's row removed was NOT rejected" >&2
+      echo "check-internals-boundary: --self-test FAIL -- catalogue mutated copy with $victim's row removed was NOT rejected" >&2
       echo "$out" >&2
       overall=1
-    elif echo "$out" | grep -q 'SourcererAPI.sys.mjs:72'; then
-      echo "check-internals-boundary: --self-test PASS -- catalogue mutation (removed row for SourcererAPI.sys.mjs:72) was correctly rejected"
+    elif echo "$out" | grep -q "$victim"; then
+      echo "check-internals-boundary: --self-test PASS -- catalogue mutation (removed row for $victim) was correctly rejected"
     else
       echo "check-internals-boundary: --self-test FAIL -- catalogue mutation rejected, but message doesn't name the removed row" >&2
       echo "$out" >&2
