@@ -264,4 +264,23 @@ export const SourcererAPI = Object.freeze({
   createPermanentKey() {
     return new (Cu.getGlobalForObject(Services).Object)();
   },
+
+  /**
+   * Navigates `browserElement` to `url` with the shell document's own
+   * principal as the triggering principal. Both halves are privileged chrome
+   * API -- `ownerDocument.nodePrincipal` is the system principal because the
+   * shell is loaded from chrome://, and `fixupAndLoadURIString` is a
+   * <browser> method -- so they belong here rather than in sourcerer.js.
+   * Previously this lived in sourcerer.js with a comment saying it avoided
+   * SourcererAPI "to dodge the boundary guard", which is precisely the hole
+   * SHELL-02 exists to prevent: the guard's pattern list simply did not name
+   * these two APIs, so a real internals touch sat outside the one file that
+   * is supposed to hold them all, uncatalogued. Both patterns are in
+   * FORBIDDEN_PATTERNS now, so that cannot recur silently.
+   */
+  loadURIInBrowser(browserElement, url) {
+    browserElement.fixupAndLoadURIString(url, {
+      triggeringPrincipal: browserElement.ownerDocument.nodePrincipal,
+    });
+  },
 });
