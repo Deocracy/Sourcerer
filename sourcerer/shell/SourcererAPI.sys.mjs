@@ -58,6 +58,16 @@ export const SourcererAPI = Object.freeze({
   },
 
   /**
+   * Returns whether `path` exists, never throwing. D-113 (05-02): a
+   * configured backend entry file that does not exist on disk is an
+   * unrecoverable failure -- distinct from an unset pref -- and this is
+   * how TheiaService tells the two apart before ever attempting a spawn.
+   */
+  pathExists(path) {
+    return IOUtils.exists(path);
+  },
+
+  /**
    * Resolves `command` against PATH, returning null (never throwing) when
    * it cannot be found.
    */
