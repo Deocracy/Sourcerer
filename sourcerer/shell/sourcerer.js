@@ -113,7 +113,12 @@ document.addEventListener(
         logLines: log.length,
       };
 
-      const wasVisible = diagnosticsElement.style.display !== "none";
+      // Resolved value, not the inline one: the layer's hidden DEFAULT comes
+      // from sourcerer.css (the CSP drops a style attribute -- see that
+      // file's header), so `.style.display` reads "" until the first CSSOM
+      // write and `!== "none"` would report a never-opened layer as visible,
+      // making the first chord press hide something already hidden.
+      const wasVisible = window.getComputedStyle(diagnosticsElement).display !== "none";
       if (wasVisible) {
         diagnosticsElement.style.display = "none";
         dump(`SOURCERER_DIAGNOSTICS ${JSON.stringify(sentinel)}\n`);
