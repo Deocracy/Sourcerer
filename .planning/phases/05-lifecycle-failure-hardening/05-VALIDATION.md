@@ -3,9 +3,9 @@ phase: 5
 slug: lifecycle-failure-hardening
 # status lifecycle: draft (seeded by plan-phase) → validated (set by validate-phase §6)
 # audit-milestone §5.5 distinguishes NOT-VALIDATED (draft) from PARTIAL (validated + nyquist_compliant: false) (#2117)
-status: draft
+status: validated
 nyquist_compliant: false
-wave_0_complete: false
+wave_0_complete: true
 created: 2026-08-27
 ---
 
@@ -25,7 +25,7 @@ created: 2026-08-27
 | **Config file** | none — `scripts/verify-phase-05.sh` (new) follows `scripts/verify-phase-04.sh`'s structure |
 | **Quick run command** | `scripts/verify-phase-05.sh --quick` |
 | **Full suite command** | `scripts/verify-phase-05.sh` |
-| **Estimated runtime** | TBD — set once the script lands (Phase 4's full gate is the neighbour to stay near) |
+| **Estimated runtime** | ~126s, measured live by --gate |
 
 **Phase gate (D-127):** `verify-phase-05.sh` + `verify-phase-04.sh` + `verify-phase-03.sh` must all be green **at the same commit**.
 
