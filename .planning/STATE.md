@@ -5,10 +5,10 @@ milestone_name: milestone
 current_phase: 05
 current_phase_name: lifecycle-failure-hardening
 status: awaiting-human-verification
-stopped_at: Fixed the deck-overlay CSP regression found by the first hand-attempt at 05-MANUAL-VERIFICATION.md Item C -- all 3 human items still unperformed against the fixed build
-last_updated: "2026-08-28T16:30:00.000Z"
+stopped_at: Fixed MED-01 -- the SOURCERER_* handshake leaked into every IDE terminal, and the auth token with it; token now travels on the backend's stdin pipe, never the environment. All 3 human items still unperformed against the fixed build
+last_updated: "2026-08-28T18:40:00.000Z"
 last_activity: 2026-08-28
-last_activity_desc: "First hand-attempt at Item C (diagnostics chord) FAILED: both deck overlays were painted over a healthy Theia from startup because the shell CSP drops the inline style attributes 05-02/05-03 used to hide them. Fixed in 014b0d9 and guarded by two new checks (def0143 shell-csp-inline-attrs, b3a287d SOURCERER_DECK_STATE); orphan scans made hermetic in b30dff7. verify-phase-05 now 13/13, verify-phase-04 10/10, --gate PASS at b30dff7. WINDOWS.md entry 8 records the regression; entries 9/10/11 record MED-01, MED-02 and the sidecar-state-file litter as OPEN. Items A, B and C remain unperformed against the fixed build."
+last_activity_desc: "Closed WINDOWS.md entry 9 / 05-REVIEW.md MED-01, which was worse than recorded: Theia's mergeProcessEnv reads process.env LIVE at terminal-creation time (@theia/core/lib/node/environment-utils.js:32), so SOURCERER_SUPERVISED reached every IDE terminal and killed nested yarn start / smoke-theia.sh / verify-phase-04.sh runs, and SOURCERER_TOKEN -- the backend's auth credential -- took the identical path. 86cc4e4 scrubs every SOURCERER_* key from process.env at module load (sourcerer-env.ts, before EnvVariablesServerImpl's constructor snapshot and the filesystem-watcher fork); ffdc221 stops putting the token in the environment at all, since a delete does not rewrite /proc/<pid>/environ -- the supervisor writes it on the backend's stdin pipe and sourcerer-env.ts reads it back before the gate fails closed. Guarded by the new side04-token-not-in-environment check (1fdf975, widened in ffdc221); negative controls made hermetic in 1100e6e. verify-phase-05 now 14/14, verify-phase-04 10/10, --gate PASS at ffdc221 with the one named verify-endpoints exclusion; --gate no longer dirties the tree. Confirmed live on backend 2085972: no SOURCERER_TOKEN in its own environ, zero SOURCERER_* keys in either child, and no process on the machine carries the token. WINDOWS.md entry 9 is now fixed; entries 10 (MED-02, mechanism corrected -- surviving path is request-header logging, not env dumps) and 11 remain OPEN. Items A, B and C remain unperformed against the fixed build."
 progress:
   total_phases: 5
   completed_phases: 5
@@ -30,19 +30,38 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 Phase: 05 (lifecycle-failure-hardening) — EXECUTING
 Plan: 5 of 5
 Status: awaiting-human-verification
-Last activity: 2026-08-28 — deck-overlay CSP regression found by hand, fixed, guarded
+Last activity: 2026-08-28 — MED-01 fixed: the `SOURCERER_*` handshake, token included, is out of the backend's environment
 
 All 5 plans are complete and the automated surface is green (`verify-phase-05.sh`
-13/13, `verify-phase-04.sh` 10/10, `--gate` PASS at `b30dff7` with the one named
-known-open exclusion). What blocks the phase is the human surface: **Items A, B
-and C of `05-MANUAL-VERIFICATION.md` are all still unperformed against the fixed
-build.** Item C was attempted once on 2026-08-28 and failed before reaching the
-chord — both deck overlays were painted over a healthy Theia from startup
-because the shell's own CSP drops the inline `style` attributes 05-02/05-03 used
-to hide them. Fixed in `014b0d9`; guarded by `def0143`
-(`shell-csp-inline-attrs`) and `b3a287d` (`SOURCERER_DECK_STATE`). See
-`.planning/WINDOWS.md` entry 8 and `05-VERIFICATION.md`'s Post-Verification
-Update.
+14/14, `verify-phase-04.sh` 10/10, `--gate` PASS at `ffdc221` with the one named
+known-open exclusion, `verify-endpoints` / WINDOWS.md entry 5). What blocks the
+phase is the human surface: **Items A, B and C of `05-MANUAL-VERIFICATION.md`
+are all still unperformed against the fixed build.**
+
+Two defects were found and fixed by hand after verification, both by looking at
+the product rather than at the harness:
+
+1. **Deck-overlay CSP regression** — Item C was attempted once and failed before
+   reaching the chord: both overlays were painted over a healthy Theia from
+   startup because the shell's own CSP drops the inline `style` attributes
+   05-02/05-03 used to hide them. Fixed in `014b0d9`; guarded by `def0143`
+   (`shell-csp-inline-attrs`) and `b3a287d` (`SOURCERER_DECK_STATE`).
+   `.planning/WINDOWS.md` entry 8.
+2. **MED-01, the `SOURCERER_*` environment leak** — worse than the review
+   recorded it. `mergeProcessEnv` reads `process.env` live at terminal-creation
+   time, so `SOURCERER_SUPERVISED` reached every IDE terminal and killed nested
+   `yarn start` / `smoke-theia.sh` / `verify-phase-04.sh` runs, and
+   `SOURCERER_TOKEN` — the backend's auth credential — took the identical path.
+   Fixed in `86cc4e4` (scrub every `SOURCERER_*` key from `process.env` at
+   module load) and `ffdc221` (token now travels on the backend's stdin pipe,
+   never the environment, because a `delete` does not rewrite
+   `/proc/<pid>/environ`); guarded by `side04-token-not-in-environment`.
+   `.planning/WINDOWS.md` entry 9, now `fixed`.
+
+Still open and tracked: WINDOWS.md entries 1, 5, 7, 10 (MED-02, diagnostics ring
+buffer unredacted — mechanism corrected, the surviving path is request-header
+logging, not `process.env` dumps) and 11 (sidecar-state-file litter). See
+`05-VERIFICATION.md`'s two Post-Verification Update sections.
 
 Progress: [██████████] 100%
 
