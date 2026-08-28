@@ -14,6 +14,7 @@
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   Subprocess: "resource://gre/modules/Subprocess.sys.mjs",
+  ctypes: "resource://gre/modules/ctypes.sys.mjs",
 });
 
 // Strong references to in-flight one-shot timers created by sleep(). See the
@@ -282,5 +283,105 @@ export const SourcererAPI = Object.freeze({
     browserElement.fixupAndLoadURIString(url, {
       triggeringPrincipal: browserElement.ownerDocument.nodePrincipal,
     });
+  },
+
+  /**
+   * D-110: writes `value` as JSON to `path`, atomically -- IOUtils performs
+   * a write-then-rename through the given temp path, so a crash mid-write
+   * leaves at worst a stale/partial temp file and an untouched destination,
+   * never a half-written state file.
+   */
+  writeStateFile(path, value) {
+    return IOUtils.writeJSON(path, value, { tmpPath: `${path}.tmp` });
+  },
+
+  /**
+   * Reads the state file's JSON, resolving `null` (never throwing) on any
+   * failure -- absent file, malformed content, or a value that isn't an
+   * object. Never-throw read convention, matching `getStringPref` above.
+   */
+  async readStateFile(path) {
+    try {
+      const value = await IOUtils.readJSON(path);
+      return value && typeof value === "object" ? value : null;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * Removes the state file. `ignoreAbsent` defaults to true on
+   * `IOUtils.remove`, so this needs no prior existence check -- a clean
+   * stop's cleanup call is a no-op when there is nothing to remove.
+   */
+  removeStateFile(path) {
+    return IOUtils.remove(path);
+  },
+
+  /**
+   * D-111: reads `/proc/<pid>/stat` and returns field 22 (`starttime`,
+   * clock ticks since boot per proc(5)) as a string, or `null` on any
+   * failure. Field 2 (`comm`, the executable basename) is parenthesized
+   * and may itself contain spaces or parentheses, so this locates the
+   * LAST `)` in the line and slices two characters past it before
+   * splitting the remainder on spaces -- splitting the whole line on the
+   * first space misaligns every field after `comm` (05-RESEARCH.md
+   * Pitfall 2). After that slice, field 22 overall is index 19 of the
+   * remainder (fields 3.. counted from 0).
+   */
+  async readProcessStartTicks(pid) {
+    try {
+      // IOUtils.readUTF8() cannot be used here: it always sizes its read
+      // buffer from the target's reported file size
+      // (nsIFileRandomAccessStream::GetSize, an lstat-derived value), and
+      // /proc/<pid>/stat, like every procfs file, reports st_size 0 -- a
+      // size-0 buffer means it reads zero bytes and resolves an EMPTY
+      // string with no error. Confirmed directly against this project's
+      // own xpcshell (upstream/xpcom/ioutils/IOUtils.cpp:428-443,
+      // IOUtils::ReadUTF8 calls ReadUTF8Sync -> ReadSync(..., Nothing{},
+      // ...) unconditionally -- readUTF8's own ReadUTF8Options dictionary
+      // has no maxBytes field at all (dom/chrome-webidl/IOUtils.webidl),
+      // so passing one is silently ignored). IOUtils.read() (byte array,
+      // ReadOptions.maxBytes) DOES honour an explicit maxBytes and reads
+      // procfs correctly -- confirmed the same way. 4096 is far larger
+      // than any real /proc/<pid>/stat line (all-digit and short-string
+      // fields plus one parenthesized comm), including a comm value long
+      // enough to contain spaces or parentheses.
+      const bytes = await IOUtils.read(`/proc/${pid}/stat`, { maxBytes: 4096 });
+      const text = new TextDecoder().decode(bytes);
+      const afterComm = text.slice(text.lastIndexOf(")") + 2);
+      const fields = afterComm.split(" ");
+      return fields[19] ?? null;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * D-111: signals a bare pid -- one this process did not spawn via
+   * Subprocess, and therefore has no `Process` object / `proc.kill()` for
+   * (see `killProcess` above, which remains the correct call for an
+   * already-spawned handle). `Subprocess.sys.mjs` has no API to signal a
+   * pid it did not itself create, so this opens libc directly via
+   * js-ctypes. Linux-only per CLAUDE.md -- no cross-platform branch.
+   * Returns true only when the platform call itself returned 0; false on
+   * ESRCH (already gone), EPERM, or any other failure -- never throws.
+   */
+  signalBarePid(pid, signal) {
+    const libc = lazy.ctypes.open("libc.so.6");
+    try {
+      const kill = libc.declare(
+        "kill",
+        lazy.ctypes.default_abi,
+        lazy.ctypes.int,
+        lazy.ctypes.int,
+        lazy.ctypes.int
+      );
+      return kill(pid, signal) === 0;
+    } catch {
+      return false;
+    } finally {
+      libc.close();
+    }
   },
 });
