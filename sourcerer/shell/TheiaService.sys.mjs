@@ -150,6 +150,14 @@ export const TheiaService = {
       SOURCERER_TOKEN: this._token,
       THEIA_CONFIG_DIR: this._configDir,
       VSX_REGISTRY_URL: "https://open-vsx.org",
+      // SIDE-04 (05-01-PLAN.md): arms the backend's parent-death watchdog
+      // (parent-watchdog-backend-contribution.ts). The watchdog is INERT
+      // without this exact "1" -- three unsupervised callers depend on
+      // staying inert when their own stdin closes/EOFs for unrelated
+      // reasons: `yarn start`, `scripts/smoke-theia.sh`, and
+      // verify-phase-04.sh's own start_backend (stdin redirected from
+      // /dev/null). Only this supervisor's spawn sets it.
+      SOURCERER_SUPERVISED: "1",
       // SourcererAPI.spawnProcess uses environmentAppend:true, so the child
       // inherits this process's own environment and anything already exported
       // in the shell that launched the browser comes along. The token gate's
