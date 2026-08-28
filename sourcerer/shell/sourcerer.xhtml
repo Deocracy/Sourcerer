@@ -33,6 +33,16 @@
   </head>
   <body>
     <div id="sourcerer-loading">Sourcerer</div>
+    <div id="sourcerer-error" style="display:none;">
+      <p id="sourcerer-error-message"></p>
+      <div id="sourcerer-error-controls">
+        <button id="sourcerer-error-retry" type="button">Retry</button>
+        <!-- 05-03 (SHELL-04) owns this control's target: sourcererShowDiagnostics.
+             Disabled until that global exists so a click before then is inert
+             rather than a thrown error. -->
+        <button id="sourcerer-error-diagnostics" type="button" disabled="disabled">Details</button>
+      </div>
+    </div>
     <xul:browser id="sourcerer-content" type="content" primary="true" remote="true" remoteType="web" src="about:blank" tabindex="-1"/>
   </body>
 </html>

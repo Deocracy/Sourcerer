@@ -595,6 +595,245 @@ check_side04_stale_identity_not_signalled() {
   return "$result"
 }
 
+# --- Task 3 (05-02): shell03-unrecoverable-immediate-error /
+# shell03-budget-exhausted-error / shell03-auto-dismiss-on-selfheal --------
+#
+# All three drive the built binary headless via start_shell()/stop_shell()
+# (Task 1's harness-display-available already proved --headless is not
+# needed to exercise this chrome-JS-only surface -- no compositor/paint
+# involvement, only stdout sentinels) with a VERIFY05_USER_JS_PROFILE
+# forcing a fast give-up/recovery. A fourth check driving the Retry button
+# itself does not exist: Task 1's Discriminator B (chrome-side Marionette
+# automation) is blocked on Linux (moz:windowless is macOS-only --
+# WINDOWS.md entry 7), so the Retry-button click is routed to the human
+# record instead (05-02-SUMMARY.md), per the plan's own named fallback.
+
+# D-125-style positive control: the unrecoverable case must show NO
+# spawn-attempt-failure line at all, so this can never pass merely because
+# the recoverable-failure detection also happens to fire zero times.
+SPAWN_ATTEMPT_FAILURE_PATTERN='Backend output stream ended before announcing readiness|did not announce SOURCERER_BACKEND_READY within|Health probe on port .* never returned 200'
+
+check_shell03_unrecoverable_immediate_error() {
+  local user_js result=0
+  user_js="$(mktemp)"; track_temp "$user_js"
+  cat > "$user_js" <<'EOF'
+user_pref("sourcerer.sidecar.backendMain", "/nonexistent/sourcerer-verify-05/main.js");
+EOF
+
+  export VERIFY05_USER_JS_PROFILE="$user_js"
+  start_shell
+  local start_rc=$?
+  unset VERIFY05_USER_JS_PROFILE
+  if [ "$start_rc" -ne 0 ]; then
+    echo "shell03-unrecoverable-immediate-error: FAIL -- SHELL-03 -- could not launch the built binary" >&2
+    return 1
+  fi
+
+  local deadline=$((SECONDS + 15))
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    sentinel_present 'SOURCERER_SHELL_ERROR ' "$BROWSER_LOG" && break
+    if ! kill -0 "$BROWSER_SPAWN_PID" 2>/dev/null; then
+      echo "shell03-unrecoverable-immediate-error: FAIL -- SHELL-03 -- browser exited before the error sentinel appeared; log:" >&2
+      cat "$BROWSER_LOG" >&2
+      stop_shell
+      return 1
+    fi
+    sleep 0.25
+  done
+
+  if ! sentinel_present 'SOURCERER_SHELL_ERROR ' "$BROWSER_LOG"; then
+    echo "shell03-unrecoverable-immediate-error: FAIL -- SHELL-03 -- SOURCERER_SHELL_ERROR did not appear within 15s; log:" >&2
+    cat "$BROWSER_LOG" >&2
+    stop_shell
+    return 1
+  fi
+
+  if sentinel_present 'SOURCERER_SHELL_SWAP ' "$BROWSER_LOG"; then
+    echo "shell03-unrecoverable-immediate-error: FAIL -- SHELL-03 -- launch log carries a swap sentinel; an unrecoverable failure must never reach it" >&2
+    result=1
+  fi
+
+  if grep -qE "$SPAWN_ATTEMPT_FAILURE_PATTERN" "$BROWSER_LOG"; then
+    echo "shell03-unrecoverable-immediate-error: FAIL -- SHELL-03 -- launch log shows a spawn-attempt failure; an unrecoverable classification must give up before ever attempting a spawn" >&2
+    cat "$BROWSER_LOG" >&2
+    result=1
+  fi
+
+  stop_shell
+  return "$result"
+}
+
+# D-113's recoverable-budget-exhausted path: a backend that fails every
+# time it is spawned, under a lowered attempt cap, must produce EXACTLY
+# that many respawn attempts before giving up -- neither fewer (budget not
+# honoured) nor more (budget not enforced).
+check_shell03_budget_exhausted_error() {
+  local crasher_dir crasher user_js result=0
+  crasher_dir="$(mktemp -d)"; track_temp "$crasher_dir"
+  crasher="$crasher_dir/main.js"
+  echo 'process.exit(1);' > "$crasher"
+
+  user_js="$(mktemp)"; track_temp "$user_js"
+  cat > "$user_js" <<EOF
+user_pref("sourcerer.sidecar.backendMain", "$crasher");
+user_pref("sourcerer.sidecar.giveUpAttempts", 2);
+EOF
+
+  export VERIFY05_USER_JS_PROFILE="$user_js"
+  start_shell
+  local start_rc=$?
+  unset VERIFY05_USER_JS_PROFILE
+  if [ "$start_rc" -ne 0 ]; then
+    echo "shell03-budget-exhausted-error: FAIL -- SHELL-03 -- could not launch the built binary" >&2
+    return 1
+  fi
+
+  local deadline=$((SECONDS + 30))
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    sentinel_present 'SOURCERER_SHELL_ERROR ' "$BROWSER_LOG" && break
+    if ! kill -0 "$BROWSER_SPAWN_PID" 2>/dev/null; then
+      echo "shell03-budget-exhausted-error: FAIL -- SHELL-03 -- browser exited before the error sentinel appeared; log:" >&2
+      cat "$BROWSER_LOG" >&2
+      stop_shell
+      return 1
+    fi
+    sleep 0.5
+  done
+
+  if ! sentinel_present 'SOURCERER_SHELL_ERROR ' "$BROWSER_LOG"; then
+    echo "shell03-budget-exhausted-error: FAIL -- SHELL-03 -- SOURCERER_SHELL_ERROR did not appear within 30s; log:" >&2
+    cat "$BROWSER_LOG" >&2
+    stop_shell
+    return 1
+  fi
+
+  # Every failed spawn attempt logs one "output stream ended" fatal line
+  # via SourcererAPI.log(), which Firefox's own console mirror duplicates
+  # onto a second stdout line (dump() + console.error(), the established
+  # SourcererAPI.log() shape) -- divide by 2 for the true attempt count.
+  local raw_lines attempt_count
+  raw_lines="$(grep -cE "$SPAWN_ATTEMPT_FAILURE_PATTERN" "$BROWSER_LOG")"
+  attempt_count=$((raw_lines / 2))
+  if [ "$attempt_count" -ne 2 ]; then
+    echo "shell03-budget-exhausted-error: FAIL -- SHELL-03 -- expected exactly 2 respawn attempts (giveUpAttempts=2), observed $attempt_count ($raw_lines raw log lines); log:" >&2
+    cat "$BROWSER_LOG" >&2
+    result=1
+  fi
+
+  # Exactly one error sentinel even though the give-up path here is
+  # reached only once per launch -- guards _showError's _errorShown flag
+  # against re-painting/re-emitting for the same state.
+  local error_sentinel_count
+  error_sentinel_count="$(grep -c 'SOURCERER_SHELL_ERROR ' "$BROWSER_LOG")"
+  if [ "$error_sentinel_count" -ne 1 ]; then
+    echo "shell03-budget-exhausted-error: FAIL -- SHELL-03 -- expected exactly one SOURCERER_SHELL_ERROR sentinel, found $error_sentinel_count" >&2
+    result=1
+  fi
+
+  # The sentinel's JSON must carry only reason + classification -- never
+  # the per-launch token or any other key.
+  if ! grep -qE '^SOURCERER_SHELL_ERROR \{"reason":"[^"]*","recoverable":(true|false)\}$' "$BROWSER_LOG"; then
+    echo "shell03-budget-exhausted-error: FAIL -- SHELL-03 -- SOURCERER_SHELL_ERROR sentinel JSON does not match the expected {reason, recoverable} shape" >&2
+    result=1
+  fi
+  if grep 'SOURCERER_SHELL_ERROR ' "$BROWSER_LOG" | grep -qi 'SOURCERER_TOKEN'; then
+    echo "shell03-budget-exhausted-error: FAIL -- SHELL-03 -- an error sentinel line mentions the token environment-variable name" >&2
+    result=1
+  fi
+
+  stop_shell
+  return "$result"
+}
+
+# D-115's auto-dismiss path, driven as a genuinely MID-SESSION outage (not
+# a first-launch failure): the backend succeeds once (one swap sentinel),
+# then crashes on its own a few seconds later; the health loop detects it,
+# the single-attempt respawn budget is immediately exhausted (error shown),
+# and the background recovery probe's next respawn succeeds -- clearing the
+# error with no input ever sent to the window.
+check_shell03_auto_dismiss_on_selfheal() {
+  local wrap_dir marker real_main user_js result=0
+  wrap_dir="$(mktemp -d)"; track_temp "$wrap_dir"
+  marker="$wrap_dir/count"
+  echo 0 > "$marker"
+  real_main="$REPO_ROOT/theia/applications/browser/lib/backend/main.js"
+  cat > "$wrap_dir/main.js" <<EOF
+const fs = require('fs');
+const marker = '$marker';
+let n = parseInt(fs.readFileSync(marker, 'utf8'), 10);
+n += 1;
+fs.writeFileSync(marker, String(n));
+// Attempt 1: start normally, then self-destruct a few seconds in --
+// simulates a real mid-session crash of an already-healthy backend.
+// Attempt 2 (the health loop's own single-budget respawn): crash
+// immediately, forcing the give-up/error-shown path.
+// Attempt 3+ (the recovery probe's respawn): succeed cleanly.
+if (n === 2) {
+  process.exit(1);
+}
+if (n === 1) {
+  setTimeout(() => process.exit(1), 3000);
+}
+require('$real_main');
+EOF
+
+  user_js="$(mktemp)"; track_temp "$user_js"
+  cat > "$user_js" <<EOF
+user_pref("sourcerer.sidecar.backendMain", "$wrap_dir/main.js");
+user_pref("sourcerer.sidecar.giveUpAttempts", 1);
+user_pref("sourcerer.sidecar.healthIntervalSteadyMs", 1000);
+user_pref("sourcerer.sidecar.recoveryProbeIntervalMs", 2000);
+EOF
+
+  export VERIFY05_USER_JS_PROFILE="$user_js"
+  start_shell
+  local start_rc=$?
+  unset VERIFY05_USER_JS_PROFILE
+  if [ "$start_rc" -ne 0 ]; then
+    echo "shell03-auto-dismiss-on-selfheal: FAIL -- SHELL-03 -- could not launch the built binary" >&2
+    return 1
+  fi
+
+  local deadline=$((SECONDS + 40))
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    sentinel_present 'SOURCERER_SHELL_ERROR_CLEARED' "$BROWSER_LOG" && break
+    if ! kill -0 "$BROWSER_SPAWN_PID" 2>/dev/null; then
+      echo "shell03-auto-dismiss-on-selfheal: FAIL -- SHELL-03 -- browser exited before the cleared sentinel appeared; log:" >&2
+      cat "$BROWSER_LOG" >&2
+      stop_shell
+      return 1
+    fi
+    sleep 0.5
+  done
+
+  if ! sentinel_present 'SOURCERER_SHELL_ERROR_CLEARED' "$BROWSER_LOG"; then
+    echo "shell03-auto-dismiss-on-selfheal: FAIL -- SHELL-03 -- SOURCERER_SHELL_ERROR_CLEARED did not appear within 40s (no input was ever sent to the window); log:" >&2
+    cat "$BROWSER_LOG" >&2
+    stop_shell
+    return 1
+  fi
+
+  if ! sentinel_present 'SOURCERER_SHELL_ERROR ' "$BROWSER_LOG"; then
+    echo "shell03-auto-dismiss-on-selfheal: FAIL -- SHELL-03 -- cleared sentinel appeared without ever showing the error sentinel first -- this run proves nothing" >&2
+    result=1
+  fi
+
+  # Mid-session invariant (D-114): the content browser's location never
+  # changes while the error layer is visible -- exactly one swap sentinel
+  # across the whole session (the original successful launch), never a
+  # second one for the recovery.
+  local swap_count
+  swap_count="$(grep -c 'SOURCERER_SHELL_SWAP ' "$BROWSER_LOG")"
+  if [ "$swap_count" -ne 1 ]; then
+    echo "shell03-auto-dismiss-on-selfheal: FAIL -- SHELL-03 -- expected exactly one swap sentinel across the whole session, found $swap_count; log:" >&2
+    cat "$BROWSER_LOG" >&2
+    result=1
+  fi
+
+  stop_shell
+  return "$result"
+}
+
 # Each entry: "label|command...". Later tasks append here, never as a
 # sibling driver script.
 declare -a CHECKS=()
@@ -606,6 +845,9 @@ if [ "$QUICK" -eq 0 ]; then
     "side04-leftover-reaped|check_side04_leftover_reaped"
     "side04-stale-identity-not-signalled|check_side04_stale_identity_not_signalled"
     "harness-display-available|check_harness_display_available"
+    "shell03-unrecoverable-immediate-error|check_shell03_unrecoverable_immediate_error"
+    "shell03-budget-exhausted-error|check_shell03_budget_exhausted_error"
+    "shell03-auto-dismiss-on-selfheal|check_shell03_auto_dismiss_on_selfheal"
   )
 fi
 
