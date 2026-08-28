@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 05
 current_phase_name: lifecycle-failure-hardening
 status: executing
-stopped_at: Completed 05-01-PLAN.md
-last_updated: "2026-08-28T01:04:48.467Z"
+stopped_at: Completed 05-02-PLAN.md
+last_updated: "2026-08-28T01:56:07.389Z"
 last_activity: 2026-08-27
 last_activity_desc: Phase 04 complete, transitioned to Phase 5
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 32
-  completed_plans: 28
+  completed_plans: 29
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 ## Current Position
 
 Phase: 05 (lifecycle-failure-hardening) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-08-27 — Phase 05 execution started
 
-Progress: [█████████░] 88%
+Progress: [█████████░] 91%
 
 ## Performance Metrics
 
@@ -87,6 +87,7 @@ Progress: [█████████░] 88%
 | Phase 04 P04 | 35min | 3 tasks | 4 files |
 | Phase 04 P05 | 19min | 3 tasks | 6 files |
 | Phase 05 P01 | 75min | 2 tasks | 6 files |
+| Phase 05 P02 | 95min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -168,6 +169,10 @@ Recent decisions affecting current work:
 - [Phase ?]: 04-05: 04-MANUAL-VERIFICATION.md's launch-paint verdict recorded as genuinely pending, not fabricated -- this autonomous session has no attached desktop and has never achieved a live paint across three plans (04-03/04-04/04-05); WINDOWS.md entry 4 tracks the gap
 - [Phase ?]: 05-01: SourcererAPI.readProcessStartTicks uses IOUtils.read({maxBytes}) + TextDecoder, never IOUtils.readUTF8() -- readUTF8's ReadUTF8Options has no maxBytes field, so it always sizes its buffer from stat() and silently returns empty string for procfs files (st_size always 0)
 - [Phase ?]: 05-01: verify-phase-05.sh's D-125 controls compare startTicks not raw pid -- the freshly-spawned real backend can legitimately recycle the just-reaped leftover's pid number
+- [Phase ?]: 05-02: Discriminator A (real display) - remoting works, non-headless launch paints in <1s; verify-phase-05.sh gained start_shell_display/harness-display-available with on-demand Xvfb fallback
+- [Phase ?]: 05-02: Discriminator B (chrome-side Marionette automation) - blocked on Linux, moz:windowless is macOS-only (Capabilities.sys.mjs); firefox-marionette.mjs NOT created, WINDOWS.md entry 7 records the finding, Retry-button click routed to human record
+- [Phase ?]: 05-02: give-up budget folds the first spawn attempt into _restart()'s own bounded loop so giveUpAttempts=N means N total attempts, never N+1 -- a real bug caught live during verification
+- [Phase ?]: 05-02: SourcererAPI.pathExists (new) closes a real classification gap -- backendMain pointing at a nonexistent-but-set path was previously misclassified as recoverable instead of D-113's own named unrecoverable case
 
 ### Pending Todos
 
@@ -197,6 +202,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-28T01:04:48.455Z
-Stopped at: Completed 05-01-PLAN.md
+Last session: 2026-08-28T01:56:07.378Z
+Stopped at: Completed 05-02-PLAN.md
 Resume file: None
