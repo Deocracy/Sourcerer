@@ -4,11 +4,11 @@ milestone: v4.0
 milestone_name: milestone
 current_phase: 05
 current_phase_name: lifecycle-failure-hardening
-status: verifying
+status: awaiting-human-verification
 stopped_at: Completed 05-05-PLAN.md -- human verification pending (05-MANUAL-VERIFICATION.md)
-last_updated: "2026-08-28T03:23:16.894Z"
-last_activity: 2026-08-27
-last_activity_desc: Phase 04 complete, transitioned to Phase 5
+last_updated: "2026-08-28T04:10:00.000Z"
+last_activity: 2026-08-28
+last_activity_desc: "Phase 05 executed and verified: automated surface complete (verify-phase-05 12/12, combined --gate PASS at 3d12834); CR-01 profile-scoping defect fixed in 70f9454; 3 human-verification items pending"
 progress:
   total_phases: 5
   completed_phases: 5
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 
 Phase: 05 (lifecycle-failure-hardening) — EXECUTING
 Plan: 5 of 5
-Status: Phase complete — ready for verification
+Status: awaiting-human-verification
 Last activity: 2026-08-27 — Phase 05 execution started
 
 Progress: [██████████] 100%
