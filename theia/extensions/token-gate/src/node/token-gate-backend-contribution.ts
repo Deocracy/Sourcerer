@@ -28,10 +28,11 @@ export class SourcererTokenGateContribution implements BackendApplicationContrib
     protected port: number | undefined;
 
     initialize(): void {
-        // SOURCERER_ENV, never process.env: sourcerer-env.ts captured and
-        // scrubbed both variables at module load so they cannot be inherited
-        // by terminals, tasks or the plugin host. process.env no longer
-        // carries them by the time this runs.
+        // SOURCERER_ENV, never process.env: sourcerer-env.ts resolved the
+        // whole handshake at module load -- the dev bypass captured from and
+        // scrubbed out of process.env, and on a supervised launch the token
+        // read off the stdin pipe, which is where the supervisor puts it so it
+        // never appears in this process's /proc/<pid>/environ at all.
         const disable = SOURCERER_ENV[TOKEN_DISABLE_ENV_VAR] === '1';
         if (disable) {
             // Named legacy-dev bypass (scripts/smoke-theia.sh,
@@ -49,7 +50,9 @@ export class SourcererTokenGateContribution implements BackendApplicationContrib
         const token = SOURCERER_ENV[TOKEN_ENV_VAR];
         if (!token) {
             // Fail-closed (D-98/SIDE-02): an unconfigured token is a startup
-            // failure, never an inert/pass-through gate. This must run before
+            // failure, never an inert/pass-through gate. On a supervised
+            // launch this also covers a handshake that never arrived (the
+            // parent died before writing the stdin line). This must run before
             // the HTTP server ever calls listen() -- initialize() is the
             // earliest BackendApplicationContribution hook, invoked from
             // BackendApplication#configure() which itself runs before
@@ -107,14 +110,15 @@ export class SourcererTokenGateContribution implements BackendApplicationContrib
         // file -- the supervisor already reads this stdout stream, it dies
         // with the process, and it needs no atomic-write/stale-file handling.
         // D-104: this contribution persists no state across process
-        // lifetimes -- the expected token is captured once per backend
-        // PROCESS start (sourcerer-env.ts, at module load) and every request
-        // is validated against that in-memory value. The
+        // lifetimes -- the expected token is read once per backend PROCESS
+        // start (sourcerer-env.ts, at module load) and every request is
+        // validated against that in-memory value. The
         // respawn-accepts-the-same-cookie property comes from the supervisor
-        // re-supplying the same SOURCERER_TOKEN in each spawn environment
-        // (TheiaService._spawnAndGate), not from this process re-reading
-        // process.env later -- it deliberately scrubs its own copy so no
-        // child can inherit it.
+        // writing the same token onto each spawn's stdin pipe
+        // (TheiaService._spawnAndGate), not from this process re-reading it
+        // later -- and the token is never in this process's environment, so
+        // neither a child nor a co-resident same-uid reader of
+        // /proc/<pid>/environ can recover it.
         process.stdout.write(`SOURCERER_BACKEND_READY ${JSON.stringify({ port: this.port, pid: process.pid })}\n`);
     }
 

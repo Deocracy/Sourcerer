@@ -201,6 +201,24 @@ export const SourcererAPI = Object.freeze({
   },
 
   /**
+   * Writes one newline-terminated line to `proc`'s stdin pipe and leaves the
+   * pipe OPEN. This is the credential channel: anything handed to
+   * `spawnProcess`'s `environment` lands in the child's `/proc/<pid>/environ`,
+   * which is the exec-time snapshot and stays readable by every same-uid
+   * process for the life of that process no matter what the child later
+   * deletes from its own `process.env`.
+   *
+   * Never close the pipe here. `Subprocess` always redirects a child's stdin
+   * to a pipe on unix (`toolkit/modules/subprocess/subprocess_unix.worker.js`'s
+   * `initPipes`), and the backend's parent-death watchdog treats EOF on this
+   * exact fd as "the browser died" -- closing it after the write would
+   * self-terminate the backend immediately.
+   */
+  writeStdinLine(proc, line) {
+    return proc.stdin.write(`${line}\n`);
+  },
+
+  /**
    * Kills `proc`, waiting up to `graceMs` before escalating. A single call
    * to the platform's own kill(): it already sends SIGTERM, waits the
    * grace period, then SIGKILL -- do not hand-roll that sequence.

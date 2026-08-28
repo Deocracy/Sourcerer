@@ -1585,56 +1585,74 @@ EOF
   return "$result"
 }
 
-# --- SIDE-04 addendum: the supervisor handshake must not be inheritable ----
+# --- SIDE-04 addendum: the supervisor handshake must not leak the token ----
 #
-# TheiaService._spawnAndGate hands the backend SOURCERER_TOKEN (its auth
-# credential) and SOURCERER_SUPERVISED (arms the parent-death watchdog).
-# Node's process.env is inherited by every child the backend spawns, so
-# without the module-load scrub in
-# theia/extensions/token-gate/src/node/sourcerer-env.ts both reach every IDE
-# terminal, task, debug adapter and the plugin host that runs third-party
-# extensions -- the token readable by anything the user runs, and a NESTED
-# backend (`yarn start`, smoke-theia.sh, verify-phase-04.sh) arming a
-# watchdog nobody supervises and dying on its own stdin EOF.
+# Two separate exposures of TheiaService._spawnAndGate's handshake, asserted
+# together because a fix for either one alone leaves the credential reachable.
 #
-# This is asserted from OUTSIDE the process, on a real supervised launch,
+#   A. THE BACKEND'S OWN /proc/<pid>/environ. This is the exec-time snapshot.
+#      It is NOT rewritten by `delete process.env.X` (glibc's unsetenv edits
+#      the pointer array, never the original stack region), it stays readable
+#      by every same-uid process for the whole life of the backend, and with
+#      Yama's ptrace_scope=1 -- the setting on this project's own target --
+#      /proc/<pid>/mem is unreadable while this file is not. So it is the one
+#      place a credential in the environment stays legible to a co-resident
+#      process: one `tr '\0' '\n' < /proc/<backend>/environ` from any process
+#      the user runs recovers it, and that recovered value authenticates. The
+#      only fix is not putting the token in the environment at all, which is
+#      why the supervisor writes it on the backend's stdin pipe instead
+#      (SourcererAPI.writeStdinLine -> sourcerer-env.ts's readTokenFromStdin).
+#      SOURCERER_TOKEN must therefore be absent here entirely.
+#      SOURCERER_SUPERVISED is expected to be present -- it is a marker, not a
+#      secret -- so only the token is asserted.
+#
+#   B. EVERY CHILD'S environ. Node's process.env is inherited by every child
+#      the backend spawns, and a child's environ is built fresh from the
+#      parent's LIVE process.env at fork/exec -- which is what makes a child
+#      the only witness for the module-load scrub in sourcerer-env.ts.
+#      Without that scrub SOURCERER_SUPERVISED reaches every IDE terminal,
+#      task, debug adapter and the plugin host running third-party
+#      extensions, so a NESTED backend (`yarn start`, smoke-theia.sh,
+#      verify-phase-04.sh) arms a watchdog nobody supervises and dies on its
+#      own stdin EOF. The backend forks a parcel filesystem-watcher IPC child
+#      unconditionally at startup (@theia/filesystem's
+#      filesystem-backend-module.js, `env: process.env`), with no frontend and
+#      no workspace, so a child reliably exists to scan; a terminal
+#      ShellProcess -- the exact mergeProcessEnv path from the defect --
+#      appears too whenever one is open, which is why the scan covers every
+#      child rather than one named process.
+#
+# Both are asserted from OUTSIDE the process, on a real supervised launch,
 # because the only in-process alternative is trusting the code under test.
-# Two design constraints, both verified rather than assumed:
-#
-#   - /proc/<BACKEND>/environ is the exec-time snapshot and is NOT rewritten
-#     by `delete process.env.X` (glibc's unsetenv edits the pointer array,
-#     never the original stack region). It still shows both variables after a
-#     correct fix and can therefore never witness this. Only a CHILD's
-#     environ can -- a child's is built fresh from the parent's live
-#     process.env at fork/exec.
-#   - The backend forks a parcel filesystem-watcher IPC child unconditionally
-#     at startup (@theia/filesystem's filesystem-backend-module.js, `env:
-#     process.env`), with no frontend and no workspace, so a child reliably
-#     exists to scan. A terminal ShellProcess -- the exact mergeProcessEnv
-#     path from the defect -- appears too whenever one is open, which is why
-#     the scan covers every child rather than one named process.
 #
 # The VERIFY05_LEAK_CANARY export IS this check's self-test, and it runs on
 # every invocation rather than behind a flag: it rides the identical chain
 # (harness -> browser -> spawnProcess environmentAppend:true -> backend
 # process.env -> fork) through the identical loop, grep and procfs read, and
-# differs only in its name. A scanner that cannot see a variable that IS
-# there proves nothing by failing to see the ones that should not be, so its
-# absence is a FAIL, never a vacuous pass. Same for "no children" and "no
-# readable environ".
+# differs only in its name. It must be found in the backend's own environ
+# (self-test for A) and in a child's (self-test for B). A scanner that cannot
+# see a variable that IS there proves nothing by failing to see the one that
+# should not be, so its absence is a FAIL, never a vacuous pass. Same for "no
+# children" and "no readable environ".
+#
+# SOURCERER_SHELL_SWAP is the positive control for the replacement channel: it
+# is only ever printed after _pollUntilHealthy got a 200 from
+# /sourcerer/health, and that probe authenticates with the token. A backend
+# that never received the stdin line exits 78 and never reaches it, so a
+# passing scan cannot be bought by simply never delivering a token.
 #
 # On its own this check is satisfiable by never setting SOURCERER_SUPERVISED
 # at all, which would silently disarm the dies-with-the-browser watchdog. It
 # is only meaningful alongside side04-sigkill-no-orphan and
 # side04-unsupervised-backend-survives, which prove the marker still arms and
 # still stays inert.
-check_side04_token_not_inherited_by_children() {
+check_side04_token_not_in_environment() {
   local result=0
   local canary="verify05-canary-$$-${RANDOM}"
   export VERIFY05_LEAK_CANARY="$canary"
 
   if ! start_shell; then
-    echo "side04-token-not-inherited-by-children: FAIL -- SIDE-04 -- could not launch the shell" >&2
+    echo "side04-token-not-in-environment: FAIL -- SIDE-04 -- could not launch the shell" >&2
     unset VERIFY05_LEAK_CANARY
     return 1
   fi
@@ -1648,13 +1666,47 @@ check_side04_token_not_inherited_by_children() {
     sleep 0.5
   done
   if [ -z "$backend_pid" ]; then
-    echo "side04-token-not-inherited-by-children: FAIL -- SIDE-04 -- the backend never announced SOURCERER_BACKEND_READY within 90s; last 30 log lines:" >&2
+    echo "side04-token-not-in-environment: FAIL -- SIDE-04 -- the backend never announced SOURCERER_BACKEND_READY within 90s; last 30 log lines:" >&2
     tail -30 "$log" >&2
     stop_shell
     unset VERIFY05_LEAK_CANARY
     return 1
   fi
 
+  # Positive control for the stdin credential channel (see the header): the
+  # swap is printed only after a token-authenticated 200 from
+  # /sourcerer/health.
+  local swap_deadline=$((SECONDS + 60)) swapped=0
+  while [ "$SECONDS" -lt "$swap_deadline" ]; do
+    if grep -q '^SOURCERER_SHELL_SWAP ' "$log"; then
+      swapped=1
+      break
+    fi
+    kill -0 "$BROWSER_SPAWN_PID" 2>/dev/null || break
+    sleep 0.5
+  done
+  if [ "$swapped" -eq 0 ]; then
+    echo "side04-token-not-in-environment: FAIL -- SIDE-04 -- the shell never printed SOURCERER_SHELL_SWAP, so the token handed over stdin never authenticated a health probe; an environ scan that finds no token would only mean no token was ever delivered. Last 30 log lines:" >&2
+    tail -30 "$log" >&2
+    result=1
+  fi
+
+  # Exposure A: the backend's own exec-time environment snapshot.
+  local backend_env
+  backend_env="$(tr '\0' '\n' < "/proc/$backend_pid/environ" 2>/dev/null)"
+  if [ -z "$backend_env" ]; then
+    echo "side04-token-not-in-environment: FAIL -- SIDE-04 -- backend pid $backend_pid has no readable /proc/<pid>/environ; nothing was scanned, so a clean result would prove nothing" >&2
+    result=1
+  elif ! grep -qxF "VERIFY05_LEAK_CANARY=$canary" <<<"$backend_env"; then
+    echo "side04-token-not-in-environment: FAIL -- SIDE-04 -- self-test: VERIFY05_LEAK_CANARY was exported into this harness but is absent from backend pid $backend_pid's own /proc/<pid>/environ, so the harness -> browser -> spawnProcess chain this scan reads is broken and a clean scan means nothing" >&2
+    result=1
+  elif grep -q '^SOURCERER_TOKEN=' <<<"$backend_env"; then
+    echo "side04-token-not-in-environment: FAIL -- SIDE-04 -- backend pid $backend_pid carries SOURCERER_TOKEN= in its OWN /proc/<pid>/environ. That file is the exec-time snapshot: no process.env delete rewrites it, and it stays readable by every same-uid process for the life of the backend. Hand the token over the stdin pipe instead (SourcererAPI.writeStdinLine)" >&2
+    result=1
+  fi
+
+  # Exposure B: every child's environment, built from the backend's LIVE
+  # process.env at fork/exec.
   local kids="" kid_deadline=$((SECONDS + 20))
   while [ "$SECONDS" -lt "$kid_deadline" ]; do
     kids="$(pgrep -P "$backend_pid" 2>/dev/null)"
@@ -1682,20 +1734,20 @@ check_side04_token_not_inherited_by_children() {
     # also match a SOURCERER_TOKEN_DISABLE line and misattribute the leak.
     for var in SOURCERER_TOKEN SOURCERER_SUPERVISED SOURCERER_TOKEN_DISABLE; do
       if grep -q "^$var=" <<<"$env_dump"; then
-        echo "side04-token-not-inherited-by-children: FAIL -- SIDE-04 -- backend child pid $kid ($cmd) inherited $var from the backend's process.env" >&2
+        echo "side04-token-not-in-environment: FAIL -- SIDE-04 -- backend child pid $kid ($cmd) inherited $var from the backend's process.env" >&2
         result=1
       fi
     done
   done
 
   if [ -z "$kids" ]; then
-    echo "side04-token-not-inherited-by-children: FAIL -- SIDE-04 -- backend pid $backend_pid had no children at all; nothing was scanned, so a clean result would prove nothing" >&2
+    echo "side04-token-not-in-environment: FAIL -- SIDE-04 -- backend pid $backend_pid had no children at all; nothing was scanned, so a clean result would prove nothing" >&2
     result=1
   elif [ "$read_any" -eq 0 ]; then
-    echo "side04-token-not-inherited-by-children: FAIL -- SIDE-04 -- no child of backend pid $backend_pid had a readable /proc/<pid>/environ; nothing was scanned" >&2
+    echo "side04-token-not-in-environment: FAIL -- SIDE-04 -- no child of backend pid $backend_pid had a readable /proc/<pid>/environ; nothing was scanned" >&2
     result=1
   elif [ "$saw_canary" -eq 0 ]; then
-    echo "side04-token-not-inherited-by-children: FAIL -- SIDE-04 -- self-test: VERIFY05_LEAK_CANARY was exported into this harness but reached no backend child, so the harness -> browser -> backend -> child environment chain this check probes is broken and a clean scan means nothing" >&2
+    echo "side04-token-not-in-environment: FAIL -- SIDE-04 -- self-test: VERIFY05_LEAK_CANARY was exported into this harness but reached no backend child, so the harness -> browser -> backend -> child environment chain this check probes is broken and a clean scan means nothing" >&2
     result=1
   fi
 
@@ -1735,7 +1787,7 @@ run_own_checks() {
       "side05-second-launch-focuses|check_side05_second_launch_focuses"
       "side05-no-second-backend|check_side05_no_second_backend"
       "cr01-different-profile-backend-survives|check_cr01_different_profile_backend_survives"
-      "side04-token-not-inherited-by-children|check_side04_token_not_inherited_by_children"
+      "side04-token-not-in-environment|check_side04_token_not_in_environment"
     )
   fi
 
@@ -1833,32 +1885,6 @@ ledger_entry_is_open() {
   local id="$1" status
   status="$(ledger_entry_status "$id")" || return 1
   [ "$status" = "open" ]
-}
-
-# Replaces 05-VALIDATION.md's placeholder "Estimated runtime" table cell
-# with the just-measured --gate wall time, and flips the frontmatter's
-# status/wave_0_complete flags to reflect that the script has landed and is
-# exercised on every --gate run. nyquist_compliant is deliberately left
-# alone (stays false) -- one check runs under a named known-open exclusion
-# and Task 2's human items are unsigned, so "finished" here means "the
-# validation document reflects reality", not "fully compliant"; matches
-# 04-VALIDATION.md's identical honest-PARTIAL precedent.
-write_gate_runtime_to_validation() {
-  local elapsed="$1"
-  local validation_md="$REPO_ROOT/.planning/phases/05-lifecycle-failure-hardening/05-VALIDATION.md"
-  node -e '
-    const fs = require("fs");
-    const path = process.argv[1];
-    const elapsed = process.argv[2];
-    let text = fs.readFileSync(path, "utf8");
-    text = text.replace(
-      /(\| \*\*Estimated runtime\*\* \| ).*?( \|)/,
-      `$1~${elapsed}s, measured live by --gate$2`
-    );
-    text = text.replace(/^status: draft$/m, "status: validated");
-    text = text.replace(/^wave_0_complete: false$/m, "wave_0_complete: true");
-    fs.writeFileSync(path, text);
-  ' "$validation_md" "$elapsed"
 }
 
 # Runs an external phase script (verify-phase-04.sh / verify-phase-03.sh)
@@ -1982,7 +2008,6 @@ run_gate_mode() {
 
   if [ "$overall_failed" -eq 0 ]; then
     echo "verify-phase-05: --gate PASS -- commit $commit -- every phase gate is green at this commit"
-    write_gate_runtime_to_validation "$gate_elapsed"
     return 0
   else
     echo "verify-phase-05: --gate FAIL -- commit $commit -- see section output above" >&2
