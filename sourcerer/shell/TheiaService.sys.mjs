@@ -38,6 +38,12 @@ export const TheiaService = {
   _swapped: false,
   _shuttingDown: false,
 
+  // D-110: this project's first persistence -- a sidecar state file inside
+  // _configDir, written on every successful spawn (first and respawn
+  // alike) and removed on a clean stop. Derived once in start(), right
+  // after _configDir is resolved.
+  _stateFilePath: null,
+
   // Health-loop state (Task 2).
   _healthy: false,
   _restartCount: 0,
@@ -63,11 +69,19 @@ export const TheiaService = {
 
     this._configDir = this._resolveConfigDir();
     await SourcererAPI.ensureDirectory(this._configDir);
+    this._stateFilePath = `${this._configDir}/sidecar-state.json`;
 
     // D-105: observe the topic that fires once quit is final and can no
     // longer be cancelled -- beginning an irreversible shutdown under a
     // quit that gets aborted would kill a backend the user still wants.
     SourcererAPI.onQuitGranted(() => this.stop());
+
+    // SIDE-04: reap a verified leftover from a previous crashed launch
+    // BEFORE this session's own first spawn -- a leftover recorded in the
+    // state file is either signalled (verified identity) or discarded
+    // (stale/absent/malformed), and either way this returns before any new
+    // process exists that could be confused with the leftover.
+    await this._reapLeftover();
 
     await this._spawnAndGate(/* firstSpawn */ true);
   },
@@ -95,6 +109,18 @@ export const TheiaService = {
     }
     this._proc = null;
     this._healthy = false;
+
+    // D-110: a clean stop must leave nothing for the next startup's
+    // _reapLeftover() to find -- a normal quit followed by a normal start
+    // signals nothing.
+    if (this._stateFilePath) {
+      try {
+        await SourcererAPI.removeStateFile(this._stateFilePath);
+      } catch {
+        // Best-effort: removeStateFile already tolerates an absent file;
+        // anything else here is not worth blocking shutdown over.
+      }
+    }
   },
 
   /** D-106: the buffered lines, newest last. Phase 5's diagnostics page reads this. */
@@ -134,6 +160,91 @@ export const TheiaService = {
     const home = SourcererAPI.getEnv("HOME");
     const base = xdg || `${home}/.config`;
     return `${base}/sourcerer`;
+  },
+
+  /**
+   * SIDE-04's startup half: verified-identity reap of a leftover backend
+   * from a previous crashed launch, called from start() before this
+   * session's first spawn. D-111: signals a recorded pid ONLY when its
+   * live `/proc/<pid>/stat` start-time ticks match the state file's
+   * recorded value EXACTLY (string equality) -- a mismatch means the
+   * operating system has recycled that pid onto an unrelated process, and
+   * this returns without ever calling signalBarePid, no escalation.
+   *
+   * SIDE-04 empty edge: an absent, zero-byte, or malformed state file
+   * resolves via `SourcererAPI.readStateFile` to `null` (never throws) --
+   * this returns silently and start()'s normal spawn sequence proceeds
+   * exactly as it does today.
+   */
+  async _reapLeftover() {
+    const record = await SourcererAPI.readStateFile(this._stateFilePath);
+    if (!record || typeof record.pid !== "number") {
+      return;
+    }
+
+    const alive = SourcererAPI.signalBarePid(record.pid, /* signal 0: liveness only */ 0);
+    if (!alive) {
+      this._reapLog(`Leftover state file named pid ${record.pid}, already gone -- removing stale state file.`);
+      await this._removeStateFileQuietly();
+      return;
+    }
+
+    const observedTicks = await SourcererAPI.readProcessStartTicks(record.pid);
+    if (observedTicks === null || observedTicks !== record.startTicks) {
+      // Recycled-pid footgun (D-111): pid is alive, but it is NOT the
+      // process this project recorded. Never signal it.
+      this._reapLog(
+        `Leftover state file's pid ${record.pid} is alive but its start-time ticks MISMATCH ` +
+          `(recorded ${record.startTicks}, observed ${observedTicks}) -- the pid has been recycled by the OS onto an unrelated process; not signalling it.`
+      );
+      await this._removeStateFileQuietly();
+      return;
+    }
+
+    const SIGTERM = 15;
+    const signalled = SourcererAPI.signalBarePid(record.pid, SIGTERM);
+    if (!signalled) {
+      this._reapLog(`Leftover pid ${record.pid} (verified identity match) could not be signalled with SIGTERM.`);
+      await this._removeStateFileQuietly();
+      return;
+    }
+
+    // Brief bounded poll -- not a hard requirement for correctness (the
+    // state file is removed either way below), just makes the reap
+    // outcome observable in the log without an unbounded wait.
+    const deadline = Date.now() + 3000;
+    let stillAlive = SourcererAPI.signalBarePid(record.pid, 0);
+    while (stillAlive && Date.now() < deadline) {
+      await SourcererAPI.sleep(100);
+      stillAlive = SourcererAPI.signalBarePid(record.pid, 0);
+    }
+
+    if (stillAlive) {
+      this._reapLog(`Leftover pid ${record.pid} (verified identity match) was signalled with SIGTERM but is still alive -- leaving it alone, no escalation.`);
+    } else {
+      this._reapLog(`Leftover pid ${record.pid} (verified identity match) was signalled with SIGTERM and is gone.`);
+    }
+    await this._removeStateFileQuietly();
+  },
+
+  /**
+   * Ring buffer AND console/stdout, same dual-channel convention `_fatal`
+   * already uses -- the reap decision must be independently observable
+   * both from `getRecentLog()` (Phase 5's diagnostics page) and from the
+   * process's own stdout (verify-phase-05.sh's automated controls read the
+   * launch log directly, with no chrome-side access).
+   */
+  _reapLog(message) {
+    this._pushLog(message);
+    SourcererAPI.log("log", `[TheiaService] ${message}`);
+  },
+
+  async _removeStateFileQuietly() {
+    try {
+      await SourcererAPI.removeStateFile(this._stateFilePath);
+    } catch {
+      // Best-effort; removeStateFile already tolerates an absent file.
+    }
   },
 
   /**
@@ -205,6 +316,28 @@ export const TheiaService = {
 
     this._port = ready.port;
     this._pid = ready.pid;
+
+    // D-110: record this spawn in the state file on EVERY successful spawn,
+    // first and respawn alike -- a crash after a restart must still leave
+    // an accurate record for the next startup's _reapLeftover() to find.
+    // Read via SourcererAPI.readProcessStartTicks (the same field-22
+    // /proc/<pid>/stat reader _reapLeftover() uses to verify identity
+    // later), so writer and reader always agree on format.
+    const startTicks = await SourcererAPI.readProcessStartTicks(this._pid);
+    try {
+      await SourcererAPI.writeStateFile(this._stateFilePath, {
+        pid: this._pid,
+        port: this._port,
+        startTicks,
+        writtenAt: Date.now(),
+      });
+      this._pushLog(`Wrote sidecar state file for pid ${this._pid}, port ${this._port}.`);
+    } catch (err) {
+      // Not fatal to this launch -- SIDE-04's startup-cleanup half degrades
+      // (a leftover from THIS run may go unreaped next time), but the
+      // backend itself is healthy and should keep running.
+      this._pushLog(`Failed to write sidecar state file: ${err.message}`);
+    }
 
     const healthIntervalStartupMs = SourcererAPI.getIntPref("sourcerer.sidecar.healthIntervalStartupMs", 250);
     const healthTimeoutMs = SourcererAPI.getIntPref("sourcerer.sidecar.healthTimeoutMs", 4000);

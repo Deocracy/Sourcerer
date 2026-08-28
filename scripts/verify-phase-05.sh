@@ -157,6 +157,19 @@ backend_ready_pids() {
 # as "as good as gone" (05-RESEARCH.md Pitfall 3 -- a recently-SIGKILLed
 # child that hasn't been reaped yet still answers a bare-existence check).
 # Returns 0 once the pid is gone or zombied, 1 on timeout.
+#
+# Reaps <pid> the instant it goes zombie, IF this script happens to be its
+# real parent (plant_leftover's own `setsid sleep ... &`) -- `wait` on an
+# already-terminated child returns immediately rather than blocking, so
+# this never stalls. Without this, D-125's own planted process would sit
+# as an unreaped zombie until this script's unplant_leftover() finally
+# calls `wait` at cleanup time, and kill(pid,0) (SourcererAPI.signalBarePid's
+# liveness re-check, same zombie-blind gotcha) would see it as "still
+# alive" from the browser's side for however long that takes -- exactly
+# the false-alive race this helper exists to avoid. `wait` on a pid this
+# script did NOT fork (the SIGKILL-orphan check's real backend pid, a
+# grandchild of the killed browser) harmlessly fails with "not a child of
+# this shell"; `|| true` absorbs that.
 wait_pid_gone_or_zombie() {
   local pid="$1" deadline=$((SECONDS + 15)) state
   while [ "$SECONDS" -lt "$deadline" ]; do
@@ -165,6 +178,7 @@ wait_pid_gone_or_zombie() {
     fi
     state="$(awk '/^State:/{print $2}' "/proc/$pid/status" 2>/dev/null)"
     if [ "$state" = "Z" ] || [ -z "$state" ]; then
+      wait "$pid" 2>/dev/null || true
       return 0
     fi
     sleep 0.5
@@ -300,6 +314,7 @@ read_start_ticks() {
 # (pid, port, startTicks, writtenAt). Sets PLANTED_PID/PLANTED_CONFIG_DIR/
 # PLANTED_STATE_FILE for the caller.
 PLANTED_PID=""
+PLANTED_TICKS=""
 PLANTED_CONFIG_DIR=""
 PLANTED_STATE_FILE=""
 plant_leftover() {
@@ -315,6 +330,7 @@ plant_leftover() {
   else
     ticks="$(read_start_ticks "$PLANTED_PID")"
   fi
+  PLANTED_TICKS="$ticks"
 
   local parent
   parent="$(mktemp -d)"; track_temp "$parent"
@@ -324,7 +340,7 @@ plant_leftover() {
 
   node -e '
     const fs = require("fs");
-    const [, , path, pid, ticks] = process.argv;
+    const [, path, pid, ticks] = process.argv;
     fs.writeFileSync(path, JSON.stringify({
       pid: Number(pid), port: 65000, startTicks: ticks, writtenAt: Date.now()
     }));
@@ -339,6 +355,7 @@ unplant_leftover() {
     wait "$PLANTED_PID" 2>/dev/null || true
     PLANTED_PID=""
   fi
+  PLANTED_TICKS=""
   unset VERIFY05_XDG_CONFIG_HOME
 }
 
@@ -361,8 +378,37 @@ check_side04_leftover_reaped() {
     result=1
   fi
 
-  if [ -e "$PLANTED_STATE_FILE" ] && grep -q "\"pid\":$PLANTED_PID" "$PLANTED_STATE_FILE" 2>/dev/null; then
-    echo "side04-leftover-reaped: FAIL -- SIDE-04 -- state file still names the reaped pid $PLANTED_PID after startup" >&2
+  # Compare startTicks, not pid: by the time this runs, TheiaService's own
+  # first spawn has already written a NEW state-file record for the real
+  # backend it just started, and Linux is free to recycle the
+  # just-vacated PLANTED_PID onto that very process -- a raw pid substring
+  # match would then false-positive on a perfectly healthy, unrelated
+  # record. startTicks is what actually distinguishes "the same process"
+  # from "a different process that happens to share a pid number", and is
+  # exactly the identity signal D-111 itself relies on.
+  #
+  # Bounded settle poll, not a point-in-time read: _reapLeftover's own
+  # internal poll (checking liveness every 100ms) and this script's
+  # wait_pid_gone_or_zombie poll (checking every 500ms) run independently,
+  # so a single read taken the instant wait_pid_gone_or_zombie returns can
+  # race the browser's own removeStateFile()/re-write still landing.
+  local settle_deadline=$((SECONDS + 10)) current_ticks=""
+  while [ "$SECONDS" -lt "$settle_deadline" ]; do
+    if [ -e "$PLANTED_STATE_FILE" ]; then
+      current_ticks="$(node -e '
+        try {
+          const j = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+          if (typeof j.startTicks === "string") process.stdout.write(j.startTicks);
+        } catch {}
+      ' "$PLANTED_STATE_FILE" 2>/dev/null)"
+    else
+      current_ticks=""
+    fi
+    [ "$current_ticks" != "$PLANTED_TICKS" ] && break
+    sleep 0.3
+  done
+  if [ -n "$current_ticks" ] && [ "$current_ticks" = "$PLANTED_TICKS" ]; then
+    echo "side04-leftover-reaped: FAIL -- SIDE-04 -- state file still records the reaped leftover's own start ticks ($PLANTED_TICKS) after startup" >&2
     result=1
   fi
 
