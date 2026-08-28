@@ -4,16 +4,16 @@ milestone: v4.0
 milestone_name: milestone
 current_phase: 05
 current_phase_name: lifecycle-failure-hardening
-status: executing
-stopped_at: Completed 05-04-PLAN.md
-last_updated: "2026-08-28T02:57:24.560Z"
+status: verifying
+stopped_at: Completed 05-05-PLAN.md -- human verification pending (05-MANUAL-VERIFICATION.md)
+last_updated: "2026-08-28T03:23:16.894Z"
 last_activity: 2026-08-27
 last_activity_desc: Phase 04 complete, transitioned to Phase 5
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 32
-  completed_plans: 31
+  completed_plans: 32
 ---
 
 # Project State
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 
 Phase: 05 (lifecycle-failure-hardening) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-08-27 — Phase 05 execution started
 
-Progress: [██████████] 97%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -90,6 +90,7 @@ Progress: [██████████] 97%
 | Phase 05 P02 | 95min | 3 tasks | 9 files |
 | Phase 05 P03 | 70min | 2 tasks | 8 files |
 | Phase 05 P04 | 55min | 2 tasks | 6 files |
+| Phase 05 P05 | 25min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -182,6 +183,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 05-04: entry name a-sourcerer sorts ahead of the stock m-browser/x-default command-line handlers (ascending strcmp) -- confirmed live
 - [Phase ?]: 05-04: TheiaService._started set before any other work in start() -- catches a re-entrant call racing the first launch's own async work, not just a plain second call
 - [Phase ?]: 05-04: no Ci.nsICommandLine.STATE_INITIAL_LAUNCH or classID field needed -- the handler never reads the command line and components.conf's own cid is sufficient for an ESM-class component (matches Marionette.sys.mjs's in-tree pattern)
+- [Phase ?]: 05-05: --gate mode's known-open exclusion is keyed to WINDOWS.md ledger entry 5 and re-checked live on every run (ledger_entry_is_open) -- never a value baked in at authoring time; live-verified both directions (entry fixed -> gate fails naming lapsed exclusion, entry restored -> gate passes)
+- [Phase ?]: 05-05: 05-MANUAL-VERIFICATION.md's three items (daily-drive, Retry click, diagnostics chord) are built with every instruction filled in and every verdict deliberately left 'pending' -- never self-certified by the autonomous session, per this plan's checkpoint_protocol
 
 ### Pending Todos
 
@@ -211,6 +214,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-28T02:57:24.546Z
-Stopped at: Completed 05-04-PLAN.md
+Last session: 2026-08-28T03:23:16.880Z
+Stopped at: Completed 05-05-PLAN.md -- human verification pending (05-MANUAL-VERIFICATION.md)
 Resume file: None
