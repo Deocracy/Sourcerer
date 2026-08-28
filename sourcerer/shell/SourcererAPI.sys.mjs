@@ -433,4 +433,60 @@ export const SourcererAPI = Object.freeze({
       libc.close();
     }
   },
+
+  /**
+   * D-121/D-122: finds the shell's own already-open window, by the window
+   * type `sourcerer.xhtml`'s root element declares (`windowtype`). Returns
+   * `null` (never throws) when none exists -- the first-launch case, where
+   * the single-instance handler below must do nothing at all.
+   */
+  findShellWindow() {
+    return Services.wm.getMostRecentWindow("sourcerer:main");
+  },
+
+  /** Focuses an already-found shell window. */
+  focusWindow(win) {
+    win.focus();
+  },
 });
+
+/**
+ * D-121/D-123/D-124: the single-instance command-line handler, registered
+ * via `sourcerer/shell/components.conf` under the `command-line-handler`
+ * category, entry name `a-sourcerer` (sorts ahead of the stock browser
+ * handler's `m-browser`, and far ahead of `x-default`, the handler that
+ * actually opens a window -- see components.conf's own comment). Exported
+ * from this file rather than a sibling module because it needs
+ * `ChromeUtils.generateQI`/`Ci.nsICommandLineHandler`, both `Ci.`-pattern
+ * touches the boundary guard forbids everywhere else under
+ * `sourcerer/shell/` (D-96/D-97).
+ *
+ * Behaviour (D-123/D-124): look up the existing shell window. If none is
+ * found -- the first launch, or any launch naming a different profile
+ * (the platform's remoting is keyed on the profile path, so a
+ * different-profile launch never even reaches this handler in the same
+ * process) -- do nothing at all; preventing the default here would leave
+ * that launch with no window. If one is found, focus it and set
+ * `preventDefault`, ignoring every command-line argument: never read one,
+ * never open a window. A thrown error is caught and logged rather than
+ * left to propagate into the platform's own handler enumeration, which
+ * would otherwise break every handler still due to run after this one.
+ */
+export class SourcererSingleInstanceHandler {
+  QueryInterface = ChromeUtils.generateQI([Ci.nsICommandLineHandler]);
+
+  helpInfo = "";
+
+  handle(cmdLine) {
+    try {
+      const win = SourcererAPI.findShellWindow();
+      if (!win) {
+        return;
+      }
+      SourcererAPI.focusWindow(win);
+      cmdLine.preventDefault = true;
+    } catch (err) {
+      SourcererAPI.log("error", `[SourcererSingleInstanceHandler] ${err}`);
+    }
+  }
+}

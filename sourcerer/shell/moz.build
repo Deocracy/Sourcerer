@@ -16,3 +16,11 @@ DEFINES["SOURCERER_DEV_TREE"] = TOPSRCDIR + "/.."
 JS_PREFERENCE_PP_FILES += [
     "sourcerer-sidecar.js",
 ]
+
+# D-121: the single-instance command-line handler. XPCOM_MANIFESTS is a
+# tier-3 build trigger (feeds the generated StaticComponents.cpp compiled
+# into libxul) -- a full `./mach build` is required after this, not the
+# fast preprocessing tier.
+XPCOM_MANIFESTS += [
+    "components.conf",
+]
