@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 05
 current_phase_name: lifecycle-failure-hardening
 status: executing
-stopped_at: Completed 05-02-PLAN.md
-last_updated: "2026-08-28T01:56:07.389Z"
+stopped_at: Completed 05-03-PLAN.md
+last_updated: "2026-08-28T02:22:29.187Z"
 last_activity: 2026-08-27
 last_activity_desc: Phase 04 complete, transitioned to Phase 5
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 32
-  completed_plans: 29
+  completed_plans: 30
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 ## Current Position
 
 Phase: 05 (lifecycle-failure-hardening) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-08-27 — Phase 05 execution started
 
-Progress: [█████████░] 91%
+Progress: [█████████░] 94%
 
 ## Performance Metrics
 
@@ -88,6 +88,7 @@ Progress: [█████████░] 91%
 | Phase 04 P05 | 19min | 3 tasks | 6 files |
 | Phase 05 P01 | 75min | 2 tasks | 6 files |
 | Phase 05 P02 | 95min | 3 tasks | 9 files |
+| Phase 05 P03 | 70min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -173,6 +174,10 @@ Recent decisions affecting current work:
 - [Phase ?]: 05-02: Discriminator B (chrome-side Marionette automation) - blocked on Linux, moz:windowless is macOS-only (Capabilities.sys.mjs); firefox-marionette.mjs NOT created, WINDOWS.md entry 7 records the finding, Retry-button click routed to human record
 - [Phase ?]: 05-02: give-up budget folds the first spawn attempt into _restart()'s own bounded loop so giveUpAttempts=N means N total attempts, never N+1 -- a real bug caught live during verification
 - [Phase ?]: 05-02: SourcererAPI.pathExists (new) closes a real classification gap -- backendMain pointing at a nonexistent-but-set path was previously misclassified as recoverable instead of D-113's own named unrecoverable case
+- [Phase ?]: 05-03: AppConstants.MOZ_APP_VERSION_DISPLAY (lazy-getter block) backs getAppIdentity's version field -- the same build-time preprocessor constant about:support itself used
+- [Phase ?]: 05-03: diagnostics sentinel is written on EVERY call to the show global (open or close, toggle) -- matches Task 1's literal acceptance criteria over the plan's looser must_haves paraphrase
+- [Phase ?]: 05-03: objdir-release was stale since 2026-08-21 (predated the shell-window feature entirely) -- fixed with the project's own documented full release rebuild, Rule 3 blocking-issue fix, not a repo artifact
+- [Phase ?]: 05-03: WINDOWS.md #6 closed by repointing verify-branding-identity.mjs's third surface (runtime-identity) at SourcererAPI.getAppIdentity() via a spawn+stdout-sentinel read, not by waiving it
 
 ### Pending Todos
 
@@ -202,6 +207,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-28T01:56:07.378Z
-Stopped at: Completed 05-02-PLAN.md
+Last session: 2026-08-28T02:22:29.176Z
+Stopped at: Completed 05-03-PLAN.md
 Resume file: None
