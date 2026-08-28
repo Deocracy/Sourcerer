@@ -124,7 +124,14 @@ start_backend() {
   local config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/sourcerer"
   mkdir -p "$config_dir"
 
-  setsid env \
+  # -u: this is one of the three unsupervised callers the watchdog's marker
+  # gate exists to protect. Run from a terminal inside a Sourcerer instance,
+  # an inherited SOURCERER_SUPERVISED would arm the watchdog in this backend,
+  # which then self-terminates the moment its own stdin EOFs -- every check
+  # below it failing for a reason that has nothing to do with Phase 4. The
+  # dev bypass is cleared for the same reason: it must never be inherited
+  # into a run that mints its own token.
+  setsid env -u SOURCERER_SUPERVISED -u SOURCERER_TOKEN_DISABLE \
     SOURCERER_TOKEN="$BACKEND_TOKEN" \
     THEIA_CONFIG_DIR="$config_dir" \
     VSX_REGISTRY_URL="https://open-vsx.org" \
