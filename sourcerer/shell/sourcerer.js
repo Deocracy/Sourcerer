@@ -23,6 +23,10 @@ document.addEventListener(
 
     const browserElement = document.getElementById("sourcerer-content");
     const loadingElement = document.getElementById("sourcerer-loading");
+    const errorElement = document.getElementById("sourcerer-error");
+    const errorMessageElement = document.getElementById("sourcerer-error-message");
+    const errorRetryButton = document.getElementById("sourcerer-error-retry");
+    const errorDiagnosticsButton = document.getElementById("sourcerer-error-diagnostics");
     // WebDriver finds content browsing contexts through `win.gBrowser.tabs`
     // (remote/shared/TabManager.sys.mjs) and identifies each one by its
     // browser's `permanentKey` (remote/shared/NavigableManager.sys.mjs returns
@@ -48,6 +52,43 @@ document.addEventListener(
     window.sourcererGetBrowser = function sourcererGetBrowser() {
       return browserElement;
     };
+
+    // SHELL-03 (05-02): the error layer, reached by TheiaService exactly
+    // the same way sourcererSwapToUrl is -- through this window's exposed
+    // globals, never by touching browserElement's own location (D-114).
+    // Neither the message text nor either sentinel may ever carry the
+    // per-launch token or any credential; TheiaService's `reason` strings
+    // are always static/derived-from-config text, never the token, and
+    // `detail` here carries only `reason` and `recoverable`.
+    window.sourcererShowError = function sourcererShowError(detail) {
+      const { reason, recoverable } = detail;
+      errorMessageElement.textContent = reason;
+      errorElement.style.display = "flex";
+      dump(`SOURCERER_SHELL_ERROR ${JSON.stringify({ reason, recoverable })}\n`);
+    };
+
+    window.sourcererHideError = function sourcererHideError() {
+      errorElement.style.display = "none";
+      dump(`SOURCERER_SHELL_ERROR_CLEARED ${JSON.stringify({})}\n`);
+    };
+
+    window.sourcererRetry = function sourcererRetry() {
+      errorElement.style.display = "none";
+      TheiaService.retry();
+    };
+
+    errorRetryButton.addEventListener("click", () => {
+      window.sourcererRetry();
+    });
+
+    // 05-03 (SHELL-04) owns sourcererShowDiagnostics; the control stays
+    // disabled (sourcerer.xhtml) until that global exists, so this handler
+    // never fires on an inert click -- left here as the wiring point.
+    errorDiagnosticsButton.addEventListener("click", () => {
+      if (typeof window.sourcererShowDiagnostics === "function") {
+        window.sourcererShowDiagnostics();
+      }
+    });
 
     // Task 2 (04-03) proof-of-resolution: import SourcererAPI.sys.mjs and
     // read back two sidecar prefs through it, emitting an additional
