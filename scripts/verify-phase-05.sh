@@ -151,6 +151,145 @@ backend_ready_pids() {
     | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{for(const l of s.split("\n")){if(!l.trim())continue;try{const j=JSON.parse(l);if(typeof j.pid==="number")console.log(j.pid)}catch{}}})' 2>/dev/null
 }
 
+# --- Task 1 (05-02): harness-display-available -----------------------------
+#
+# Discriminator A (05-02-PLAN.md): a non-headless start_shell variant.
+# gfxPlatform::IsHeadless() forces mDisableRemoteClient=true whenever
+# MOZ_HEADLESS/--headless is set (05-RESEARCH.md Pitfall 1) -- start_shell()
+# above launches headless, so it can never exercise a real paint or Firefox's
+# native remoting protocol. This helper drops --headless and supplies a
+# DISPLAY: an existing one first, else a freshly-started Xvfb on a free
+# display number (resolved on demand via `nix build nixpkgs#xorg.xvfb` --
+# none of this repo's dev shells carry an Xvfb binary, since neither the
+# Theia nor the Firefox toolchain needs one). Returns 2 (distinct from every
+# other helper's 1) specifically for "no display could be obtained at all",
+# so the registered check can never silently skip or vacuously pass.
+XVFB_SPAWN_PID=""
+XVFB_DISPLAY_NUM=""
+
+find_free_display_num() {
+  local n
+  for n in $(seq 90 199); do
+    [ ! -e "/tmp/.X11-unix/X$n" ] && { echo "$n"; return 0; }
+  done
+  return 1
+}
+
+start_virtual_display() {
+  local num
+  num="$(find_free_display_num)" || return 2
+
+  local xvfb_log
+  xvfb_log="$(mktemp)"; track_temp "$xvfb_log"
+
+  local xvfb_bin
+  xvfb_bin="$(timeout 60 nix build --no-link --print-out-paths 'nixpkgs#xorg.xvfb' 2>>"$xvfb_log")/bin/Xvfb"
+  if [ ! -x "$xvfb_bin" ]; then
+    echo "start_virtual_display: FAIL -- Xvfb unavailable on this host (nix resolution failed); see $xvfb_log" >&2
+    return 2
+  fi
+
+  setsid "$xvfb_bin" ":$num" -screen 0 1280x800x24 >"$xvfb_log" 2>&1 &
+  XVFB_SPAWN_PID=$!
+
+  local deadline=$((SECONDS + 10))
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    if [ -e "/tmp/.X11-unix/X$num" ]; then
+      XVFB_DISPLAY_NUM="$num"
+      return 0
+    fi
+    if ! kill -0 "$XVFB_SPAWN_PID" 2>/dev/null; then
+      echo "start_virtual_display: FAIL -- Xvfb exited before creating its display socket; log:" >&2
+      cat "$xvfb_log" >&2
+      return 2
+    fi
+    sleep 0.2
+  done
+  echo "start_virtual_display: FAIL -- Xvfb did not create its display socket within 10s" >&2
+  return 2
+}
+
+stop_virtual_display() {
+  if [ -n "$XVFB_SPAWN_PID" ]; then
+    kill -- "-$XVFB_SPAWN_PID" 2>/dev/null || kill "$XVFB_SPAWN_PID" 2>/dev/null || true
+    wait "$XVFB_SPAWN_PID" 2>/dev/null || true
+    XVFB_SPAWN_PID=""
+  fi
+  XVFB_DISPLAY_NUM=""
+}
+
+# The non-headless sibling of start_shell(): same log/profile capture and
+# VERIFY05_USER_JS_PROFILE support, but launched against a real DISPLAY
+# instead of --headless. Returns 1 for "binary missing" (matches
+# start_shell()'s own convention) and 2 for "no display available at all"
+# (start_virtual_display()'s propagated code) -- callers must not treat
+# either as a skip.
+start_shell_display() {
+  local display_to_use=""
+  if [ -n "${DISPLAY:-}" ]; then
+    display_to_use="$DISPLAY"
+  else
+    start_virtual_display || return $?
+    display_to_use=":$XVFB_DISPLAY_NUM"
+  fi
+
+  local bin="$REPO_ROOT/objdir/dist/bin/sourcerer"
+  if [ ! -x "$bin" ]; then
+    echo "start_shell_display: FAIL -- $bin does not exist or is not executable (run the Phase 1 Firefox build first)" >&2
+    stop_virtual_display
+    return 1
+  fi
+  local log profile
+  log="$(mktemp)"; track_temp "$log"
+  profile="$(mktemp -d)"; track_temp "$profile"
+  BROWSER_LOG="$log"
+
+  if [ -n "${VERIFY05_USER_JS_PROFILE:-}" ]; then
+    mkdir -p "$profile"
+    cp "$VERIFY05_USER_JS_PROFILE" "$profile/user.js"
+  fi
+
+  setsid env "DISPLAY=$display_to_use" "$bin" --profile "$profile" >"$log" 2>&1 &
+  BROWSER_SPAWN_PID=$!
+  return 0
+}
+
+stop_shell_display() {
+  stop_shell
+  stop_virtual_display
+}
+
+# Launches through start_shell_display(), asserts SOURCERER_SHELL_READY
+# appears within a bounded poll, and stops it -- a display that cannot be
+# obtained at all is a named FAIL (start_shell_display's propagated 1/2),
+# never a skip and never a pass.
+check_harness_display_available() {
+  local rc
+  start_shell_display
+  rc=$?
+  if [ "$rc" -ne 0 ]; then
+    echo "harness-display-available: FAIL -- SIDE-04 -- no usable display (neither an existing DISPLAY nor a resolvable Xvfb); see helper output above" >&2
+    stop_shell_display
+    return 1
+  fi
+
+  local deadline=$((SECONDS + 30))
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    sentinel_present 'SOURCERER_SHELL_READY' "$BROWSER_LOG" && { stop_shell_display; return 0; }
+    if ! kill -0 "$BROWSER_SPAWN_PID" 2>/dev/null; then
+      echo "harness-display-available: FAIL -- browser process exited before SOURCERER_SHELL_READY appeared; log:" >&2
+      cat "$BROWSER_LOG" >&2
+      stop_shell_display
+      return 1
+    fi
+    sleep 0.5
+  done
+  echo "harness-display-available: FAIL -- SOURCERER_SHELL_READY did not appear within 30s; log:" >&2
+  cat "$BROWSER_LOG" >&2
+  stop_shell_display
+  return 1
+}
+
 # --- Task 1: side04-sigkill-no-orphan / side04-unsupervised-backend-survives
 
 # Poll /proc/<pid>/status's State: line for up to 15s, treating Z (zombie)
@@ -466,6 +605,7 @@ if [ "$QUICK" -eq 0 ]; then
     "side04-unsupervised-backend-survives|check_side04_unsupervised_backend_survives"
     "side04-leftover-reaped|check_side04_leftover_reaped"
     "side04-stale-identity-not-signalled|check_side04_stale_identity_not_signalled"
+    "harness-display-available|check_harness_display_available"
   )
 fi
 

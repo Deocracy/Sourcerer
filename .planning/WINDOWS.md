@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 3
+open_count: 4
 waived_count: 0
 fixed_count: 3
-total_count: 6
-last_updated: 2026-08-27T00:59:23.557Z
+total_count: 7
+last_updated: 2026-08-28T01:33:56.593Z
 ---
 
 # Broken Windows Ledger
@@ -21,6 +21,7 @@ last_updated: 2026-08-27T00:59:23.557Z
 | 4 | 04 | unrun-verify | .planning/phases/04-full-window-theia-shell/04-MANUAL-VERIFICATION.md |  | RESOLVED / MISDIAGNOSED: this was never environmental. The RenderCompositorSWGL message appears identically on the untouched Phase-3 binary and is harmless noise; anchoring on it hid the real cause. sourcerer.xhtml was not well-formed XML (an XML comment cannot contain '--'), so the shell never parsed, sourcerer.js never ran and no backend was ever spawned. Five further defects sat behind it (CSP dropping the inline <style> -> 0x0 viewport; no root width/height; an already-expired cookie aExpiry -> 403; sleep() passing {observe} to initWithCallback -> stalled health loop; _swap() using ownerGlobal). Fixed in commits 1bceacd and b97cb5b; verify-phase-04.sh is now 10/10 and verify-phase-02.sh back to 5/5. The discriminator that settles it: a WebDriver BiDi session succeeds against objdir-release and failed against objdir. | fixed |  | 2026-08-26T22:55:36.043Z | 2026-08-27T00:57:31.951Z |
 | 5 | 04 | unmet-truth | sourcerer/endpoint-allowlist.json |  | verify-phase-03's verify-endpoints now FAILS: with the shell actually working, Gecko resolves three hosts absent from the BRAND-04 allowlist -- 127.0.0.1 (the Theia sidecar; expected, and the architecture), plus ciscobinary.openh264.org (GMP manager, now woken by a real content page being loaded) and github.com (reached by the Theia FRONTEND running inside the browser). Not a code defect: Phase 4 introduces a network surface the D-83..D-88 allowlist never contemplated. Each existing entry carries a reasoned decision, so adding these needs a product/privacy decision, not a mechanical edit. | open |  | 2026-08-27T00:59:23.344Z |  |
 | 6 | 04 | unmet-truth | sourcerer/shell/sourcerer.xhtml |  | verify-phase-03's verify-branding-identity-dev now FAILS on its about-support surface only (all 5 other surfaces PASS; the release variant fully PASSES). The check reads branding from about:support via WebDriver, but the shell's single <browser> is pinned remoteType=web and about:support needs a privileged-about remote type. Consistent with v4.0 intent -- Theia is the only GUI, no URL bar, so about: pages are unreachable by design -- but the check needs a different mechanism (read branding chrome-side), or v4.0 accepts about: pages are unreachable until the post-4.0 tab model brings remote-type switching. Needs a decision. | open |  | 2026-08-27T00:59:23.557Z |  |
+| 7 | 05 | unrun-verify | scripts/lib/firefox-marionette.mjs |  | Discriminator B (05-02 Task 1): chrome-side Marionette automation is blocked, not merely unverified. WebDriver:NewSession with capabilities.alwaysMatch['moz:windowless']=true does NOT skip the initial-application-window wait on Linux -- Capabilities.sys.mjs:708-720 gates windowless to AppInfo.isMac only, so the value is silently rejected/dropped and driver.sys.mjs:2450-2461 still calls Services.wm.getMostRecentBrowserWindow() (returns null for windowtype=sourcerer:main) then WindowManager.sys.mjs:586's waitForChromeWindowLoaded(null) throws 'TypeError: cant access property document, window is null', failing newSession with 'session not created'. Confirmed live: launched objdir/dist/bin/sourcerer --marionette --remote-allow-system-access on a real DISPLAY, connected via a raw length-prefixed JSON socket client, greeting exchanged correctly (applicationType:gecko, marionetteProtocol:3), WebDriver:NewSession is the exact command and error that failed. firefox-marionette.mjs was NOT created. Fallback: the Retry-button-click assertion (05-02 Task 3) and any other chrome-driven assertion route to the human record instead of an automated check. | open |  | 2026-08-28T01:33:56.593Z |  |
 
 ````json
 [
@@ -94,6 +95,18 @@ last_updated: 2026-08-27T00:59:23.557Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-27T00:59:23.557Z",
+    "resolved_at": null
+  },
+  {
+    "id": 7,
+    "kind": "unrun-verify",
+    "phase": "05",
+    "file": "scripts/lib/firefox-marionette.mjs",
+    "line": null,
+    "description": "Discriminator B (05-02 Task 1): chrome-side Marionette automation is blocked, not merely unverified. WebDriver:NewSession with capabilities.alwaysMatch['moz:windowless']=true does NOT skip the initial-application-window wait on Linux -- Capabilities.sys.mjs:708-720 gates windowless to AppInfo.isMac only, so the value is silently rejected/dropped and driver.sys.mjs:2450-2461 still calls Services.wm.getMostRecentBrowserWindow() (returns null for windowtype=sourcerer:main) then WindowManager.sys.mjs:586's waitForChromeWindowLoaded(null) throws 'TypeError: cant access property document, window is null', failing newSession with 'session not created'. Confirmed live: launched objdir/dist/bin/sourcerer --marionette --remote-allow-system-access on a real DISPLAY, connected via a raw length-prefixed JSON socket client, greeting exchanged correctly (applicationType:gecko, marionetteProtocol:3), WebDriver:NewSession is the exact command and error that failed. firefox-marionette.mjs was NOT created. Fallback: the Retry-button-click assertion (05-02 Task 3) and any other chrome-driven assertion route to the human record instead of an automated check.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-28T01:33:56.593Z",
     "resolved_at": null
   }
 ]
