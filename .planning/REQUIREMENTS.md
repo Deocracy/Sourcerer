@@ -29,7 +29,7 @@ Requirements for v4.0. Each maps to roadmap phases.
 - [x] **SIDE-02**: Backend access requires a per-launch token minted before first load; token enforcement verified on plain HTTP requests, not only WebSocket upgrade (CVE-2026-61891 class)
 - [x] **SIDE-03**: A health-check loop gates first load and restarts the backend with backoff on crash
 - [x] **SIDE-04**: Quitting or killing the browser (including SIGKILL) leaves zero orphaned backend processes — process-group kill semantics plus startup cleanup of leftovers
-- [ ] **SIDE-05**: Launching Sourcerer a second time focuses the existing window and never spawns a second backend (Firefox's native single-instance behavior preserved)
+- [x] **SIDE-05**: Launching Sourcerer a second time focuses the existing window and never spawns a second backend (Firefox's native single-instance behavior preserved)
 
 ### Shell Presentation
 
@@ -181,7 +181,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SIDE-02 | Phase 4 | Complete |
 | SIDE-03 | Phase 4 | Complete |
 | SIDE-04 | Phase 5 | Complete |
-| SIDE-05 | Phase 5 | Pending |
+| SIDE-05 | Phase 5 | Complete |
 | SHELL-03 | Phase 5 | Complete |
 | SHELL-04 | Phase 5 | Complete |
 

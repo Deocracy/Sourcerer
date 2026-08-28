@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 05
 current_phase_name: lifecycle-failure-hardening
 status: executing
-stopped_at: Completed 05-03-PLAN.md
-last_updated: "2026-08-28T02:22:29.187Z"
+stopped_at: Completed 05-04-PLAN.md
+last_updated: "2026-08-28T02:57:24.560Z"
 last_activity: 2026-08-27
 last_activity_desc: Phase 04 complete, transitioned to Phase 5
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 32
-  completed_plans: 30
+  completed_plans: 31
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 ## Current Position
 
 Phase: 05 (lifecycle-failure-hardening) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-08-27 — Phase 05 execution started
 
-Progress: [█████████░] 94%
+Progress: [██████████] 97%
 
 ## Performance Metrics
 
@@ -89,6 +89,7 @@ Progress: [█████████░] 94%
 | Phase 05 P01 | 75min | 2 tasks | 6 files |
 | Phase 05 P02 | 95min | 3 tasks | 9 files |
 | Phase 05 P03 | 70min | 2 tasks | 8 files |
+| Phase 05 P04 | 55min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -178,6 +179,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 05-03: diagnostics sentinel is written on EVERY call to the show global (open or close, toggle) -- matches Task 1's literal acceptance criteria over the plan's looser must_haves paraphrase
 - [Phase ?]: 05-03: objdir-release was stale since 2026-08-21 (predated the shell-window feature entirely) -- fixed with the project's own documented full release rebuild, Rule 3 blocking-issue fix, not a repo artifact
 - [Phase ?]: 05-03: WINDOWS.md #6 closed by repointing verify-branding-identity.mjs's third surface (runtime-identity) at SourcererAPI.getAppIdentity() via a spawn+stdout-sentinel read, not by waiving it
+- [Phase ?]: 05-04: entry name a-sourcerer sorts ahead of the stock m-browser/x-default command-line handlers (ascending strcmp) -- confirmed live
+- [Phase ?]: 05-04: TheiaService._started set before any other work in start() -- catches a re-entrant call racing the first launch's own async work, not just a plain second call
+- [Phase ?]: 05-04: no Ci.nsICommandLine.STATE_INITIAL_LAUNCH or classID field needed -- the handler never reads the command line and components.conf's own cid is sufficient for an ESM-class component (matches Marionette.sys.mjs's in-tree pattern)
 
 ### Pending Todos
 
@@ -207,6 +211,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-28T02:22:29.176Z
-Stopped at: Completed 05-03-PLAN.md
+Last session: 2026-08-28T02:57:24.546Z
+Stopped at: Completed 05-04-PLAN.md
 Resume file: None
