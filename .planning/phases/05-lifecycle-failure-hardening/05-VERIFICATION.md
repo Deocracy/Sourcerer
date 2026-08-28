@@ -14,7 +14,7 @@ human_verification:
     why_human: "Chrome-context Marionette automation is blocked on Linux — capabilities.alwaysMatch['moz:windowless'] is gated to AppInfo.isMac only (Capabilities.sys.mjs:708-720), confirmed live against a raw Marionette socket client (WINDOWS.md entry 7). No automated harness in this repo can click a chrome-window button. The underlying TheiaService.retry()->_restart() code path IS exercised end-to-end by shell03-auto-dismiss-on-selfheal's recovery probe (same code path, per D-115), but the literal click has never been observed. 05-MANUAL-VERIFICATION.md Item B reads 'pending' in every field."
   - test: "Item C — press Ctrl+Alt+Shift+D with the backend down and read the rendered diagnostics fields"
     expected: "Diagnostics layer opens over the error state showing populated port, pid, health status, restart count, recent log, and brand/vendor/version; pressing the chord again closes it"
-    why_human: "Same Discriminator B platform gate as Item B — no automated harness can press a chrome-context key chord or read rendered DOM text on this Linux build. shell04-diagnostics-with-backend-down automates only the two halves that do not need chrome-context driving (the startup identity sentinel's population, and the Details control shipping enabled/undisabled in the markup). 05-MANUAL-VERIFICATION.md Item C reads 'pending' in every field."
+    why_human: "Same Discriminator B platform gate as Item B — no automated harness can press a chrome-context key chord or read rendered DOM text on this Linux build. shell04-diagnostics-with-backend-down automates only the two halves that do not need chrome-context driving (the startup identity sentinel's population, and the Details control shipping enabled/undisabled in the markup). ATTEMPTED 2026-08-28 and FAILED — see the Post-Verification Update section below. The attempt never reached the chord: both deck overlays were already painted over Theia at startup because the CSP dropped their inline style attributes (WINDOWS.md entry 8). That regression is now fixed and guarded, but Item C itself has NOT been re-performed against the fixed build and 05-MANUAL-VERIFICATION.md Item C still reads 'pending' in every outcome field."
 behavior_unverified_items:
   - truth: "SHELL-03: pressing the physical Retry button clears the error layer and the previously-open editor session survives untouched"
     test: "Force the error state (kill the backend mid-session), click Retry, confirm the layer clears and editor tabs/content are intact"
@@ -36,6 +36,58 @@ behavior_unverified_items:
 **Verified:** 2026-08-28T04:00:00Z
 **Status:** human_needed
 **Re-verification:** No — initial verification
+
+---
+
+## Post-Verification Update — 2026-08-28: Item C attempted, FAILED, regression found and fixed
+
+**Everything below this section predates the update and is left unedited as the original record.** Two facts it asserts are now known to have been wrong at the time it was written, and both are corrected here rather than silently rewritten there.
+
+### What happened
+
+The developer attempted **Item C** (press Ctrl+Alt+Shift+D with the backend down) by hand against the built binary. The attempt **FAILED before reaching the chord**. On launch the window showed a near-black screen with an empty log box and a Close button. Clicking Close revealed the branded *error* layer underneath it; clicking Retry on that revealed the real, correctly-branded Theia IDE.
+
+Both deck overlays — `#sourcerer-error` (z-index 2) and `#sourcerer-diagnostics` (z-index 3) — were being painted over a perfectly healthy Theia from startup. Theia was never at fault: it reached `ready` and initialised its workbench in every launch log, and `SOURCERER_DIAGNOSTICS` never appeared, proving `sourcererShowDiagnostics()` had never run. The layers were visible without any code showing them.
+
+### Root cause
+
+Phase 5 hid both overlays with an inline **style attribute** — `style="display:none;"` — added in `f944f5e` (05-02, error layer) and `339db40` (05-03, diagnostics layer), while `sourcerer.css` gave both base rules `display: flex`. The shell document's own CSP, `default-src chrome:` with no `style-src` and no `'unsafe-inline'`, predates them (`f835f6e`, 04-03) and drops inline style **attributes** as well as inline `<style>` elements. The attribute was inert, the stylesheet won, and both layers painted. Phase 5 broke what Phase 4 delivered: pre-Phase-5 the body held only `#sourcerer-loading`, which has no inline style and is hidden by JS.
+
+A secondary defect rode along: `sourcerer.js` decided toggle direction with `diagnosticsElement.style.display !== "none"`, which reads `""` once the inert attribute is removed — so the first chord press would have hidden an already-hidden layer, leaving the chord dead on first use even after the CSP issue was fixed.
+
+### Why no automated gate caught it
+
+`verify-phase-05.sh` was 12/12 green and `--gate` PASS the entire time the product was unusable. Nothing in this repo could observe the shell's own rendered chrome state: WebDriver BiDi's `browsingContext` tree contains only the content `<browser>`, so `captureScreenshot` photographs the healthy Theia *underneath* two opaque chrome overlays, and chrome-context Marionette is platform-blocked on Linux (WINDOWS.md entry 7). The defect was found by a human doing a manual item, which is exactly what this phase's own artifacts routed to a human — and exactly the class of failure that routing exists to catch.
+
+### Fix and new guards (commits `014b0d9`, `def0143`, `b3a287d`, `b30dff7`)
+
+- `014b0d9` — both `style="display:none;"` attributes deleted from `sourcerer.xhtml`; `#sourcerer-error` and `#sourcerer-diagnostics` base rules in `sourcerer.css` changed `display: flex` → `display: none`; the toggle read in `sourcerer.js` changed to `window.getComputedStyle(diagnosticsElement).display !== "none"`. No `'unsafe-inline'` was added to the CSP. The error layer does not share the read pattern — its handlers only ever write `.style.display`.
+- `def0143` — new static check **`shell-csp-inline-attrs`** in `verify-phase-05.sh`, registered outside the `--quick` guard. Asserts the CSP meta is still present and still free of `'unsafe-inline'`, then scans every markup/script file `jar.mn` actually ships (file list derived from `jar.mn`, not hardcoded) for inline `style=`/`on*=` attributes and `setAttribute("style"|"on…")`. Comments are blanked newline-preserving before matching; a self-test against a known-bad fixture demands exactly 2 offenses. Proven to go **red** on the pre-fix markup (`git show 339db40:sourcerer/shell/sourcerer.xhtml` → rc=1, lines 36 and 43). Side effect: `--quick` previously iterated an empty array and printed PASS having asserted nothing; it now runs one real check.
+- `b3a287d` — new runtime sentinel **`SOURCERER_DECK_STATE`**, emitted from `dumpDeckState()` at the end of `sourcererSwapToUrl` and `sourcererShowError`, reporting the resolved `display` of all three deck layers. `verify-phase-04.sh`'s `shell05-paint-before-backend` requires all three `"none"` at the swap; `verify-phase-05.sh`'s `shell03-budget-exhausted-error` requires `"error"` **not** `"none"` as a positive control, so a sentinel hardcoded to `"none"` cannot satisfy both. The true pre-fix tree emits `{"loading":"none","error":"flex","diagnostics":"flex"}` — the original bug reproduces on demand and this check goes red on it.
+- `b30dff7` — the two SIDE-04/SIDE-05 orphan scans were machine-global `pgrep -f 'backend/main.js'` sweeps that could not tell the harness's own backend from any other Theia backend on the box (a pre-existing fragility, blame `2bb7288e`/`c3dd54d3`, not introduced by the fix). Both now scan only process groups the run itself created.
+
+Check counts are now **13** in `verify-phase-05.sh` (was 12) and **10** in `verify-phase-04.sh` (unchanged; `shell05-paint-before-backend` now additionally carries the deck-state assertion).
+
+### Corrections to the record below
+
+1. Everywhere the original report says `verify-phase-05.sh` has **12 checks / 12/12 PASS**, the current count is **13 checks / 13/13 PASS**. The `--gate` commit hash `3d12834…` in the original report is likewise superseded; `--gate` has since been re-run PASS at `b30dff7` (125s, same single named known-open exclusion: `verify-endpoints`, WINDOWS.md ledger entry 5).
+2. The original report's Required-Artifacts row for `sourcerer.xhtml`/`.css`/`.js` reads "✓ VERIFIED — three deck layers present". That was true of *presence* and remains true; it was **not** true of rendered behaviour, and nothing in the original verification could have distinguished the two. The `SOURCERER_DECK_STATE` assertion is what now closes that gap.
+
+### Human items are still pending — none of them passed
+
+Items **A**, **B** and **C** all remain genuinely **unperformed against the fixed build**. Item C was attempted once, failed on the regression, and has not been retried; Items A and B have not been attempted at all. `05-MANUAL-VERIFICATION.md` still reads `pending` in every outcome field, correctly. `status: human_needed` is unchanged.
+
+### Open items deliberately NOT fixed
+
+Recorded here and in `.planning/WINDOWS.md` (entries 9, 10, 11) so they stay tracked:
+
+- **MED-01 (open)** — `SOURCERER_SUPERVISED=1` is read by the watchdog but never deleted from `process.env`, and `_spawnAndGate` uses `environmentAppend: true`, so the marker inherits into every subprocess the Theia backend later spawns (integrated terminal, task runner, debug adapter). The same environment object already resets `SOURCERER_TOKEN_DISABLE` for exactly this hazard. Latent — nothing else in this repo reads the variable — but that fact, not scoping, is the only defence.
+- **MED-02 (open)** — `_pumpOutput` buffers every backend stdout/stderr line into the diagnostics ring buffer with no redaction, and the diagnostics layer renders that buffer verbatim. The shell never logs the token itself and the sentinels are proven token-free, but any dependency that prints `process.env` (which carries `SOURCERER_TOKEN`) would flow unredacted into a now-reachable in-app panel — new exposure surface created by SHELL-04.
+- **State-file litter (open)** — the CR-01 profile-scoping fix creates one `~/.config/sourcerer/sidecar-state-<profile>.json` per profile path and nothing ever reaps them. **151** have accumulated in the real user config dir as of 2026-08-28, almost all from harness runs against `mktemp` profiles. Cheapest remedy: point `XDG_CONFIG_HOME` at the harness temp dir in `verify-phase-05.sh`'s launch helpers so test runs never touch the real config dir — `_resolveConfigDir` already honours `XDG_CONFIG_HOME` ahead of `HOME`.
+
+Also still open, untouched, and named here only so they are not lost: `sourcererRetry()` hides the error layer with a direct CSSOM write instead of calling `sourcererHideError()`, so `TheiaService._errorShown` stays true and a *failing* retry leaves the user on a blank branded splash with no message and no Retry control; the error layer's Details button is bound to a toggle; `sourcererHideDiagnostics` emits no sentinel although its own comment promises one on every call; and `--gate` mutates a tracked file as a side effect, dirtying the working tree on every run.
+
+---
 
 ## Goal Achievement
 

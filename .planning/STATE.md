@@ -5,10 +5,10 @@ milestone_name: milestone
 current_phase: 05
 current_phase_name: lifecycle-failure-hardening
 status: awaiting-human-verification
-stopped_at: Completed 05-05-PLAN.md -- human verification pending (05-MANUAL-VERIFICATION.md)
-last_updated: "2026-08-28T04:10:00.000Z"
+stopped_at: Fixed the deck-overlay CSP regression found by the first hand-attempt at 05-MANUAL-VERIFICATION.md Item C -- all 3 human items still unperformed against the fixed build
+last_updated: "2026-08-28T16:30:00.000Z"
 last_activity: 2026-08-28
-last_activity_desc: "Phase 05 executed and verified: automated surface complete (verify-phase-05 12/12, combined --gate PASS at 3d12834); CR-01 profile-scoping defect fixed in 70f9454; 3 human-verification items pending"
+last_activity_desc: "First hand-attempt at Item C (diagnostics chord) FAILED: both deck overlays were painted over a healthy Theia from startup because the shell CSP drops the inline style attributes 05-02/05-03 used to hide them. Fixed in 014b0d9 and guarded by two new checks (def0143 shell-csp-inline-attrs, b3a287d SOURCERER_DECK_STATE); orphan scans made hermetic in b30dff7. verify-phase-05 now 13/13, verify-phase-04 10/10, --gate PASS at b30dff7. WINDOWS.md entry 8 records the regression; entries 9/10/11 record MED-01, MED-02 and the sidecar-state-file litter as OPEN. Items A, B and C remain unperformed against the fixed build."
 progress:
   total_phases: 5
   completed_phases: 5
@@ -30,7 +30,19 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 Phase: 05 (lifecycle-failure-hardening) — EXECUTING
 Plan: 5 of 5
 Status: awaiting-human-verification
-Last activity: 2026-08-27 — Phase 05 execution started
+Last activity: 2026-08-28 — deck-overlay CSP regression found by hand, fixed, guarded
+
+All 5 plans are complete and the automated surface is green (`verify-phase-05.sh`
+13/13, `verify-phase-04.sh` 10/10, `--gate` PASS at `b30dff7` with the one named
+known-open exclusion). What blocks the phase is the human surface: **Items A, B
+and C of `05-MANUAL-VERIFICATION.md` are all still unperformed against the fixed
+build.** Item C was attempted once on 2026-08-28 and failed before reaching the
+chord — both deck overlays were painted over a healthy Theia from startup
+because the shell's own CSP drops the inline `style` attributes 05-02/05-03 used
+to hide them. Fixed in `014b0d9`; guarded by `def0143`
+(`shell-csp-inline-attrs`) and `b3a287d` (`SOURCERER_DECK_STATE`). See
+`.planning/WINDOWS.md` entry 8 and `05-VERIFICATION.md`'s Post-Verification
+Update.
 
 Progress: [██████████] 100%
 
@@ -185,6 +197,10 @@ Recent decisions affecting current work:
 - [Phase ?]: 05-04: no Ci.nsICommandLine.STATE_INITIAL_LAUNCH or classID field needed -- the handler never reads the command line and components.conf's own cid is sufficient for an ESM-class component (matches Marionette.sys.mjs's in-tree pattern)
 - [Phase ?]: 05-05: --gate mode's known-open exclusion is keyed to WINDOWS.md ledger entry 5 and re-checked live on every run (ledger_entry_is_open) -- never a value baked in at authoring time; live-verified both directions (entry fixed -> gate fails naming lapsed exclusion, entry restored -> gate passes)
 - [Phase ?]: 05-05: 05-MANUAL-VERIFICATION.md's three items (daily-drive, Retry click, diagnostics chord) are built with every instruction filled in and every verdict deliberately left 'pending' -- never self-certified by the autonomous session, per this plan's checkpoint_protocol
+- [Phase 5] 2026-08-28: the deck overlays are hidden by their sourcerer.css base rules (`display: none`), never by an inline `style` attribute -- the shell document's CSP (`default-src chrome:`) drops inline style ATTRIBUTES as well as inline `<style>` elements, which is why 05-02/05-03's `style="display:none;"` was inert and both layers painted over a healthy Theia from startup
+- [Phase 5] 2026-08-28: visibility is read with `window.getComputedStyle(el).display`, never `el.style.display` -- the inline-attribute read returns `""` for a stylesheet-driven default and inverted the diagnostics toggle on first press
+- [Phase 5] 2026-08-28: the shell's own rendered chrome state is now observable to automation via the `SOURCERER_DECK_STATE` stdout sentinel -- BiDi can only see the content `<browser>` and chrome-context Marionette is platform-blocked, so a screenshot photographs Theia UNDERNEATH any chrome overlay; a sentinel is the only instrument this repo has for that surface
+- [Phase 5] 2026-08-28: verify-phase-05.sh's backend-orphan scans are scoped to process groups the run itself created, never a machine-global `pgrep -f 'backend/main.js'` -- the unscoped form made the suite fail on any other Sourcerer instance on the box
 
 ### Pending Todos
 
@@ -196,6 +212,13 @@ None yet.
 - Phase 4: verify the pinned Theia release is >= 1.73.1 and that the CVE-2026-61891 token check fires on plain HTTP, not only WebSocket upgrade.
 - All phases: Theia has no API stability tier. Review every `@theia/*` import against `doc/Migration.md` and record it in INTERNAL-APIS.md.
 - Phase 4: this executor's sandboxed session cannot get a Firefox content process past RenderCompositorSWGL/IPC channel setup in headless or Xvfb mode (reproduced on the untouched Phase-3 binary too) -- blocks live launch verification for plans 04-03's own <verify> and 04-04's kill-and-recover check; try a different runner/interactive session.
+- Phase 5, OPEN (WINDOWS.md 9, review MED-01): `SOURCERER_SUPERVISED=1` is never cleared after the watchdog arms, and `_spawnAndGate` appends to the environment, so the marker inherits into every subprocess the Theia backend spawns. Deliberately not fixed.
+- Phase 5, OPEN (WINDOWS.md 10, review MED-02): the diagnostics layer renders the backend stdout/stderr ring buffer unredacted; anything that prints `process.env` (which carries `SOURCERER_TOKEN`) reaches a now-visible in-app panel. Deliberately not fixed.
+- Phase 5, OPEN (WINDOWS.md 11): the CR-01 profile-scoping fix leaves one `~/.config/sourcerer/sidecar-state-<profile>.json` per profile path and nothing reaps them -- 151 accumulated from harness runs against `mktemp` profiles as of 2026-08-28. Cheapest remedy: point `XDG_CONFIG_HOME` at the harness temp dir so test runs never touch the real config dir.
+- Phase 5, OPEN: the new `shell-csp-inline-attrs` guard matches only `name="value"` attribute syntax -- an inline `<style>` or `<script>` ELEMENT in the shipped markup (the Phase-4 form of the same defect) still passes it clean.
+- Phase 5, CLOSED 2026-08-28: `05-PATTERNS.md` had prescribed the defective `style="display:none;"` markup as the deck-layer template (a future agent following it would reintroduce the bug). The snippet is corrected and carries a dated CORRECTED note naming the CSP and the `getComputedStyle` rule.
+- Phase 5, OPEN: `--gate` mutates a tracked file as a side effect, so every gate run dirties the working tree.
+- Phase 5, OPEN: `sourcererRetry()` hides the error layer with a direct CSSOM write instead of calling `sourcererHideError()`, so `TheiaService._errorShown` stays true -- a FAILING retry then early-returns out of `_showError()` and leaves the user on a blank branded splash with no message and no Retry control.
 
 ## Quick Tasks Completed
 
@@ -214,6 +237,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-28T03:23:16.880Z
-Stopped at: Completed 05-05-PLAN.md -- human verification pending (05-MANUAL-VERIFICATION.md)
+Last session: 2026-08-28T16:30:00.000Z
+Stopped at: Fixed the deck-overlay CSP regression exposed by the first hand-attempt at 05-MANUAL-VERIFICATION.md Item C (014b0d9, guarded by def0143 + b3a287d; orphan scans made hermetic in b30dff7). Items A, B and C all remain unperformed against the fixed build.
 Resume file: None
+Next action: a human performs 05-MANUAL-VERIFICATION.md Items A, B and C against a build at b30dff7 or later, and records each verdict there.

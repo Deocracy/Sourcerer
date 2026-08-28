@@ -33,6 +33,48 @@ plan's own instructions to route here.
 
 ---
 
+## 2026-08-28 — first attempt at Item C found a regression; all three items must be performed against the FIXED build
+
+The developer attempted **Item C** by hand and it **failed before the chord
+was ever pressed**. The window came up near-black, showing an empty log box
+and a Close button. Clicking Close revealed the branded *error* layer beneath
+it; clicking Retry on that revealed the real, correctly-branded Theia IDE.
+
+Both deck overlays were being painted over a healthy Theia from startup.
+Phase 5 had hidden them with an inline `style="display:none;"` **attribute**
+(`f944f5e` for `#sourcerer-error`, `339db40` for `#sourcerer-diagnostics`)
+while `sourcerer.css` gave both base rules `display: flex`. The shell
+document's own CSP -- `default-src chrome:`, no `style-src`, no
+`'unsafe-inline'`, added back in `f835f6e` (04-03) -- drops inline style
+*attributes* as well as inline `<style>` elements, so the attribute was inert
+and the stylesheet won. Theia itself was never at fault: it reached `ready`
+in every launch log, and `SOURCERER_DIAGNOSTICS` never appeared, proving
+`sourcererShowDiagnostics()` had never run and no code had shown the layers.
+
+A secondary defect rode along: `sourcerer.js` read
+`diagnosticsElement.style.display !== "none"` to decide toggle direction,
+which reads `""` once the inert attribute is gone -- so the first chord press
+would have *hidden* an already-hidden layer, leaving Item C's chord dead on
+first use even after the CSP issue was fixed.
+
+Both are fixed (`014b0d9`) and guarded (`def0143` adds the static
+`shell-csp-inline-attrs` check; `b3a287d` adds the `SOURCERER_DECK_STATE`
+runtime sentinel asserted by `verify-phase-04.sh` and `verify-phase-05.sh`).
+Full detail, including why every automated gate stayed green while the
+product was unusable, is in `05-VERIFICATION.md`'s Post-Verification Update
+section and `.planning/WINDOWS.md` entry 8.
+
+**What this means for the three items below.** Every verdict block is still
+`pending` and stays that way. Item C was attempted once, failed on the
+regression, and has **not** been retried. Items A and B have not been
+attempted at all. None of the three has ever been performed against the fixed
+build, so all three must be performed (or re-performed) against a build at
+`b30dff7` or later. Nothing below may be filled in from the attempt described
+here -- that attempt produced no verdict on Item C's actual question, only
+the regression.
+
+---
+
 ## Item A — One full working day as the primary IDE (ROADMAP criterion 5, D-126)
 
 **Test (verbatim from `05-VALIDATION.md`'s Manual-Only Verifications
@@ -173,6 +215,15 @@ objdir/dist/bin/sourcerer --profile /tmp/sourcerer-manual-verify
 Once the branded error state is visible (confirming there is genuinely no
 backend running), press **Ctrl+Alt+Shift+D**.
 
+> **First attempt, 2026-08-28: FAILED, no verdict produced.** The run never
+> reached the chord — both deck overlays were already painted over Theia at
+> startup because the CSP dropped their inline `style` attributes (see the
+> dated section near the top of this file, `05-VERIFICATION.md`'s
+> Post-Verification Update, and `.planning/WINDOWS.md` entry 8). The
+> regression is fixed and guarded, but Item C has not been retried. Perform
+> it against a build at `b30dff7` or later and fill in the outcome block
+> below from that run only.
+
 **Expected:** The diagnostics layer opens on top of the error state and
 shows: port, process id, health status, restart count, a recent-log block,
 and the application's brand name/vendor/version -- all populated, none
@@ -221,3 +272,7 @@ coverage is partial. Nothing here is marked done by assertion.
 
 **pending** — filled in only once Items A, B, and C above all carry a
 completed outcome block. Do not fill this in ahead of that.
+
+Status as of 2026-08-28: Item A not attempted, Item B not attempted, Item C
+attempted once and failed on the overlay regression (no verdict on its actual
+question). All three still need to be performed against the fixed build.
