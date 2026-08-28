@@ -48,6 +48,18 @@ export const TheiaService = {
   _healthy: false,
   _restartCount: 0,
 
+  // SHELL-03 (05-02) give-up/error-state fields.
+  // _errorShown guards _showError/_hideError the same way _swapped guards
+  // _swap() -- repeated calls for the same state paint once and emit one
+  // sentinel. _restartInFlight is the single in-flight guard shared by
+  // _restart() (health-loop-triggered and first-launch-retry give-up),
+  // retry() and _recoveryProbe() -- whichever gets there first runs the
+  // only spawn attempt; every other caller no-ops rather than racing a
+  // second one.
+  _errorShown: false,
+  _restartInFlight: false,
+  _recoveryProbeActive: false,
+
   // D-106 ring buffer: bounded, in-memory, mirrored to the console as each
   // line arrives (see _pushLog / _pumpOutput below).
   _log: [],
@@ -63,7 +75,13 @@ export const TheiaService = {
     this._browserElement = browserElement;
     this._token = crypto.randomUUID();
 
-    if (!(await this._resolveSidecar())) {
+    const resolved = await this._resolveSidecar();
+    if (!resolved.ok) {
+      // D-113: backendMain unset/missing and an unresolvable Node can only
+      // ever happen here (this method's own one-shot resolution step, never
+      // the restart path) -- unrecoverable by construction, straight to the
+      // error state with no retry at all.
+      this._showError(resolved.reason, /* recoverable */ false);
       return;
     }
 
@@ -83,7 +101,14 @@ export const TheiaService = {
     // process exists that could be confused with the leftover.
     await this._reapLeftover();
 
-    await this._spawnAndGate(/* firstSpawn */ true);
+    // SHELL-03: the very first spawn attempt is folded into _restart()'s
+    // own bounded give-up loop (D-103 was Phase 4's indefinite-retry
+    // default) rather than being a separate uncounted attempt outside the
+    // budget -- `sourcerer.sidecar.giveUpAttempts` is the TOTAL number of
+    // spawn attempts this launch gets, first attempt included.
+    // `_spawnAndGate`'s own success path (cookie + swap + health loop)
+    // fires exactly once, on whichever attempt first succeeds.
+    await this._restart();
   },
 
   /**
@@ -138,21 +163,36 @@ export const TheiaService = {
     };
   },
 
+  /**
+   * Resolves the backend entry file and Node executable. Returns
+   * `{ ok, reason }` -- D-113: both failure classes here are unrecoverable
+   * (a missing pref or an unresolvable Node can never fix itself on retry),
+   * and this method is only ever called once, from start() -- never from
+   * the restart path -- so they can only ever be the first launch's give-up
+   * case.
+   */
   async _resolveSidecar() {
     this._backendMain = SourcererAPI.getStringPref("sourcerer.sidecar.backendMain", "");
     if (!this._backendMain) {
-      this._fatal("sourcerer.sidecar.backendMain is unset -- cannot locate the Theia backend entry file.");
-      return false;
+      const reason = "sourcerer.sidecar.backendMain is unset -- cannot locate the Theia backend entry file.";
+      this._fatal(reason);
+      return { ok: false, reason };
+    }
+    if (!(await SourcererAPI.pathExists(this._backendMain))) {
+      const reason = `sourcerer.sidecar.backendMain (${this._backendMain}) does not exist -- cannot locate the Theia backend entry file.`;
+      this._fatal(reason);
+      return { ok: false, reason };
     }
 
     const configured = SourcererAPI.getStringPref("sourcerer.sidecar.nodePath", "");
     this._nodePath = configured || (await SourcererAPI.pathSearch("node"));
     if (!this._nodePath) {
-      this._fatal("Could not resolve a Node executable -- set sourcerer.sidecar.nodePath or add node to PATH.");
-      return false;
+      const reason = "Could not resolve a Node executable -- set sourcerer.sidecar.nodePath or add node to PATH.";
+      this._fatal(reason);
+      return { ok: false, reason };
     }
 
-    return true;
+    return { ok: true, reason: null };
   },
 
   _resolveConfigDir() {
@@ -248,7 +288,15 @@ export const TheiaService = {
   },
 
   /**
-   * Spawns the backend and waits for it to become healthy.
+   * Spawns the backend and waits for it to become healthy. Returns
+   * `{ ok, recoverable, reason }` (SHELL-03/D-113) instead of a bare
+   * boolean, so `_restart()`/`start()` can tell an unrecoverable failure
+   * (backend entry file unresolvable, spawn() itself throwing, the pinned
+   * port held by another process -- D-112) from a transient one (readiness
+   * stream ended, readiness timeout, health-probe timeout) without
+   * re-deriving the classification. `reason` is a short human-readable
+   * string reused verbatim as the error layer's message.
+   *
    * `firstSpawn: true` requests port 0 (SIDE-01) -- the only place a zero
    * port appears in this file. Every later call (Task 2's restart path)
    * passes the already-pinned `this._port`, because the already-loaded
@@ -284,14 +332,18 @@ export const TheiaService = {
     try {
       proc = await SourcererAPI.spawnProcess({ command: this._nodePath, args, environment });
     } catch (err) {
-      this._fatal(`Failed to spawn the backend: ${err.message}`);
-      return false;
+      // D-113: the spawn() call itself throwing is unrecoverable -- a
+      // platform-level failure to exec at all is never going to succeed on
+      // an unconditional retry.
+      const reason = `Failed to spawn the backend: ${err.message}`;
+      this._fatal(reason);
+      return { ok: false, recoverable: false, reason };
     }
     this._proc = proc;
 
     if (this._shuttingDown) {
       await this._reap();
-      return false;
+      return { ok: false, recoverable: false, reason: "Shutting down." };
     }
 
     const pinnedPort = firstSpawn ? null : this._port;
@@ -305,13 +357,23 @@ export const TheiaService = {
         SourcererAPI.sleep(startupTimeoutMs).then(() => null),
       ]);
     } catch (err) {
-      this._fatal(`Backend output stream ended before announcing readiness: ${err.message}`);
-      return false;
+      // D-112: `_pumpOutput` marks a pinned-port-conflict rejection with
+      // `err.recoverable = false` (the port is held by another process --
+      // never going to bind on an unconditional retry against the same
+      // pinned port). Every other output-stream-ended rejection (a genuine
+      // crash) is a transient, recoverable failure.
+      if (err.recoverable === false) {
+        return { ok: false, recoverable: false, reason: err.message };
+      }
+      const reason = `Backend output stream ended before announcing readiness: ${err.message}`;
+      this._fatal(reason);
+      return { ok: false, recoverable: true, reason };
     }
 
     if (!ready) {
-      this._fatal(`Backend did not announce SOURCERER_BACKEND_READY within ${startupTimeoutMs}ms.`);
-      return false;
+      const reason = `Backend did not announce SOURCERER_BACKEND_READY within ${startupTimeoutMs}ms.`;
+      this._fatal(reason);
+      return { ok: false, recoverable: true, reason };
     }
 
     this._port = ready.port;
@@ -343,8 +405,9 @@ export const TheiaService = {
     const healthTimeoutMs = SourcererAPI.getIntPref("sourcerer.sidecar.healthTimeoutMs", 4000);
     const healthy = await this._pollUntilHealthy(startupTimeoutMs, healthIntervalStartupMs, healthTimeoutMs);
     if (!healthy) {
-      this._fatal(`Health probe on port ${this._port} never returned 200 within ${startupTimeoutMs}ms.`);
-      return false;
+      const reason = `Health probe on port ${this._port} never returned 200 within ${startupTimeoutMs}ms.`;
+      this._fatal(reason);
+      return { ok: false, recoverable: true, reason };
     }
 
     this._healthy = true;
@@ -366,7 +429,7 @@ export const TheiaService = {
       this._pushLog(`Recovered on port ${this._port}, pid ${this._pid}.`);
     }
 
-    return true;
+    return { ok: true, recoverable: null, reason: null };
   },
 
   /**
@@ -413,37 +476,175 @@ export const TheiaService = {
   },
 
   /**
-   * Reaps the dead process handle and respawns on the SAME pinned port
-   * with the SAME token (D-104), retrying indefinitely (D-103: Phase 4 has
-   * no give-up threshold) with exponential backoff between failed
-   * respawn attempts. Returns once a respawn's health probe has passed.
+   * Reaps whatever process handle currently exists and (re)spawns,
+   * retrying with exponential backoff between failed attempts, until
+   * EITHER a spawn's health probe passes, OR SHELL-03's split give-up rule
+   * (D-113) ends the loop: an unrecoverable result (spawn() throwing, the
+   * readiness stream classified unrecoverable -- D-112's stolen pinned
+   * port) gives up immediately with no wait at all; a recoverable one keeps
+   * retrying until the attempt cap or the wall-clock ceiling trips,
+   * whichever comes first (`sourcerer.sidecar.giveUpAttempts`/
+   * `giveUpWallclockMs`). Either give-up path calls `_showError`; a
+   * successful spawn calls `_hideError`.
+   *
+   * `giveUpAttempts` is the TOTAL number of spawn attempts this call gets,
+   * the very first attempt included -- this is the single entry point for
+   * every spawn after start()'s own resolve/reap-leftover step, whether
+   * this is the first-ever launch or a later mid-session recovery, so
+   * "six attempts" always means six, never six-plus-the-one-that-doesn't-
+   * count. Both budget values are plain locals here, recomputed fresh on
+   * every call, so a later outage always starts with a full budget.
+   *
+   * Per-attempt port choice: `this._port === null` means no spawn in this
+   * browser session has EVER succeeded yet -- keep requesting port 0
+   * (SIDE-01) until one does. Once `this._port` is pinned, every later
+   * attempt here is a true D-104 respawn on that same port.
+   *
+   * Idempotent/no-op re-entry (SHELL-03 concurrency edge): guarded by
+   * `_restartInFlight`, shared with `retry()` and `_recoveryProbe()` --
+   * whichever of start(), the health loop, a Retry click, or the
+   * background probe gets here first runs the only spawn attempt in
+   * flight; every other caller returns immediately without starting a
+   * second one.
    */
   async _restart() {
-    this._restartCount += 1;
-    let backoffMs = RESTART_BACKOFF_INITIAL_MS;
-    this._pushLog(`Restarting backend (attempt ${this._restartCount}).`);
+    if (this._restartInFlight) {
+      return;
+    }
+    this._restartInFlight = true;
 
-    await this._reap();
+    try {
+      this._restartCount += 1;
+      let backoffMs = RESTART_BACKOFF_INITIAL_MS;
+      this._pushLog(`Restarting backend (attempt ${this._restartCount}).`);
 
-    for (;;) {
-      if (this._shuttingDown) {
-        return;
-      }
-
-      const ok = await this._spawnAndGate(/* firstSpawn */ false);
-      if (ok) {
-        return;
-      }
+      const giveUpAttempts = SourcererAPI.getIntPref("sourcerer.sidecar.giveUpAttempts", 6);
+      const giveUpWallclockMs = SourcererAPI.getIntPref("sourcerer.sidecar.giveUpWallclockMs", 45000);
+      const deadline = Date.now() + giveUpWallclockMs;
+      let attempts = 0;
 
       await this._reap();
-      if (this._shuttingDown) {
+
+      for (;;) {
+        if (this._shuttingDown) {
+          return;
+        }
+
+        attempts += 1;
+        const result = await this._spawnAndGate(this._port === null);
+        if (result.ok) {
+          this._hideError();
+          return;
+        }
+
+        await this._reap();
+        if (this._shuttingDown) {
+          return;
+        }
+
+        if (!result.recoverable) {
+          this._pushLog(`Giving up immediately -- unrecoverable: ${result.reason}`);
+          this._showError(result.reason, false);
+          return;
+        }
+
+        if (attempts >= giveUpAttempts || Date.now() >= deadline) {
+          this._pushLog(
+            `Giving up -- retry budget exhausted after ${attempts} attempt(s): ${result.reason}`
+          );
+          this._showError(result.reason, true);
+          return;
+        }
+
+        this._pushLog(`Respawn attempt failed; waiting ${backoffMs}ms before retrying.`);
+        await SourcererAPI.sleep(backoffMs);
+        backoffMs = Math.min(backoffMs * 2, RESTART_BACKOFF_CAP_MS);
+      }
+    } finally {
+      this._restartInFlight = false;
+    }
+  },
+
+  /**
+   * D-115: public retry entry point for the error layer's Retry control.
+   * Resets the give-up budget (both budget values are plain locals inside
+   * `_restart()`, recomputed fresh on every call) and re-enters the exact
+   * same restart path the health loop uses -- respawning on the pinned
+   * port once one exists. Shares `_restartInFlight` with `_restart()`
+   * itself and `_recoveryProbe()`, so a second Retry click (or a Retry
+   * racing the background probe) while a spawn is already in flight is a
+   * no-op, never a second spawn.
+   */
+  async retry() {
+    await this._restart();
+  },
+
+  /**
+   * D-115: a slow background probe, started when the error state is
+   * entered (`_showError`) and stopped when it clears (`_hideError`). Fires
+   * no sooner than `sourcerer.sidecar.recoveryProbeIntervalMs` after
+   * entering the error state, and takes the exact same recovery path Retry
+   * does (`_restart()`, sharing its `_restartInFlight` guard) -- so a
+   * backend whose failure condition has cleared on its own (D-112's port
+   * squatter exiting, a transient condition resolving) is noticed and the
+   * error layer auto-dismisses with no user action.
+   */
+  async _recoveryProbeLoop() {
+    while (this._recoveryProbeActive && !this._shuttingDown) {
+      const intervalMs = SourcererAPI.getIntPref("sourcerer.sidecar.recoveryProbeIntervalMs", 15000);
+      await SourcererAPI.sleep(intervalMs);
+      if (!this._recoveryProbeActive || this._shuttingDown) {
         return;
       }
-
-      this._pushLog(`Respawn attempt failed; waiting ${backoffMs}ms before retrying.`);
-      await SourcererAPI.sleep(backoffMs);
-      backoffMs = Math.min(backoffMs * 2, RESTART_BACKOFF_CAP_MS);
+      await this._restart();
     }
+  },
+
+  _startRecoveryProbe() {
+    if (this._recoveryProbeActive) {
+      return;
+    }
+    this._recoveryProbeActive = true;
+    // Fire-and-forget, same convention as _healthLoop() -- lives for as
+    // long as _recoveryProbeActive stays true, checked at every await point.
+    this._recoveryProbeLoop();
+  },
+
+  _stopRecoveryProbe() {
+    this._recoveryProbeActive = false;
+  },
+
+  /**
+   * SHELL-03/D-114: signals the chrome document's error layer through the
+   * browser element's owner window, exactly like `_swap()` -- never the
+   * browser element's own location. Guarded by `_errorShown` so repeated
+   * calls for the same state (e.g. the health loop giving up again while
+   * already in the error state) paint once and emit one state change.
+   * `reason` is plain language naming what failed; `recoverable` is the
+   * classification carried by the triggering `_spawnAndGate`/
+   * `_resolveSidecar` result. Neither this nor the chrome layer's own
+   * sentinel may ever include the per-launch token or any credential --
+   * `reason` strings in this file are always static/derived-from-config
+   * text, never `this._token`.
+   */
+  _showError(reason, recoverable) {
+    if (this._errorShown) {
+      return;
+    }
+    this._errorShown = true;
+    this._pushLog(`Showing error state (recoverable=${recoverable}): ${reason}`);
+    this._browserElement.ownerDocument.defaultView.sourcererShowError({ reason, recoverable });
+    this._startRecoveryProbe();
+  },
+
+  /** Hides the error layer and stops the background recovery probe. */
+  _hideError() {
+    if (!this._errorShown) {
+      return;
+    }
+    this._errorShown = false;
+    this._stopRecoveryProbe();
+    this._browserElement.ownerDocument.defaultView.sourcererHideError();
   },
 
   /** Kills the current process handle, if it's still alive, and clears it. */
@@ -500,9 +701,21 @@ export const TheiaService = {
         return;
       }
       if (pinnedPort !== null && parsed.port !== pinnedPort) {
-        this._fatal(
-          `Respawn reported port ${parsed.port}, but this browser session is pinned to port ${pinnedPort} -- refusing to follow a moved port (D-104).`
-        );
+        // D-112: a respawn announcing a different port than the one this
+        // browser session is pinned to means the pinned port is held by
+        // something else -- unrecoverable, the already-loaded Theia page
+        // can only ever reconnect to the pinned origin. Previously this
+        // just logged and returned, leaving readyPromise pending forever
+        // (the caller would silently wait out the full startup timeout and
+        // misclassify this as a mere readiness timeout, a recoverable
+        // failure). Reject it immediately instead, marked so
+        // `_spawnAndGate` can classify it without re-deriving the reason.
+        const reason = `Respawn reported port ${parsed.port}, but this browser session is pinned to port ${pinnedPort} -- refusing to follow a moved port (D-104); the pinned port is likely held by another process (D-112).`;
+        this._fatal(reason);
+        settled = true;
+        const err = new Error(reason);
+        err.recoverable = false;
+        rejectReady(err);
         return;
       }
       settled = true;
