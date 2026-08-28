@@ -25,7 +25,7 @@ created: 2026-08-27
 | **Config file** | none — `scripts/verify-phase-05.sh` (new) follows `scripts/verify-phase-04.sh`'s structure |
 | **Quick run command** | `scripts/verify-phase-05.sh --quick` |
 | **Full suite command** | `scripts/verify-phase-05.sh` |
-| **Estimated runtime** | ~124s, measured live by --gate |
+| **Estimated runtime** | ~125s, measured live by --gate |
 
 **Phase gate (D-127):** `verify-phase-05.sh` + `verify-phase-04.sh` + `verify-phase-03.sh` must all be green **at the same commit**.
 
