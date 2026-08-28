@@ -297,16 +297,30 @@ the file's existing single-listener structure — do not add a second
 new sibling `<div>`s in the same `<body>`, joining D-94's existing deck:
 ```xml
 <div id="sourcerer-loading">Sourcerer</div>
-<div id="sourcerer-error" style="display:none;">
+<div id="sourcerer-error">
   <!-- branded message, Retry button, diagnostics-route link/button -->
 </div>
-<div id="sourcerer-diagnostics" style="display:none;">
+<div id="sourcerer-diagnostics">
   <!-- port, pid, health, restart count, recent log, app identity -->
 </div>
 <xul:browser id="sourcerer-content" .../>
 ```
 Keep the `<xul:browser>` element as the last sibling, unchanged (D-114: the
 new layers paint *over* it via CSS z-index, never replace it).
+
+> **CORRECTED 2026-08-28.** This snippet originally carried
+> `style="display:none;"` on both new `<div>`s, and 05-02/05-03 followed it
+> verbatim. That is a defect, not a template: this document's own CSP
+> (`default-src chrome:`, no `style-src`, no `'unsafe-inline'`) drops inline
+> style **attributes** as well as inline `<style>` elements, so the attribute
+> is inert and the `display: flex` base rule in `sourcerer.css` wins — both
+> overlays paint over Theia from startup. **Hide a deck layer with
+> `display: none` in its `sourcerer.css` base rule, and show/hide it from JS
+> via the CSSOM.** Read visibility with
+> `window.getComputedStyle(el).display`, never `el.style.display`, which
+> returns `""` for a stylesheet-driven default. Enforced by
+> `verify-phase-05.sh`'s `shell-csp-inline-attrs` check. See
+> `.planning/WINDOWS.md` entry 8.
 
 ---
 

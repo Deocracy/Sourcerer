@@ -142,3 +142,27 @@ _pushLog(line) {
 _Reviewed: 2026-08-28T03:30:20Z_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: deep_
+
+---
+
+## Found After This Review — PR-01: both deck overlays painted over Theia from startup (MISSED by this pass)
+
+**Added 2026-08-28, after the review above concluded.** The `findings:` counts in this file's frontmatter are left unchanged — they are this review pass's own tally, and the point of this section is that the pass did not produce this finding.
+
+**Files:** `sourcerer/shell/sourcerer.xhtml:36,43`, `sourcerer/shell/sourcerer.css` (`#sourcerer-error`, `#sourcerer-diagnostics` base rules), `sourcerer/shell/sourcerer.js` (diagnostics toggle read)
+
+**Severity:** would have been CRITICAL — the product was unusable on every launch.
+
+**Issue:** Phase 5 hid both deck overlays with an inline `style="display:none;"` attribute — `f944f5e` (05-02, `#sourcerer-error`) and `339db40` (05-03, `#sourcerer-diagnostics`) — while `sourcerer.css` gave both base rules `display: flex`. The shell document's own CSP, `default-src chrome:` with no `style-src` and no `'unsafe-inline'`, predates both (`f835f6e`, 04-03) and drops inline style **attributes** as well as inline `<style>` elements. The attributes were inert, the stylesheet won, and both overlays painted over a perfectly healthy Theia from startup: a near-black window with an empty log box and a Close button. Theia reached `ready` in every launch log and `SOURCERER_DIAGNOSTICS` never appeared, so no code had ever shown the layers.
+
+Secondary defect on the same path: `sourcerer.js` read `diagnosticsElement.style.display !== "none"` to pick toggle direction. Once the inert attribute is removed that reads `""`, so the first chord press would have hidden an already-hidden layer — fixing the CSP alone would have left the chord dead on first use.
+
+**Why this pass missed it.** All three files were in `files_reviewed_list`, and the CSP's effect on inline `<style>` **elements** is documented in this very repo (`.planning/WINDOWS.md` entry 2 records the Phase-4 form of the identical defect, and `sourcerer.css`'s own header comment names it). The pass read the markup and the stylesheet, but did not cross-check the inline attribute against the document's own CSP — it treated "the layer is hidden" as a property readable from either file alone. This is a cross-file interaction of exactly the kind a `depth: deep` pass exists to catch, and the same class of bug had already bitten this project once.
+
+**How it was actually caught.** By the developer, by hand, attempting `05-MANUAL-VERIFICATION.md` Item C. No automated gate could have caught it: `verify-phase-05.sh` was 12/12 green and `--gate` PASS throughout, because WebDriver BiDi's `browsingContext` tree contains only the content `<browser>` (screenshots photograph the healthy Theia *underneath* the opaque chrome overlays) and chrome-context Marionette is platform-blocked on Linux (WINDOWS.md entry 7).
+
+**Fixed and guarded:** `014b0d9` (attributes deleted, CSS base rules `display: none`, toggle reads `window.getComputedStyle(...).display`; no `'unsafe-inline'` added), `def0143` (`shell-csp-inline-attrs` static check, `jar.mn`-derived file list, self-tested, proven red on the pre-fix markup), `b3a287d` (`SOURCERER_DECK_STATE` runtime sentinel, asserted all-`none` at the swap by `verify-phase-04.sh` and asserted **not**-`none` on the error path by `verify-phase-05.sh` as a positive control). Full detail in `05-VERIFICATION.md`'s Post-Verification Update and `.planning/WINDOWS.md` entry 8.
+
+**Known residual gap in the new guard:** `shell-csp-inline-attrs` only matches `name="value"` attribute syntax. An inline `<style>` or `<script>` **element** in the shipped markup — the Phase-4 form of this same defect, dropped by `default-src chrome:` just as silently — still passes the guard clean. `SOURCERER_DECK_STATE` covers the deck-layer symptom but not the general class.
+
+**Status of this file's own findings:** CR-01 fixed (`70f9454`). MED-01, MED-02, LOW-01 and LOW-02 all still **open**, deliberately not fixed; MED-01 and MED-02 are now also carried in `.planning/WINDOWS.md` (entries 9 and 10) so they are tracked outside this report.
