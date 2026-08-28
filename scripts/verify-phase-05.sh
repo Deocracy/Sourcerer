@@ -88,6 +88,11 @@ trap 'cleanup; exit 130' INT TERM
 # script-per-phase idiom -- never sourced from that file) ------------------
 
 BROWSER_LOG=""
+# Set by start_shell_display() to the DISPLAY value it actually used
+# (existing $DISPLAY or a freshly-started Xvfb's), so a caller doing a
+# manual second/third launch against the same display doesn't have to
+# re-derive it.
+DISPLAY_IN_USE=""
 
 # Spawns the built binary headless with a throwaway profile, capturing its
 # combined stdout+stderr to a track_temp-registered log file. Callers poll
@@ -224,7 +229,15 @@ stop_virtual_display() {
 # start_shell()'s own convention) and 2 for "no display available at all"
 # (start_virtual_display()'s propagated code) -- callers must not treat
 # either as a skip.
+#
+# Optional $1: an explicit profile directory to launch against, instead of
+# a fresh mktemp -d one. SIDE-05's second-launch checks need this -- two
+# launches sharing the identical profile path is the entire mechanism
+# under test (nsRemoteService keys remoting on the profile path,
+# upstream/toolkit/xre/nsAppRunner.cpp:5342-5358), and the caller (not this
+# helper) owns and track_temp's a profile that outlives any single launch.
 start_shell_display() {
+  local profile_override="${1:-}"
   local display_to_use=""
   if [ -n "${DISPLAY:-}" ]; then
     display_to_use="$DISPLAY"
@@ -241,7 +254,11 @@ start_shell_display() {
   fi
   local log profile
   log="$(mktemp)"; track_temp "$log"
-  profile="$(mktemp -d)"; track_temp "$profile"
+  if [ -n "$profile_override" ]; then
+    profile="$profile_override"
+  else
+    profile="$(mktemp -d)"; track_temp "$profile"
+  fi
   BROWSER_LOG="$log"
 
   if [ -n "${VERIFY05_USER_JS_PROFILE:-}" ]; then
@@ -251,6 +268,7 @@ start_shell_display() {
 
   setsid env "DISPLAY=$display_to_use" "$bin" --profile "$profile" >"$log" 2>&1 &
   BROWSER_SPAWN_PID=$!
+  DISPLAY_IN_USE="$display_to_use"
   return 0
 }
 
@@ -951,6 +969,234 @@ EOF
   return "$result"
 }
 
+# --- Task 2 (05-04): side05-second-launch-focuses / side05-no-second-backend
+#
+# SIDE-05: a second launch against the SAME profile must focus the already-
+# open window (never a second one) and never spawn a second backend --
+# never headless (05-RESEARCH.md Pitfall 1: gfxPlatform::IsHeadless()
+# disables Firefox's native remoting protocol outright, the entire
+# mechanism this requirement depends on), and both launches share one
+# profile directory because nsRemoteService keys remoting on the profile
+# path (upstream/toolkit/xre/nsAppRunner.cpp:5342-5358) -- two different
+# profiles would never remote into each other and the check would prove
+# nothing. Both checks assert the first launch actually reached readiness
+# before drawing any conclusion, so neither can pass vacuously against a
+# launch that silently failed.
+
+# Launches the shell twice against ONE shared profile (bare, then with a
+# file-path argument -- D-123/D-124's "arguments are ignored" truth), and
+# asserts each time: the second process exits (never runs on as an
+# independent instance), the first process is still running, and exactly
+# one SOURCERER_SHELL_READY sentinel exists in the first process's own log
+# (a second window opening would paint and announce its own readiness
+# through the SAME process's stdout, since remoting delivers the second
+# launch's command line into the first process in-process -- never a
+# second OS process's own separate log).
+check_side05_second_launch_focuses() {
+  local bin profile result=0
+  bin="$REPO_ROOT/objdir/dist/bin/sourcerer"
+  if [ ! -x "$bin" ]; then
+    echo "side05-second-launch-focuses: FAIL -- SIDE-05 -- $bin does not exist or is not executable (run the Phase 1 Firefox build first)" >&2
+    return 1
+  fi
+
+  profile="$(mktemp -d)"; track_temp "$profile"
+
+  local rc
+  start_shell_display "$profile"
+  rc=$?
+  if [ "$rc" -ne 0 ]; then
+    echo "side05-second-launch-focuses: FAIL -- SIDE-05 -- could not launch the first instance (no usable display or missing binary)" >&2
+    return "$rc"
+  fi
+  local first_log="$BROWSER_LOG"
+  local first_pid="$BROWSER_SPAWN_PID"
+  local display_to_use="$DISPLAY_IN_USE"
+
+  local deadline=$((SECONDS + 60))
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    sentinel_present 'SOURCERER_BACKEND_READY ' "$first_log" && break
+    if ! kill -0 "$first_pid" 2>/dev/null; then
+      echo "side05-second-launch-focuses: FAIL -- SIDE-05 -- first launch exited before SOURCERER_BACKEND_READY appeared; log:" >&2
+      cat "$first_log" >&2
+      stop_shell_display
+      return 1
+    fi
+    sleep 0.5
+  done
+  if ! sentinel_present 'SOURCERER_BACKEND_READY ' "$first_log"; then
+    echo "side05-second-launch-focuses: FAIL -- SIDE-05 -- SOURCERER_BACKEND_READY did not appear within 60s; log:" >&2
+    cat "$first_log" >&2
+    stop_shell_display
+    return 1
+  fi
+
+  local round arg_path
+  arg_path="$profile/side05-argument-does-not-matter.txt"
+  for round in bare argument; do
+    local second_log second_rc
+    second_log="$(mktemp)"; track_temp "$second_log"
+
+    if [ "$round" = "bare" ]; then
+      timeout 30 env "DISPLAY=$display_to_use" "$bin" --profile "$profile" >"$second_log" 2>&1
+    else
+      timeout 30 env "DISPLAY=$display_to_use" "$bin" --profile "$profile" "$arg_path" >"$second_log" 2>&1
+    fi
+    second_rc=$?
+
+    if [ "$second_rc" -eq 124 ]; then
+      echo "side05-second-launch-focuses: FAIL -- SIDE-05 -- second launch ($round) against the same profile did not exit within 30s -- ran on as an independent instance; log:" >&2
+      cat "$second_log" >&2
+      result=1
+    fi
+
+    if ! kill -0 "$first_pid" 2>/dev/null; then
+      echo "side05-second-launch-focuses: FAIL -- SIDE-05 -- first instance is no longer running after the second launch ($round)" >&2
+      result=1
+    fi
+
+    local ready_count
+    ready_count="$(grep -c 'SOURCERER_SHELL_READY' "$first_log")"
+    if [ "$ready_count" -ne 1 ]; then
+      echo "side05-second-launch-focuses: FAIL -- SIDE-05 -- expected exactly one SOURCERER_SHELL_READY in the first process's log after the second launch ($round), found $ready_count -- a second window opened; log:" >&2
+      cat "$first_log" >&2
+      result=1
+    fi
+  done
+
+  stop_shell_display
+  return "$result"
+}
+
+# D-125's invariant assertion, paired with its own positive control. Does
+# its own two-launch-same-profile session (not a reuse of the previous
+# check's state -- --only must be able to run this alone) and asserts:
+# exactly one SOURCERER_BACKEND_READY sentinel across both launches, the
+# announced backend pid unchanged, and exactly one live process matching
+# 'backend/main.js'. Then a THIRD launch against a DIFFERENT profile must
+# start its own window and its own backend -- proving the guard is scoped
+# to the profile, not simply "second launches never work at all."
+check_side05_no_second_backend() {
+  local bin profile result=0
+  bin="$REPO_ROOT/objdir/dist/bin/sourcerer"
+  if [ ! -x "$bin" ]; then
+    echo "side05-no-second-backend: FAIL -- SIDE-05 -- $bin does not exist or is not executable (run the Phase 1 Firefox build first)" >&2
+    return 1
+  fi
+
+  profile="$(mktemp -d)"; track_temp "$profile"
+
+  local rc
+  start_shell_display "$profile"
+  rc=$?
+  if [ "$rc" -ne 0 ]; then
+    echo "side05-no-second-backend: FAIL -- SIDE-05 -- could not launch the first instance (no usable display or missing binary)" >&2
+    return "$rc"
+  fi
+  local first_log="$BROWSER_LOG"
+  local first_pid="$BROWSER_SPAWN_PID"
+  local display_to_use="$DISPLAY_IN_USE"
+
+  local deadline=$((SECONDS + 60))
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    sentinel_present 'SOURCERER_BACKEND_READY ' "$first_log" && break
+    if ! kill -0 "$first_pid" 2>/dev/null; then
+      echo "side05-no-second-backend: FAIL -- SIDE-05 -- first launch exited before SOURCERER_BACKEND_READY appeared; log:" >&2
+      cat "$first_log" >&2
+      stop_shell_display
+      return 1
+    fi
+    sleep 0.5
+  done
+  if ! sentinel_present 'SOURCERER_BACKEND_READY ' "$first_log"; then
+    echo "side05-no-second-backend: FAIL -- SIDE-05 -- SOURCERER_BACKEND_READY did not appear within 60s; log:" >&2
+    cat "$first_log" >&2
+    stop_shell_display
+    return 1
+  fi
+
+  local first_backend_pid
+  first_backend_pid="$(backend_ready_pids "$first_log" | head -1)"
+  if [ -z "$first_backend_pid" ]; then
+    echo "side05-no-second-backend: FAIL -- SIDE-05 -- could not read a pid from SOURCERER_BACKEND_READY in the first process's log" >&2
+    stop_shell_display
+    return 1
+  fi
+
+  local second_log second_rc
+  second_log="$(mktemp)"; track_temp "$second_log"
+  timeout 30 env "DISPLAY=$display_to_use" "$bin" --profile "$profile" >"$second_log" 2>&1
+  second_rc=$?
+  if [ "$second_rc" -eq 124 ]; then
+    echo "side05-no-second-backend: FAIL -- SIDE-05 -- second launch against the same profile did not exit within 30s; log:" >&2
+    cat "$second_log" >&2
+    result=1
+  fi
+
+  local ready_pids_after ready_count
+  ready_pids_after="$(backend_ready_pids "$first_log")"
+  ready_count="$(printf '%s\n' "$ready_pids_after" | grep -c .)"
+  if [ "$ready_count" -ne 1 ]; then
+    echo "side05-no-second-backend: FAIL -- SIDE-05 -- expected exactly one SOURCERER_BACKEND_READY sentinel across both launches, found $ready_count; log:" >&2
+    cat "$first_log" >&2
+    result=1
+  fi
+  if [ "$(printf '%s\n' "$ready_pids_after" | head -1)" != "$first_backend_pid" ]; then
+    echo "side05-no-second-backend: FAIL -- SIDE-05 -- announced backend pid changed across the session (was $first_backend_pid)" >&2
+    result=1
+  fi
+
+  local backend_proc_count
+  backend_proc_count="$(pgrep -fc 'backend/main\.js' 2>/dev/null || echo 0)"
+  if [ "$backend_proc_count" -ne 1 ]; then
+    echo "side05-no-second-backend: FAIL -- SIDE-05 -- expected exactly one process matching 'backend/main.js' while the session is up, found $backend_proc_count:" >&2
+    pgrep -af 'backend/main\.js' >&2 || true
+    result=1
+  fi
+
+  stop_shell_display
+
+  # D-125's positive control: a DIFFERENT profile must get its own window
+  # and its own backend.
+  local control_profile
+  control_profile="$(mktemp -d)"; track_temp "$control_profile"
+  start_shell_display "$control_profile"
+  local control_rc=$?
+  if [ "$control_rc" -ne 0 ]; then
+    echo "side05-no-second-backend: FAIL -- SIDE-05 -- positive control (different profile) could not launch" >&2
+    return 1
+  fi
+  local control_log="$BROWSER_LOG"
+  local control_pid="$BROWSER_SPAWN_PID"
+
+  local control_deadline=$((SECONDS + 60))
+  while [ "$SECONDS" -lt "$control_deadline" ]; do
+    sentinel_present 'SOURCERER_BACKEND_READY ' "$control_log" && break
+    if ! kill -0 "$control_pid" 2>/dev/null; then
+      echo "side05-no-second-backend: FAIL -- SIDE-05 -- positive control exited before SOURCERER_BACKEND_READY appeared; log:" >&2
+      cat "$control_log" >&2
+      stop_shell_display
+      return 1
+    fi
+    sleep 0.5
+  done
+  if ! sentinel_present 'SOURCERER_BACKEND_READY ' "$control_log"; then
+    echo "side05-no-second-backend: FAIL -- SIDE-05 -- positive control (different profile) never announced its own backend -- the guard is not profile-scoped, it broke second launches globally; log:" >&2
+    cat "$control_log" >&2
+    result=1
+  else
+    local control_backend_pid
+    control_backend_pid="$(backend_ready_pids "$control_log" | head -1)"
+    if [ -z "$control_backend_pid" ] || [ "$control_backend_pid" = "$first_backend_pid" ]; then
+      echo "side05-no-second-backend: FAIL -- SIDE-05 -- positive control did not announce a distinct backend pid of its own ($control_backend_pid)" >&2
+      result=1
+    fi
+  fi
+
+  stop_shell_display
+  return "$result"
+}
+
 # Each entry: "label|command...". Later tasks append here, never as a
 # sibling driver script.
 declare -a CHECKS=()
@@ -966,6 +1212,8 @@ if [ "$QUICK" -eq 0 ]; then
     "shell03-budget-exhausted-error|check_shell03_budget_exhausted_error"
     "shell03-auto-dismiss-on-selfheal|check_shell03_auto_dismiss_on_selfheal"
     "shell04-diagnostics-with-backend-down|check_shell04_diagnostics_with_backend_down"
+    "side05-second-launch-focuses|check_side05_second_launch_focuses"
+    "side05-no-second-backend|check_side05_no_second_backend"
   )
 fi
 
