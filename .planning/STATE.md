@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: milestone
-current_phase: 5
-current_phase_name: Lifecycle & Failure Hardening
+current_phase: 05
+current_phase_name: lifecycle-failure-hardening
 status: executing
-stopped_at: Phase 5 context gathered
-last_updated: "2026-08-27T23:47:44.358Z"
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-08-28T01:04:48.467Z"
 last_activity: 2026-08-27
 last_activity_desc: Phase 04 complete, transitioned to Phase 5
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 32
-  completed_plans: 27
+  completed_plans: 28
 ---
 
 # Project State
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-19)
 
 **Core value:** A daily-drivable IDE whose substrate is a real browser (DRM, WebExtensions, site isolation inherited from Firefox), built so every later plan lands as an addition, never a rework.
-**Current focus:** Phase 05 — lifecycle-&-failure-hardening
+**Current focus:** Phase 05 — lifecycle-failure-hardening
 
 ## Current Position
 
-Phase: 5 — Lifecycle & Failure Hardening
-Plan: Not started
+Phase: 05 (lifecycle-failure-hardening) — EXECUTING
+Plan: 2 of 5
 Status: Ready to execute
-Last activity: 2026-08-27 — Phase 04 complete, transitioned to Phase 5
+Last activity: 2026-08-27 — Phase 05 execution started
 
-Progress: [██████████] 100%
+Progress: [█████████░] 88%
 
 ## Performance Metrics
 
@@ -86,6 +86,7 @@ Progress: [██████████] 100%
 | Phase 04 P03 | 190min | 3 tasks | 8 files |
 | Phase 04 P04 | 35min | 3 tasks | 4 files |
 | Phase 04 P05 | 19min | 3 tasks | 6 files |
+| Phase 05 P01 | 75min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -165,6 +166,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 04-05: Catalogue row grain is the distinct occurrence LINE in SourcererAPI.sys.mjs, not the distinct pattern match -- two forbidden patterns on one line (Cc[.../Ci.) collapse to one required catalogue row, matched by file:line
 - [Phase ?]: 04-05: 04-VALIDATION.md set to status: validated / nyquist_compliant: false (honest PARTIAL) -- 7/10 verify-phase-04.sh checks green and non-flaky across 3 live runs, 3/10 (SHELL-01, SHELL-05, SIDE-03) blocked by the pre-existing RenderCompositorSWGL environmental failure (WINDOWS.md entries 2-3), no assertion weakened to force a false green
 - [Phase ?]: 04-05: 04-MANUAL-VERIFICATION.md's launch-paint verdict recorded as genuinely pending, not fabricated -- this autonomous session has no attached desktop and has never achieved a live paint across three plans (04-03/04-04/04-05); WINDOWS.md entry 4 tracks the gap
+- [Phase ?]: 05-01: SourcererAPI.readProcessStartTicks uses IOUtils.read({maxBytes}) + TextDecoder, never IOUtils.readUTF8() -- readUTF8's ReadUTF8Options has no maxBytes field, so it always sizes its buffer from stat() and silently returns empty string for procfs files (st_size always 0)
+- [Phase ?]: 05-01: verify-phase-05.sh's D-125 controls compare startTicks not raw pid -- the freshly-spawned real backend can legitimately recycle the just-reaped leftover's pid number
 
 ### Pending Todos
 
@@ -194,6 +197,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-27T22:25:00.694Z
-Stopped at: Phase 5 context gathered
-Resume file: .planning/phases/05-lifecycle-failure-hardening/05-CONTEXT.md
+Last session: 2026-08-28T01:04:48.455Z
+Stopped at: Completed 05-01-PLAN.md
+Resume file: None
