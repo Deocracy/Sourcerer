@@ -38,6 +38,12 @@ export const TheiaService = {
   _swapped: false,
   _shuttingDown: false,
 
+  // D-121's second guard layer: set before any other work in start(), so a
+  // re-entrant call during the first launch's own asynchronous work (not
+  // just a second, separate call) is also caught. Mirrors _shuttingDown's
+  // early-return shape in stop().
+  _started: false,
+
   // D-110: this project's first persistence -- a sidecar state file inside
   // _configDir, written on every successful spawn (first and respawn
   // alike) and removed on a clean stop. Derived once in start(), right
@@ -72,6 +78,17 @@ export const TheiaService = {
    * sourcerer.js already wrote SOURCERER_SHELL_READY before calling here.
    */
   async start(browserElement) {
+    // D-121: the supervisor's own idempotency guard -- refuses to start
+    // twice even if some other path ever opens a second shell window. Set
+    // before any other work, mirroring stop()'s _shuttingDown guard, so a
+    // re-entrant call racing this same launch's own in-flight start() is
+    // also caught, not just a later, separate call.
+    if (this._started) {
+      this._pushLog("start() called again while already started -- refusing to start a second time.");
+      return;
+    }
+    this._started = true;
+
     this._browserElement = browserElement;
     this._token = crypto.randomUUID();
 
