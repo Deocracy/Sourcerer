@@ -32,9 +32,11 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 QUICK=0
 ONLY=""
+GATE=0
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --quick) QUICK=1; shift ;;
+    --gate) GATE=1; shift ;;
     --only)
       if [ "$#" -lt 2 ]; then
         echo "verify-phase-05: FAIL -- --only requires a label argument" >&2
@@ -49,6 +51,17 @@ while [ "$#" -gt 0 ]; do
       ;;
   esac
 done
+
+# --gate proves every phase gate green at one commit (D-127) -- it always
+# runs this script's own FULL check set plus verify-phase-04.sh and
+# verify-phase-03.sh in full. Combining it with --quick or --only would
+# silently narrow "every phase gate" to a subset, contradicting the flag's
+# own purpose, so the combination is a named, loud error rather than one
+# flag winning silently.
+if [ "$GATE" -eq 1 ] && { [ "$QUICK" -eq 1 ] || [ -n "$ONLY" ]; }; then
+  echo "verify-phase-05: FAIL -- --gate cannot be combined with --quick or --only (rejected combination: --gate plus $([ "$QUICK" -eq 1 ] && echo -n '--quick'; [ "$QUICK" -eq 1 ] && [ -n "$ONLY" ] && echo -n ' and '; [ -n "$ONLY" ] && echo -n "--only $ONLY"))" >&2
+  exit 1
+fi
 
 CURRENT_CHECK_PID=""
 BACKEND_SPAWN_PID=""
@@ -1197,80 +1210,288 @@ check_side05_no_second_backend() {
   return "$result"
 }
 
-# Each entry: "label|command...". Later tasks append here, never as a
-# sibling driver script.
-declare -a CHECKS=()
+# Runs this script's own CHECKS (respecting QUICK/ONLY exactly as before),
+# prints the per-check PASS/FAIL summary table, and RETURNS (not exits) the
+# aggregate result -- factored out of the former top-level script body so
+# --gate mode (below) can call it as "this phase's own section" without a
+# second process. Normal (non-gate) invocation calls this once and exits on
+# its return value, unchanged from the prior behaviour.
+run_own_checks() {
+  # Each entry: "label|command...". Later tasks append here, never as a
+  # sibling driver script.
+  local -a CHECKS=()
 
-if [ "$QUICK" -eq 0 ]; then
-  CHECKS+=(
-    "side04-sigkill-no-orphan|check_side04_sigkill_no_orphan"
-    "side04-unsupervised-backend-survives|check_side04_unsupervised_backend_survives"
-    "side04-leftover-reaped|check_side04_leftover_reaped"
-    "side04-stale-identity-not-signalled|check_side04_stale_identity_not_signalled"
-    "harness-display-available|check_harness_display_available"
-    "shell03-unrecoverable-immediate-error|check_shell03_unrecoverable_immediate_error"
-    "shell03-budget-exhausted-error|check_shell03_budget_exhausted_error"
-    "shell03-auto-dismiss-on-selfheal|check_shell03_auto_dismiss_on_selfheal"
-    "shell04-diagnostics-with-backend-down|check_shell04_diagnostics_with_backend_down"
-    "side05-second-launch-focuses|check_side05_second_launch_focuses"
-    "side05-no-second-backend|check_side05_no_second_backend"
-  )
-fi
+  if [ "$QUICK" -eq 0 ]; then
+    CHECKS+=(
+      "side04-sigkill-no-orphan|check_side04_sigkill_no_orphan"
+      "side04-unsupervised-backend-survives|check_side04_unsupervised_backend_survives"
+      "side04-leftover-reaped|check_side04_leftover_reaped"
+      "side04-stale-identity-not-signalled|check_side04_stale_identity_not_signalled"
+      "harness-display-available|check_harness_display_available"
+      "shell03-unrecoverable-immediate-error|check_shell03_unrecoverable_immediate_error"
+      "shell03-budget-exhausted-error|check_shell03_budget_exhausted_error"
+      "shell03-auto-dismiss-on-selfheal|check_shell03_auto_dismiss_on_selfheal"
+      "shell04-diagnostics-with-backend-down|check_shell04_diagnostics_with_backend_down"
+      "side05-second-launch-focuses|check_side05_second_launch_focuses"
+      "side05-no-second-backend|check_side05_no_second_backend"
+    )
+  fi
 
-if [ -n "$ONLY" ]; then
-  declare -a FILTERED=()
-  ONLY_FOUND=0
+  if [ -n "$ONLY" ]; then
+    local -a FILTERED=()
+    local ONLY_FOUND=0
+    for entry in "${CHECKS[@]}"; do
+      local label="${entry%%|*}"
+      if [ "$label" = "$ONLY" ]; then
+        FILTERED+=("$entry")
+        ONLY_FOUND=1
+      fi
+    done
+    if [ "$ONLY_FOUND" -eq 0 ]; then
+      echo "verify-phase-05: FAIL -- unknown --only label '$ONLY'" >&2
+      return 1
+    fi
+    CHECKS=("${FILTERED[@]}")
+  fi
+
+  local FAILED=0
+  local -a SUMMARY=()
+
   for entry in "${CHECKS[@]}"; do
-    label="${entry%%|*}"
-    if [ "$label" = "$ONLY" ]; then
-      FILTERED+=("$entry")
-      ONLY_FOUND=1
+    local label="${entry%%|*}"
+    local cmd="${entry#*|}"
+    echo "verify-phase-05: running $label..."
+    # Every check here is a bare, argument-free shell function name -- the
+    # function itself is responsible for using setsid on whatever it spawns
+    # (start_shell/start_backend already do). setsid cannot exec a shell
+    # function directly (it needs an executable file), so the function is
+    # called directly, mirroring verify-phase-04.sh's own bare-function-name
+    # branch.
+    if [[ "$cmd" == *[[:space:]]* ]]; then
+      echo "verify-phase-05: FAIL -- check '$label' has a non-function-name command ('$cmd'); add a wrapper function instead" >&2
+      SUMMARY+=("$label: FAIL")
+      FAILED=1
+      continue
+    fi
+    if "$cmd"; then
+      SUMMARY+=("$label: PASS")
+    else
+      SUMMARY+=("$label: FAIL")
+      FAILED=1
     fi
   done
-  if [ "$ONLY_FOUND" -eq 0 ]; then
-    echo "verify-phase-05: FAIL -- unknown --only label '$ONLY'" >&2
-    exit 1
-  fi
-  CHECKS=("${FILTERED[@]}")
-fi
 
-FAILED=0
-declare -a SUMMARY=()
+  echo ""
+  echo "verify-phase-05: summary"
+  for line in "${SUMMARY[@]}"; do
+    echo "  $line"
+  done
 
-for entry in "${CHECKS[@]}"; do
-  label="${entry%%|*}"
-  cmd="${entry#*|}"
-  echo "verify-phase-05: running $label..."
-  # Every check here is a bare, argument-free shell function name -- the
-  # function itself is responsible for using setsid on whatever it spawns
-  # (start_shell/start_backend already do). setsid cannot exec a shell
-  # function directly (it needs an executable file), so the function is
-  # called directly, mirroring verify-phase-04.sh's own bare-function-name
-  # branch.
-  if [[ "$cmd" == *[[:space:]]* ]]; then
-    echo "verify-phase-05: FAIL -- check '$label' has a non-function-name command ('$cmd'); add a wrapper function instead" >&2
-    SUMMARY+=("$label: FAIL")
-    FAILED=1
-    continue
-  fi
-  if "$cmd"; then
-    SUMMARY+=("$label: PASS")
+  if [ "$FAILED" -eq 0 ]; then
+    echo "verify-phase-05: PASS -- all checks passed"
+    return 0
   else
-    SUMMARY+=("$label: FAIL")
-    FAILED=1
+    echo "verify-phase-05: FAIL -- see summary above" >&2
+    return 1
   fi
-done
+}
 
-echo ""
-echo "verify-phase-05: summary"
-for line in "${SUMMARY[@]}"; do
-  echo "  $line"
-done
+# --- --gate mode (D-127, 05-05-PLAN.md Task 1) ------------------------------
+#
+# Reads the broken-windows ledger's own JSON block (the fenced array at the
+# bottom of .planning/WINDOWS.md -- the markdown table above it is the
+# human-readable mirror of the same data, not a second source of truth) and
+# prints the named entry's current status. Exits 2 (distinct from 0/1, never
+# treated as a plain pass/fail) if the ledger or the entry cannot be read at
+# all, so a malformed/missing ledger can never be silently read as "open".
+ledger_entry_status() {
+  local id="$1"
+  local windows_md="$REPO_ROOT/.planning/WINDOWS.md"
+  node -e '
+    const fs = require("fs");
+    const path = process.argv[1];
+    const id = Number(process.argv[2]);
+    let text;
+    try { text = fs.readFileSync(path, "utf8"); } catch { process.exit(2); }
+    const m = text.match(/````json\n([\s\S]*?)\n````/);
+    if (!m) { process.exit(2); }
+    let arr;
+    try { arr = JSON.parse(m[1]); } catch { process.exit(2); }
+    const entry = arr.find((e) => e.id === id);
+    if (!entry || typeof entry.status !== "string") { process.exit(2); }
+    process.stdout.write(entry.status);
+  ' "$windows_md" "$id"
+}
 
-if [ "$FAILED" -eq 0 ]; then
-  echo "verify-phase-05: PASS -- all checks passed"
-  exit 0
+# True (exit 0) only when ledger entry <id> is still status "open". A
+# "fixed" or "waived" entry (or an unreadable ledger) returns false -- the
+# exclusion this backs must stop applying the instant the entry stops being
+# open, per D-127's own recorded guard.
+ledger_entry_is_open() {
+  local id="$1" status
+  status="$(ledger_entry_status "$id")" || return 1
+  [ "$status" = "open" ]
+}
+
+# Replaces 05-VALIDATION.md's placeholder "Estimated runtime" table cell
+# with the just-measured --gate wall time, and flips the frontmatter's
+# status/wave_0_complete flags to reflect that the script has landed and is
+# exercised on every --gate run. nyquist_compliant is deliberately left
+# alone (stays false) -- one check runs under a named known-open exclusion
+# and Task 2's human items are unsigned, so "finished" here means "the
+# validation document reflects reality", not "fully compliant"; matches
+# 04-VALIDATION.md's identical honest-PARTIAL precedent.
+write_gate_runtime_to_validation() {
+  local elapsed="$1"
+  local validation_md="$REPO_ROOT/.planning/phases/05-lifecycle-failure-hardening/05-VALIDATION.md"
+  node -e '
+    const fs = require("fs");
+    const path = process.argv[1];
+    const elapsed = process.argv[2];
+    let text = fs.readFileSync(path, "utf8");
+    text = text.replace(
+      /(\| \*\*Estimated runtime\*\* \| ).*?( \|)/,
+      `$1~${elapsed}s, measured live by --gate$2`
+    );
+    text = text.replace(/^status: draft$/m, "status: validated");
+    text = text.replace(/^wave_0_complete: false$/m, "wave_0_complete: true");
+    fs.writeFileSync(path, text);
+  ' "$validation_md" "$elapsed"
+}
+
+# Runs an external phase script (verify-phase-04.sh / verify-phase-03.sh)
+# to completion under setsid (same process-group discipline every other
+# external invocation in this file already uses), capturing its combined
+# output to a track_temp-registered log and its exit status. Prints the
+# captured output so a human reading --gate's own output sees exactly what
+# that script printed, not a paraphrase.
+GATE_LAST_LOG=""
+GATE_LAST_RC=0
+run_external_phase_script() {
+  local script_path="$1"
+  local log
+  log="$(mktemp)"; track_temp "$log"
+  setsid bash "$script_path" >"$log" 2>&1 &
+  CURRENT_CHECK_PID=$!
+  local rc=0
+  wait "$CURRENT_CHECK_PID" || rc=$?
+  CURRENT_CHECK_PID=""
+  cat "$log"
+  GATE_LAST_LOG="$log"
+  GATE_LAST_RC="$rc"
+}
+
+# Failing-check labels are read off the target script's OWN printed summary
+# lines ("  <label>: FAIL") rather than by re-deriving or re-running
+# anything -- exactly the "extract, don't reimplement" instruction the plan
+# gives.
+extract_failed_labels() {
+  grep -E '^  [A-Za-z0-9_.-]+: FAIL$' "$1" | sed -E 's/^  ([A-Za-z0-9_.-]+): FAIL$/\1/'
+}
+
+# The known-open exclusion list (D-127): exactly one entry today. Keyed on
+# the broken-windows ledger id, never on a bare assertion -- see
+# ledger_entry_is_open above. label|ledger_id|reason
+declare -a GATE_KNOWN_OPEN_EXCLUSIONS=(
+  "verify-endpoints|5|Gecko resolves 3 hosts absent from the BRAND-04 allowlist once the shell actually works (127.0.0.1 the Theia sidecar, ciscobinary.openh264.org the GMP manager, github.com the Theia frontend) -- not a code defect, needs a product/privacy decision this phase's scope explicitly excludes (05-CONTEXT.md <deferred>)"
+)
+
+run_gate_mode() {
+  local gate_start="$SECONDS"
+  local commit
+  commit="$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || echo "unknown")"
+  echo "verify-phase-05: --gate -- commit $commit"
+  echo "verify-phase-05: --gate -- proving verify-phase-05.sh + verify-phase-04.sh + verify-phase-03.sh all green at this one commit (D-127)"
+  echo ""
+
+  local overall_failed=0
+
+  echo "=== Section 1/3: verify-phase-05.sh (this script's own full check set) ==="
+  local phase5_rc=0
+  run_own_checks || phase5_rc=$?
+  if [ "$phase5_rc" -ne 0 ]; then
+    overall_failed=1
+    echo "--- Phase 5 section: FAIL ---"
+  else
+    echo "--- Phase 5 section: PASS ---"
+  fi
+  echo ""
+
+  echo "=== Section 2/3: scripts/verify-phase-04.sh (full run) ==="
+  run_external_phase_script "$REPO_ROOT/scripts/verify-phase-04.sh"
+  local phase4_log="$GATE_LAST_LOG" phase4_rc="$GATE_LAST_RC"
+  if [ "$phase4_rc" -ne 0 ]; then
+    overall_failed=1
+    echo "--- Phase 4 section: FAIL -- failing checks:"
+    extract_failed_labels "$phase4_log" | sed 's/^/    /'
+    echo "--- Phase 4 section: FAIL ---"
+  else
+    echo "--- Phase 4 section: PASS ---"
+  fi
+  echo ""
+
+  echo "=== Section 3/3: scripts/verify-phase-03.sh (full run) ==="
+  run_external_phase_script "$REPO_ROOT/scripts/verify-phase-03.sh"
+  local phase3_log="$GATE_LAST_LOG" phase3_rc="$GATE_LAST_RC"
+  local phase3_section_failed=0
+  local excluded_count=0
+  if [ "$phase3_rc" -ne 0 ]; then
+    while IFS= read -r label; do
+      [ -z "$label" ] && continue
+      local excused=0
+      local matched_known_exclusion=0
+      local excl_entry
+      for excl_entry in "${GATE_KNOWN_OPEN_EXCLUSIONS[@]}"; do
+        local excl_label="${excl_entry%%|*}"
+        local rest="${excl_entry#*|}"
+        local excl_ledger_id="${rest%%|*}"
+        local excl_reason="${rest#*|}"
+        if [ "$label" = "$excl_label" ]; then
+          matched_known_exclusion=1
+          if ledger_entry_is_open "$excl_ledger_id"; then
+            echo "  EXCLUDED (known-open): $label -- WINDOWS.md ledger entry $excl_ledger_id -- $excl_reason"
+            excused=1
+            excluded_count=$((excluded_count + 1))
+          else
+            echo "  FAIL (exclusion no longer applies): $label -- WINDOWS.md ledger entry $excl_ledger_id is no longer 'open' (fixed or waived); this check must be green now, not silently excused" >&2
+            phase3_section_failed=1
+          fi
+          break
+        fi
+      done
+      if [ "$excused" -ne 1 ] && [ "$matched_known_exclusion" -ne 1 ]; then
+        echo "  FAIL (not excluded): $label" >&2
+        phase3_section_failed=1
+      fi
+    done < <(extract_failed_labels "$phase3_log")
+  fi
+  if [ "$phase3_section_failed" -eq 1 ]; then
+    overall_failed=1
+    echo "--- Phase 3 section: FAIL ---"
+  elif [ "$phase3_rc" -ne 0 ] && [ "$excluded_count" -gt 0 ]; then
+    echo "--- Phase 3 section: PASS-WITH-EXCLUSIONS ($excluded_count named known-open exclusion(s)) ---"
+  else
+    echo "--- Phase 3 section: PASS ---"
+  fi
+  echo ""
+
+  local gate_elapsed=$((SECONDS - gate_start))
+  echo "verify-phase-05: --gate -- total runtime ${gate_elapsed}s"
+
+  if [ "$overall_failed" -eq 0 ]; then
+    echo "verify-phase-05: --gate PASS -- commit $commit -- every phase gate is green at this commit"
+    write_gate_runtime_to_validation "$gate_elapsed"
+    return 0
+  else
+    echo "verify-phase-05: --gate FAIL -- commit $commit -- see section output above" >&2
+    return 1
+  fi
+}
+
+if [ "$GATE" -eq 1 ]; then
+  run_gate_mode
+  exit $?
 else
-  echo "verify-phase-05: FAIL -- see summary above" >&2
-  exit 1
+  run_own_checks
+  exit $?
 fi
