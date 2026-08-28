@@ -487,7 +487,12 @@ check_side04_unsupervised_backend_survives() {
   token="$(node -e 'console.log(require("crypto").randomBytes(24).toString("hex"))')"
   log="$(mktemp)"; track_temp "$log"
 
-  setsid env \
+  # -u, not just the assignments below: this is the NEGATIVE control, so it
+  # must supply the marker's absence rather than inherit it. A harness run
+  # from a shell that exported SOURCERER_SUPERVISED (or the dev bypass) would
+  # otherwise arm the very watchdog this check proves stays inert, and fail
+  # for a reason that has nothing to do with the code under test.
+  setsid env -u SOURCERER_SUPERVISED -u SOURCERER_TOKEN_DISABLE \
     SOURCERER_TOKEN="$token" \
     THEIA_CONFIG_DIR="$(mktemp -d)" \
     VSX_REGISTRY_URL="https://open-vsx.org" \
