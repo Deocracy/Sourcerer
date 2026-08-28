@@ -15,6 +15,12 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   Subprocess: "resource://gre/modules/Subprocess.sys.mjs",
   ctypes: "resource://gre/modules/ctypes.sys.mjs",
+  // D-119 (05-03): MOZ_APP_VERSION_DISPLAY is a build-time preprocessor
+  // substitution (config/version_display.txt), not a runtime API -- but
+  // AppConstants is on the boundary guard's own forbidden-pattern list
+  // (FORBIDDEN_PATTERNS), so it is reached here, in the one lazy-getter
+  // block, rather than imported anywhere else.
+  AppConstants: "resource://gre/modules/AppConstants.sys.mjs",
 });
 
 // Strong references to in-flight one-shot timers created by sleep(). See the
@@ -65,6 +71,39 @@ export const SourcererAPI = Object.freeze({
    */
   pathExists(path) {
     return IOUtils.exists(path);
+  },
+
+  /**
+   * D-119: the running application's identity -- brand name, vendor, and
+   * display version -- read straight from the platform's own app-info
+   * service and the build's display-version constant, never from a file
+   * this project maintains itself. `name`/`vendor` are the exact values
+   * `application.ini`'s Name=/Vendor= lines back (Services.appinfo wraps
+   * XREAppData); `version` is the same MOZ_APP_VERSION_DISPLAY
+   * preprocessor substitution (from upstream/browser/config/
+   * version_display.txt) about:support's own version string uses. Both
+   * the startup identity sentinel (sourcerer.js) and the diagnostics
+   * layer's show global read this SAME accessor, so the repointed D-120
+   * branding check and the rendered surface can never disagree. Never
+   * throws: any field that cannot be read resolves to an empty string
+   * rather than throwing, matching getStringPref's convention -- one bad
+   * field never blanks the other two.
+   */
+  getAppIdentity() {
+    let name = "";
+    let vendor = "";
+    try {
+      ({ name, vendor } = Services.appinfo);
+    } catch {
+      // name/vendor stay "".
+    }
+    let version = "";
+    try {
+      version = lazy.AppConstants.MOZ_APP_VERSION_DISPLAY;
+    } catch {
+      // version stays "".
+    }
+    return { name: name || "", vendor: vendor || "", version: version || "" };
   },
 
   /**

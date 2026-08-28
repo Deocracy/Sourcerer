@@ -27,6 +27,10 @@ document.addEventListener(
     const errorMessageElement = document.getElementById("sourcerer-error-message");
     const errorRetryButton = document.getElementById("sourcerer-error-retry");
     const errorDiagnosticsButton = document.getElementById("sourcerer-error-diagnostics");
+    const diagnosticsElement = document.getElementById("sourcerer-diagnostics");
+    const diagnosticsFieldsElement = document.getElementById("sourcerer-diagnostics-fields");
+    const diagnosticsLogElement = document.getElementById("sourcerer-diagnostics-log");
+    const diagnosticsCloseButton = document.getElementById("sourcerer-diagnostics-close");
     // WebDriver finds content browsing contexts through `win.gBrowser.tabs`
     // (remote/shared/TabManager.sys.mjs) and identifies each one by its
     // browser's `permanentKey` (remote/shared/NavigableManager.sys.mjs returns
@@ -81,13 +85,72 @@ document.addEventListener(
       window.sourcererRetry();
     });
 
-    // 05-03 (SHELL-04) owns sourcererShowDiagnostics; the control stays
-    // disabled (sourcerer.xhtml) until that global exists, so this handler
-    // never fires on an inert click -- left here as the wiring point.
-    errorDiagnosticsButton.addEventListener("click", () => {
-      if (typeof window.sourcererShowDiagnostics === "function") {
-        window.sourcererShowDiagnostics();
+    // SHELL-04 (05-03): the diagnostics layer, third member of the deck.
+    // Snapshot-on-open only (D-118's recorded decision -- no live polling
+    // loop), reached by the Ctrl+Alt+Shift+D chord below or this button.
+    // Renders exactly the objects TheiaService's existing state/log
+    // accessors return, plus the identity accessor -- no new data plumbing.
+    // Every rendered value is a text node, never an assigned markup string, and
+    // neither the rendered layer nor its sentinel ever carries the
+    // per-launch token, a cookie value, or any other credential.
+    //
+    // Toggles: calling this while the layer is already visible hides it
+    // instead, so the same chord opens and closes. A sentinel line is
+    // written on EVERY call (open or close) -- the field values only,
+    // never the log text itself.
+    window.sourcererShowDiagnostics = function sourcererShowDiagnostics() {
+      const state = TheiaService.getState();
+      const log = TheiaService.getRecentLog();
+      const identity = SourcererAPI.getAppIdentity();
+      const sentinel = {
+        port: state.port,
+        pid: state.pid,
+        healthy: state.healthy,
+        restartCount: state.restartCount,
+        name: identity.name,
+        vendor: identity.vendor,
+        version: identity.version,
+        logLines: log.length,
+      };
+
+      const wasVisible = diagnosticsElement.style.display !== "none";
+      if (wasVisible) {
+        diagnosticsElement.style.display = "none";
+        dump(`SOURCERER_DIAGNOSTICS ${JSON.stringify(sentinel)}\n`);
+        return;
       }
+
+      diagnosticsFieldsElement.textContent = "";
+      const rows = [
+        ["Port", state.port],
+        ["Process ID", state.pid],
+        ["Health", state.healthy ? "healthy" : "unhealthy"],
+        ["Restart count", state.restartCount],
+        ["Name", identity.name],
+        ["Vendor", identity.vendor],
+        ["Version", identity.version],
+      ];
+      for (const [label, value] of rows) {
+        const row = document.createElement("div");
+        row.textContent = `${label}: ${value}`;
+        diagnosticsFieldsElement.appendChild(row);
+      }
+      diagnosticsLogElement.textContent = log.join("\n");
+
+      diagnosticsElement.style.display = "flex";
+      dump(`SOURCERER_DIAGNOSTICS ${JSON.stringify(sentinel)}\n`);
+    };
+
+    window.sourcererHideDiagnostics = function sourcererHideDiagnostics() {
+      diagnosticsElement.style.display = "none";
+    };
+
+    diagnosticsCloseButton.addEventListener("click", () => {
+      window.sourcererHideDiagnostics();
+    });
+
+    errorDiagnosticsButton.addEventListener("click", () => {
+      window.sourcererShowDiagnostics();
     });
 
     // Task 2 (04-03) proof-of-resolution: import SourcererAPI.sys.mjs and
@@ -96,6 +159,14 @@ document.addEventListener(
     const backendMain = SourcererAPI.getStringPref("sourcerer.sidecar.backendMain", "");
     const nodePath = SourcererAPI.getStringPref("sourcerer.sidecar.nodePath", "");
     dump(`SOURCERER_SIDECAR_PREFS backendMain=${backendMain} nodePath=${nodePath}\n`);
+
+    // D-119/D-120 (05-03): the startup identity sentinel. Written once per
+    // launch, from the SAME accessor the diagnostics layer's show global
+    // reads, so the repointed branding-identity check (D-120) and the
+    // rendered surface can never disagree. Deterministic and headless-safe
+    // -- unlike the diagnostics sentinel above, this never depends on the
+    // chord or a chrome driver.
+    dump(`SOURCERER_APP_IDENTITY ${JSON.stringify(SourcererAPI.getAppIdentity())}\n`);
 
     // 04-04: hand off to the backend supervisor. The shell-ready sentinel
     // above is already written -- nothing in this spawn path may run
@@ -106,6 +177,25 @@ document.addEventListener(
     SourcererAPI.notifyStartupFinished(window);
 
     TheiaService.start(browserElement);
+
+    // D-118: the diagnostics layer's reserved global chord, immune to a
+    // focused content <browser> swallowing it -- the XUL <keyset>/<key
+    // reserved="true"> mechanism Firefox's own global shortcuts (Ctrl+T,
+    // Ctrl+L, ...) use, not a raw keydown listener (RESEARCH.md Pattern 6).
+    // Research confirmed zero three-modifier chords are claimed anywhere in
+    // the pinned Theia packages. The same chord closes the layer when it is
+    // already open (sourcererShowDiagnostics's own toggle).
+    const diagnosticsKeyset = document.createXULElement("keyset");
+    const diagnosticsKey = document.createXULElement("key");
+    diagnosticsKey.setAttribute("id", "sourcerer-diagnostics-key");
+    diagnosticsKey.setAttribute("modifiers", "accel,alt,shift");
+    diagnosticsKey.setAttribute("key", "D");
+    diagnosticsKey.setAttribute("reserved", "true");
+    diagnosticsKey.addEventListener("command", () => {
+      window.sourcererShowDiagnostics();
+    });
+    diagnosticsKeyset.appendChild(diagnosticsKey);
+    document.documentElement.appendChild(diagnosticsKeyset);
   },
   { once: true }
 );
