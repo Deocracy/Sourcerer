@@ -353,17 +353,25 @@ export const TheiaService = {
   async _spawnAndGate(firstSpawn) {
     const port = firstSpawn ? 0 : this._port;
     const args = [this._backendMain, "--hostname", "127.0.0.1", "--port", String(port)];
-    // These SOURCERER_* variables are a one-way handshake into the backend
-    // PROCESS, not something its children may see. The backend scrubs every
-    // SOURCERER_*-prefixed key out of its own process.env at module load
-    // (theia/extensions/token-gate/src/node/sourcerer-env.ts) after capturing
-    // the values it needs, because Node hands process.env to every child --
-    // terminals, tasks, the plugin host running third-party extensions -- and
-    // an inherited SOURCERER_TOKEN is the backend's auth credential leaked to
-    // anything the user runs in an IDE terminal. Do not add a SOURCERER_* key
-    // here expecting a grandchild to read it.
+    // NO SECRET GOES IN HERE. `environment` becomes the child's
+    // /proc/<pid>/environ, which is the exec-time snapshot: it is readable by
+    // every same-uid process for the whole life of the backend, and nothing
+    // the backend deletes from its own process.env rewrites it. On this
+    // project's own target Yama's ptrace_scope=1 blocks /proc/<pid>/mem but
+    // not environ, so the environment is the one place a credential stays
+    // legible to a co-resident process. `this._token` is therefore handed over
+    // the stdin pipe instead, immediately after the spawn below.
+    //
+    // The remaining SOURCERER_* variables are a one-way handshake into the
+    // backend PROCESS, not something its children may see: the backend
+    // captures and deletes every SOURCERER_*-prefixed key from its own
+    // process.env at module load
+    // (theia/extensions/token-gate/src/node/sourcerer-env.ts), because Node
+    // hands process.env to every child -- terminals, tasks, the plugin host
+    // running third-party extensions. Do not add a SOURCERER_* key here
+    // expecting a grandchild to read it, and do not add one carrying a secret
+    // at all.
     const environment = {
-      SOURCERER_TOKEN: this._token,
       THEIA_CONFIG_DIR: this._configDir,
       VSX_REGISTRY_URL: "https://open-vsx.org",
       // SIDE-04 (05-01-PLAN.md): arms the backend's parent-death watchdog
@@ -404,6 +412,27 @@ export const TheiaService = {
     if (this._shuttingDown) {
       await this._reap();
       return { ok: false, recoverable: false, reason: "Shutting down." };
+    }
+
+    // The credential handshake (D-98), and the reason the environment object
+    // above carries no token. One line, written once per spawn, on a pipe that
+    // stays OPEN afterwards -- the backend's parent-death watchdog reads the
+    // same fd for EOF, so closing it here would kill the backend on the spot.
+    // sourcerer-env.ts consumes exactly this line, byte-at-a-time up to the
+    // newline, before the token gate decides whether to fail closed. D-104 is
+    // unaffected: every respawn writes the SAME this._token, so the cookie
+    // chrome minted on the first spawn keeps authenticating.
+    try {
+      await SourcererAPI.writeStdinLine(proc, this._token);
+    } catch (err) {
+      // The backend is now blocked reading a line that will never arrive, and
+      // would sit there until the startup timeout. Reap it and report instead:
+      // recoverable, because a pipe write failing says nothing about whether
+      // the next spawn will.
+      const reason = `Failed to hand the backend its token over stdin: ${err.message}`;
+      this._fatal(reason);
+      await this._reap();
+      return { ok: false, recoverable: true, reason };
     }
 
     const pinnedPort = firstSpawn ? null : this._port;

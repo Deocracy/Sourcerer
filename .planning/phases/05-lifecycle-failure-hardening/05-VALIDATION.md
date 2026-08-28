@@ -25,7 +25,7 @@ created: 2026-08-27
 | **Config file** | none — `scripts/verify-phase-05.sh` (new) follows `scripts/verify-phase-04.sh`'s structure |
 | **Quick run command** | `scripts/verify-phase-05.sh --quick` |
 | **Full suite command** | `scripts/verify-phase-05.sh` |
-| **Estimated runtime** | ~131s, measured live by --gate |
+| **Estimated runtime** | roughly two minutes — `--gate` prints its own measured wall time on every run (`verify-phase-05: --gate -- total runtime <N>s`). No figure is recorded here: the gate used to write one back into this cell, which dirtied the working tree on every run and left a number that was stale the moment another check was added. |
 
 **Phase gate (D-127):** `verify-phase-05.sh` + `verify-phase-04.sh` + `verify-phase-03.sh` must all be green **at the same commit**.
 
