@@ -1585,6 +1585,125 @@ EOF
   return "$result"
 }
 
+# --- SIDE-04 addendum: the supervisor handshake must not be inheritable ----
+#
+# TheiaService._spawnAndGate hands the backend SOURCERER_TOKEN (its auth
+# credential) and SOURCERER_SUPERVISED (arms the parent-death watchdog).
+# Node's process.env is inherited by every child the backend spawns, so
+# without the module-load scrub in
+# theia/extensions/token-gate/src/node/sourcerer-env.ts both reach every IDE
+# terminal, task, debug adapter and the plugin host that runs third-party
+# extensions -- the token readable by anything the user runs, and a NESTED
+# backend (`yarn start`, smoke-theia.sh, verify-phase-04.sh) arming a
+# watchdog nobody supervises and dying on its own stdin EOF.
+#
+# This is asserted from OUTSIDE the process, on a real supervised launch,
+# because the only in-process alternative is trusting the code under test.
+# Two design constraints, both verified rather than assumed:
+#
+#   - /proc/<BACKEND>/environ is the exec-time snapshot and is NOT rewritten
+#     by `delete process.env.X` (glibc's unsetenv edits the pointer array,
+#     never the original stack region). It still shows both variables after a
+#     correct fix and can therefore never witness this. Only a CHILD's
+#     environ can -- a child's is built fresh from the parent's live
+#     process.env at fork/exec.
+#   - The backend forks a parcel filesystem-watcher IPC child unconditionally
+#     at startup (@theia/filesystem's filesystem-backend-module.js, `env:
+#     process.env`), with no frontend and no workspace, so a child reliably
+#     exists to scan. A terminal ShellProcess -- the exact mergeProcessEnv
+#     path from the defect -- appears too whenever one is open, which is why
+#     the scan covers every child rather than one named process.
+#
+# The VERIFY05_LEAK_CANARY export IS this check's self-test, and it runs on
+# every invocation rather than behind a flag: it rides the identical chain
+# (harness -> browser -> spawnProcess environmentAppend:true -> backend
+# process.env -> fork) through the identical loop, grep and procfs read, and
+# differs only in its name. A scanner that cannot see a variable that IS
+# there proves nothing by failing to see the ones that should not be, so its
+# absence is a FAIL, never a vacuous pass. Same for "no children" and "no
+# readable environ".
+#
+# On its own this check is satisfiable by never setting SOURCERER_SUPERVISED
+# at all, which would silently disarm the dies-with-the-browser watchdog. It
+# is only meaningful alongside side04-sigkill-no-orphan and
+# side04-unsupervised-backend-survives, which prove the marker still arms and
+# still stays inert.
+check_side04_token_not_inherited_by_children() {
+  local result=0
+  local canary="verify05-canary-$$-${RANDOM}"
+  export VERIFY05_LEAK_CANARY="$canary"
+
+  if ! start_shell; then
+    echo "side04-token-not-inherited-by-children: FAIL -- SIDE-04 -- could not launch the shell" >&2
+    unset VERIFY05_LEAK_CANARY
+    return 1
+  fi
+  local log="$BROWSER_LOG"
+
+  local deadline=$((SECONDS + 90)) backend_pid=""
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    backend_pid="$(backend_ready_pids "$log" | tail -n1)"
+    [ -n "$backend_pid" ] && break
+    kill -0 "$BROWSER_SPAWN_PID" 2>/dev/null || break
+    sleep 0.5
+  done
+  if [ -z "$backend_pid" ]; then
+    echo "side04-token-not-inherited-by-children: FAIL -- SIDE-04 -- the backend never announced SOURCERER_BACKEND_READY within 90s; last 30 log lines:" >&2
+    tail -30 "$log" >&2
+    stop_shell
+    unset VERIFY05_LEAK_CANARY
+    return 1
+  fi
+
+  local kids="" kid_deadline=$((SECONDS + 20))
+  while [ "$SECONDS" -lt "$kid_deadline" ]; do
+    kids="$(pgrep -P "$backend_pid" 2>/dev/null)"
+    [ -n "$kids" ] && break
+    sleep 0.5
+  done
+  if [ -n "$kids" ]; then
+    # The watcher fork lands within a second of readiness; a terminal
+    # ShellProcess can land later. Re-enumerate after a settle window so the
+    # scan covers whatever else appeared, instead of only the first child.
+    sleep 5
+    kids="$(pgrep -P "$backend_pid" 2>/dev/null)"
+  fi
+
+  local read_any=0 saw_canary=0 kid env_dump cmd var
+  for kid in $kids; do
+    env_dump="$(tr '\0' '\n' < "/proc/$kid/environ" 2>/dev/null)"
+    [ -z "$env_dump" ] && continue
+    read_any=1
+    cmd="$(tr '\0' ' ' < "/proc/$kid/cmdline" 2>/dev/null | cut -c1-100)"
+    if grep -qxF "VERIFY05_LEAK_CANARY=$canary" <<<"$env_dump"; then
+      saw_canary=1
+    fi
+    # The trailing '=' anchors each name: without it SOURCERER_TOKEN would
+    # also match a SOURCERER_TOKEN_DISABLE line and misattribute the leak.
+    for var in SOURCERER_TOKEN SOURCERER_SUPERVISED SOURCERER_TOKEN_DISABLE; do
+      if grep -q "^$var=" <<<"$env_dump"; then
+        echo "side04-token-not-inherited-by-children: FAIL -- SIDE-04 -- backend child pid $kid ($cmd) inherited $var from the backend's process.env" >&2
+        result=1
+      fi
+    done
+  done
+
+  if [ -z "$kids" ]; then
+    echo "side04-token-not-inherited-by-children: FAIL -- SIDE-04 -- backend pid $backend_pid had no children at all; nothing was scanned, so a clean result would prove nothing" >&2
+    result=1
+  elif [ "$read_any" -eq 0 ]; then
+    echo "side04-token-not-inherited-by-children: FAIL -- SIDE-04 -- no child of backend pid $backend_pid had a readable /proc/<pid>/environ; nothing was scanned" >&2
+    result=1
+  elif [ "$saw_canary" -eq 0 ]; then
+    echo "side04-token-not-inherited-by-children: FAIL -- SIDE-04 -- self-test: VERIFY05_LEAK_CANARY was exported into this harness but reached no backend child, so the harness -> browser -> backend -> child environment chain this check probes is broken and a clean scan means nothing" >&2
+    result=1
+  fi
+
+  stop_shell
+  unset VERIFY05_LEAK_CANARY
+  return "$result"
+}
+
 # Runs this script's own CHECKS (respecting QUICK/ONLY exactly as before),
 # prints the per-check PASS/FAIL summary table, and RETURNS (not exits) the
 # aggregate result -- factored out of the former top-level script body so
@@ -1616,6 +1735,7 @@ run_own_checks() {
       "side05-second-launch-focuses|check_side05_second_launch_focuses"
       "side05-no-second-backend|check_side05_no_second_backend"
       "cr01-different-profile-backend-survives|check_cr01_different_profile_backend_survives"
+      "side04-token-not-inherited-by-children|check_side04_token_not_inherited_by_children"
     )
   fi
 
