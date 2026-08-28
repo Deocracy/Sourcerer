@@ -353,6 +353,15 @@ export const TheiaService = {
   async _spawnAndGate(firstSpawn) {
     const port = firstSpawn ? 0 : this._port;
     const args = [this._backendMain, "--hostname", "127.0.0.1", "--port", String(port)];
+    // These SOURCERER_* variables are a one-way handshake into the backend
+    // PROCESS, not something its children may see. The backend scrubs every
+    // SOURCERER_*-prefixed key out of its own process.env at module load
+    // (theia/extensions/token-gate/src/node/sourcerer-env.ts) after capturing
+    // the values it needs, because Node hands process.env to every child --
+    // terminals, tasks, the plugin host running third-party extensions -- and
+    // an inherited SOURCERER_TOKEN is the backend's auth credential leaked to
+    // anything the user runs in an IDE terminal. Do not add a SOURCERER_* key
+    // here expecting a grandchild to read it.
     const environment = {
       SOURCERER_TOKEN: this._token,
       THEIA_CONFIG_DIR: this._configDir,
@@ -372,7 +381,10 @@ export const TheiaService = {
       // it silently disables authentication on a backend that has arbitrary
       // file access and a terminal. The gate tests `=== "1"`, so an empty
       // value is off; the point is that the supervised path never depends on
-      // the launching environment being clean.
+      // the launching environment being clean. This clear is load-bearing
+      // rather than belt-and-braces now that the backend captures the value
+      // at module load: an inherited "1" would be captured before the scrub
+      // and would disable the gate for that whole process lifetime.
       SOURCERER_TOKEN_DISABLE: "",
     };
 
