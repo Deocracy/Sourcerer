@@ -58,6 +58,22 @@ export const SourcererAPI = Object.freeze({
     return Services.env.get(name);
   },
 
+  /**
+   * D-128 (CR-01 fix, 05-REVIEW.md): the absolute path of this launch's own
+   * Firefox profile directory (`ProfD`), read straight off the platform's
+   * directory service. Never throws: resolves "" on any failure, matching
+   * getStringPref's never-throw convention -- a profile-key derivation that
+   * can't read ProfD falls back to an unscoped default rather than crashing
+   * startup (see TheiaService._profileStateKey).
+   */
+  getProfileDir() {
+    try {
+      return Services.dirsvc.get("ProfD", Ci.nsIFile).path;
+    } catch {
+      return "";
+    }
+  },
+
   /** Creates `path` and its parents if absent; a no-op if it already exists. */
   ensureDirectory(path) {
     return IOUtils.makeDirectory(path);

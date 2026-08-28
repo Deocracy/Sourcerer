@@ -112,7 +112,16 @@ DISPLAY_IN_USE=""
 # BROWSER_LOG for whatever sentinel they need; stop_shell() always tears the
 # process (and setsid process group) down. A missing/non-executable binary
 # is a named FAIL, not a skip.
+#
+# Optional $1: an explicit profile directory to launch against, instead of
+# a fresh mktemp -d one -- mirrors start_shell_display()'s own optional
+# profile parameter (05-04). CR-01's plant_leftover() needs this: the
+# planted state file's name now carries a profile-scoped suffix
+# (TheiaService._profileStateKey()), so the fixture must know the profile
+# path BEFORE the launch, not receive whatever start_shell() would
+# otherwise mint internally.
 start_shell() {
+  local profile_override="${1:-}"
   local bin="$REPO_ROOT/objdir/dist/bin/sourcerer"
   if [ ! -x "$bin" ]; then
     echo "start_shell: FAIL -- $bin does not exist or is not executable (run the Phase 1 Firefox build first)" >&2
@@ -120,7 +129,11 @@ start_shell() {
   fi
   local log profile
   log="$(mktemp)"; track_temp "$log"
-  profile="$(mktemp -d)"; track_temp "$profile"
+  if [ -n "$profile_override" ]; then
+    profile="$profile_override"
+  else
+    profile="$(mktemp -d)"; track_temp "$profile"
+  fi
   BROWSER_LOG="$log"
 
   local -a env_args=()
@@ -479,14 +492,34 @@ read_start_ticks() {
   }' "/proc/$1/stat" 2>/dev/null
 }
 
+# Mirrors TheiaService._profileStateKey() (sourcerer/shell/
+# TheiaService.sys.mjs) byte-for-byte: the CR-01 fix suffixes the sidecar
+# state file's name with a sanitized form of the launch's own resolved
+# profile directory path (Services.dirsvc.get("ProfD", ...).path), every
+# run of non-alphanumeric characters collapsed to one "_". realpath first,
+# since ProfD is the platform's own canonicalized path and a caller here
+# might otherwise pass a path containing an as-yet-unresolved symlink
+# component. Must match exactly, or plant_leftover()'s fixture and
+# TheiaService's own reader resolve two different filenames and every
+# SIDE-04 leftover-reap control below proves nothing.
+profile_state_key() {
+  local resolved
+  resolved="$(realpath "$1")"
+  printf '%s' "$resolved" | sed -E 's/[^a-zA-Z0-9]+/_/g'
+}
+
 # Plants a long-sleeping process under setsid and writes a state file into
 # a throwaway config directory in the same JSON shape TheiaService writes
-# (pid, port, startTicks, writtenAt). Sets PLANTED_PID/PLANTED_CONFIG_DIR/
-# PLANTED_STATE_FILE for the caller.
+# (pid, port, startTicks, writtenAt), named with the exact profile-scoped
+# suffix the real launch below will resolve. Sets PLANTED_PID/
+# PLANTED_CONFIG_DIR/PLANTED_STATE_FILE/PLANTED_PROFILE_DIR for the caller
+# -- the caller must pass PLANTED_PROFILE_DIR to start_shell() so the SAME
+# profile path is what TheiaService actually resolves ProfD from.
 PLANTED_PID=""
 PLANTED_TICKS=""
 PLANTED_CONFIG_DIR=""
 PLANTED_STATE_FILE=""
+PLANTED_PROFILE_DIR=""
 plant_leftover() {
   local start_ticks="$1" # "" means read the real value; anything else overrides it (negative control)
   setsid sleep 300 &
@@ -506,7 +539,11 @@ plant_leftover() {
   parent="$(mktemp -d)"; track_temp "$parent"
   PLANTED_CONFIG_DIR="$parent/sourcerer"
   mkdir -p "$PLANTED_CONFIG_DIR"
-  PLANTED_STATE_FILE="$PLANTED_CONFIG_DIR/sidecar-state.json"
+
+  PLANTED_PROFILE_DIR="$(mktemp -d)"; track_temp "$PLANTED_PROFILE_DIR"
+  local profile_key
+  profile_key="$(profile_state_key "$PLANTED_PROFILE_DIR")"
+  PLANTED_STATE_FILE="$PLANTED_CONFIG_DIR/sidecar-state-${profile_key}.json"
 
   node -e '
     const fs = require("fs");
@@ -526,6 +563,7 @@ unplant_leftover() {
     PLANTED_PID=""
   fi
   PLANTED_TICKS=""
+  PLANTED_PROFILE_DIR=""
   unset VERIFY05_XDG_CONFIG_HOME
 }
 
@@ -536,7 +574,7 @@ check_side04_leftover_reaped() {
   plant_leftover ""
   local result=0
 
-  if ! start_shell; then
+  if ! start_shell "$PLANTED_PROFILE_DIR"; then
     echo "side04-leftover-reaped: FAIL -- SIDE-04 -- could not launch the built binary" >&2
     unplant_leftover
     return 1
@@ -596,7 +634,7 @@ check_side04_stale_identity_not_signalled() {
   plant_leftover "999999999"
   local result=0
 
-  if ! start_shell; then
+  if ! start_shell "$PLANTED_PROFILE_DIR"; then
     echo "side04-stale-identity-not-signalled: FAIL -- SIDE-04 -- could not launch the built binary" >&2
     unplant_leftover
     return 1
@@ -1210,6 +1248,165 @@ check_side05_no_second_backend() {
   return "$result"
 }
 
+# --- CR-01 regression (05-REVIEW.md): the sidecar state file must be
+# profile-scoped -----------------------------------------------------------
+#
+# The bug this guards against: TheiaService._resolveConfigDir()/
+# _stateFilePath were keyed only on XDG_CONFIG_HOME/HOME, with no profile
+# component -- every instance under the same OS user shared one
+# sidecar-state.json. A second instance's startup reap (_reapLeftover,
+# D-111's verified-identity check) would then find a FIRST, still-healthy
+# instance's backend pid in that shared file, confirm its live start ticks
+# matched exactly (they genuinely did -- the identity check itself was
+# sound, only its scope was wrong), and SIGTERM it.
+#
+# Unlike side05-no-second-backend (which always stops the first instance
+# before starting a different-profile control -- SIDE-05's own timing gap
+# that let CR-01 through Phase 5's own review), this check keeps instance A
+# RUNNING and launches instance B under a genuinely different profile while
+# A is still alive, then asserts A's backend survived B's entire startup
+# (including B's own _reapLeftover pass, already run by the time B
+# announces its own SOURCERER_BACKEND_READY). Reuses start_shell_display
+# (never headless -- SIDE-05's own display requirement applies equally
+# here, since this is the same nsRemoteService-adjacent profile-keyed
+# machinery) for both launches; no new launch scaffolding.
+check_cr01_different_profile_backend_survives() {
+  local profile_a profile_b result=0
+  profile_a="$(mktemp -d)"; track_temp "$profile_a"
+  profile_b="$(mktemp -d)"; track_temp "$profile_b"
+
+  # Whether *we* end up owning the Xvfb this check starts (so cleanup below
+  # is the one place that tears it down) vs. an already-real $DISPLAY this
+  # check must never touch.
+  local had_display=0
+  [ -n "${DISPLAY:-}" ] && had_display=1
+  local prev_display="${DISPLAY:-}"
+
+  local rc
+  start_shell_display "$profile_a"
+  rc=$?
+  if [ "$rc" -ne 0 ]; then
+    echo "cr01-different-profile-backend-survives: FAIL -- CR-01 -- could not launch instance A (no usable display or missing binary)" >&2
+    return "$rc"
+  fi
+  local log_a="$BROWSER_LOG"
+  local pid_a="$BROWSER_SPAWN_PID"
+  local display_to_use="$DISPLAY_IN_USE"
+  # This check tracks pid_a/pid_b itself (two concurrent instances, not
+  # one) -- clear the shared global so a second start_shell_display() call
+  # below for instance B doesn't leave the trap-driven cleanup() confused
+  # about which pid is which; this function kills both explicitly itself.
+  BROWSER_SPAWN_PID=""
+
+  local pid_b="" log_b=""
+
+  local a_deadline=$((SECONDS + 60)) a_ready=0
+  while [ "$SECONDS" -lt "$a_deadline" ]; do
+    if sentinel_present 'SOURCERER_BACKEND_READY ' "$log_a"; then
+      a_ready=1
+      break
+    fi
+    if ! kill -0 "$pid_a" 2>/dev/null; then
+      break
+    fi
+    sleep 0.5
+  done
+  if [ "$a_ready" -ne 1 ]; then
+    echo "cr01-different-profile-backend-survives: FAIL -- CR-01 -- instance A never announced SOURCERER_BACKEND_READY within 60s; log:" >&2
+    cat "$log_a" >&2
+    result=1
+  fi
+
+  local backend_pid_a=""
+  if [ "$a_ready" -eq 1 ]; then
+    backend_pid_a="$(backend_ready_pids "$log_a" | head -1)"
+    # Must be alive BEFORE instance B launches, or "still alive afterward"
+    # proves nothing (D-125's own established discipline for this class of
+    # check).
+    if [ -z "$backend_pid_a" ] || [ ! -e "/proc/$backend_pid_a" ]; then
+      echo "cr01-different-profile-backend-survives: FAIL -- CR-01 -- instance A's announced backend pid is not running before instance B launches; the check cannot prove anything" >&2
+      result=1
+      backend_pid_a=""
+    fi
+  fi
+
+  if [ -n "$backend_pid_a" ]; then
+    # Reuse instance A's exact display for B (the `-n "${DISPLAY:-}"`
+    # branch in start_shell_display), rather than spinning a second Xvfb --
+    # CR-01 is about profile scoping, not display plumbing.
+    export DISPLAY="$display_to_use"
+    start_shell_display "$profile_b"
+    rc=$?
+    if [ "$rc" -ne 0 ]; then
+      echo "cr01-different-profile-backend-survives: FAIL -- CR-01 -- could not launch instance B under a different profile" >&2
+      result=1
+    else
+      log_b="$BROWSER_LOG"
+      pid_b="$BROWSER_SPAWN_PID"
+      BROWSER_SPAWN_PID=""
+
+      local b_deadline=$((SECONDS + 60)) b_ready=0
+      while [ "$SECONDS" -lt "$b_deadline" ]; do
+        if sentinel_present 'SOURCERER_BACKEND_READY ' "$log_b"; then
+          b_ready=1
+          break
+        fi
+        if ! kill -0 "$pid_b" 2>/dev/null; then
+          break
+        fi
+        sleep 0.5
+      done
+      if [ "$b_ready" -ne 1 ]; then
+        echo "cr01-different-profile-backend-survives: FAIL -- CR-01 -- instance B never announced SOURCERER_BACKEND_READY within 60s; log:" >&2
+        cat "$log_b" >&2
+        result=1
+      fi
+
+      # The headline assertion: by the time B has announced its own
+      # SOURCERER_BACKEND_READY, B's start() has already run _reapLeftover()
+      # (called before B's own first spawn attempt) -- pre-fix, that reap
+      # read the SHARED state file, found A's still-healthy pid, and
+      # SIGTERM'd it.
+      if [ ! -e "/proc/$backend_pid_a" ]; then
+        echo "cr01-different-profile-backend-survives: FAIL -- CR-01 -- instance A's backend (pid $backend_pid_a) was killed by instance B's startup under a DIFFERENT profile -- the sidecar state file is not profile-scoped; log A:" >&2
+        cat "$log_a" >&2
+        echo "cr01-different-profile-backend-survives: log B:" >&2
+        cat "$log_b" >&2
+        result=1
+      fi
+
+      # A second, narrower invariant: B must announce its OWN distinct
+      # backend pid, never A's -- catches a scoping bug that merely
+      # deduplicates spawns rather than one that kills the other instance.
+      local backend_pid_b
+      backend_pid_b="$(backend_ready_pids "$log_b" | head -1)"
+      if [ -n "$backend_pid_b" ] && [ "$backend_pid_b" = "$backend_pid_a" ]; then
+        echo "cr01-different-profile-backend-survives: FAIL -- CR-01 -- instance B announced the SAME backend pid as instance A ($backend_pid_a) -- two different profiles must never share a backend" >&2
+        result=1
+      fi
+    fi
+  fi
+
+  if [ -n "$pid_b" ]; then
+    kill -- "-$pid_b" 2>/dev/null || kill "$pid_b" 2>/dev/null || true
+    wait "$pid_b" 2>/dev/null || true
+  fi
+  if [ -n "$pid_a" ]; then
+    kill -- "-$pid_a" 2>/dev/null || kill "$pid_a" 2>/dev/null || true
+    wait "$pid_a" 2>/dev/null || true
+  fi
+  if [ "$had_display" -eq 0 ]; then
+    stop_virtual_display
+  fi
+  if [ -n "$prev_display" ]; then
+    export DISPLAY="$prev_display"
+  else
+    unset DISPLAY
+  fi
+
+  return "$result"
+}
+
 # Runs this script's own CHECKS (respecting QUICK/ONLY exactly as before),
 # prints the per-check PASS/FAIL summary table, and RETURNS (not exits) the
 # aggregate result -- factored out of the former top-level script body so
@@ -1234,6 +1431,7 @@ run_own_checks() {
       "shell04-diagnostics-with-backend-down|check_shell04_diagnostics_with_backend_down"
       "side05-second-launch-focuses|check_side05_second_launch_focuses"
       "side05-no-second-backend|check_side05_no_second_backend"
+      "cr01-different-profile-backend-survives|check_cr01_different_profile_backend_survives"
     )
   fi
 
