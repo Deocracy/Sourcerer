@@ -1,5 +1,6 @@
 import { injectable } from '@theia/core/shared/inversify';
 import { BackendApplicationContribution } from '@theia/core/lib/node';
+import { SOURCERER_ENV } from './sourcerer-env';
 
 // SIDE-04 (05-01-PLAN.md Task 1): dies-with-the-browser watchdog. Armed only
 // when the supervisor's spawn environment carries SOURCERER_SUPERVISED=1
@@ -22,7 +23,12 @@ export class SourcererParentWatchdogContribution implements BackendApplicationCo
     protected terminated = false;
 
     initialize(): void {
-        if (process.env[SUPERVISED_ENV_VAR] !== '1') {
+        // SOURCERER_ENV, never process.env: sourcerer-env.ts captured and
+        // scrubbed this at module load, unconditionally, so a nested backend
+        // launched from a Sourcerer terminal cannot inherit the marker and
+        // arm a watchdog nobody supervises. process.env no longer carries it
+        // by the time this runs.
+        if (SOURCERER_ENV[SUPERVISED_ENV_VAR] !== '1') {
             // Unsupervised launch (yarn start, smoke-theia.sh,
             // verify-phase-04.sh's start_backend): stay inert. Stdin may be
             // closed, redirected from /dev/null, or otherwise EOF'd for

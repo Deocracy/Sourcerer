@@ -4,6 +4,7 @@ import * as https from 'https';
 import { injectable, inject } from '@theia/core/shared/inversify';
 import * as express from '@theia/core/shared/express';
 import { BackendApplicationContribution, EarlyExpressMiddleware } from '@theia/core/lib/node';
+import { SOURCERER_ENV } from './sourcerer-env';
 
 // D-98: replaces the trust root for backend access on plain HTTP -- the
 // stock BrowserConnectionTokenBackendContribution (browser-connection-token.js)
@@ -27,7 +28,11 @@ export class SourcererTokenGateContribution implements BackendApplicationContrib
     protected port: number | undefined;
 
     initialize(): void {
-        const disable = process.env[TOKEN_DISABLE_ENV_VAR] === '1';
+        // SOURCERER_ENV, never process.env: sourcerer-env.ts captured and
+        // scrubbed both variables at module load so they cannot be inherited
+        // by terminals, tasks or the plugin host. process.env no longer
+        // carries them by the time this runs.
+        const disable = SOURCERER_ENV[TOKEN_DISABLE_ENV_VAR] === '1';
         if (disable) {
             // Named legacy-dev bypass (scripts/smoke-theia.sh,
             // scripts/verify-phase-02.sh only). The supervised Sourcerer path
@@ -41,7 +46,7 @@ export class SourcererTokenGateContribution implements BackendApplicationContrib
             return;
         }
 
-        const token = process.env[TOKEN_ENV_VAR];
+        const token = SOURCERER_ENV[TOKEN_ENV_VAR];
         if (!token) {
             // Fail-closed (D-98/SIDE-02): an unconfigured token is a startup
             // failure, never an inert/pass-through gate. This must run before
@@ -101,11 +106,15 @@ export class SourcererTokenGateContribution implements BackendApplicationContrib
         // SIDE-01's port read-back channel: a stdout sentinel line, not a
         // file -- the supervisor already reads this stdout stream, it dies
         // with the process, and it needs no atomic-write/stale-file handling.
-        // D-104: this contribution stores no state and reads SOURCERER_TOKEN
-        // fresh from process.env on every start (see initialize() above), so
-        // a supervisor that respawns this process with the same environment
-        // and the same requested port produces a backend that accepts the
-        // same already-issued token cookie with no re-handshake.
+        // D-104: this contribution persists no state across process
+        // lifetimes -- the expected token is captured once per backend
+        // PROCESS start (sourcerer-env.ts, at module load) and every request
+        // is validated against that in-memory value. The
+        // respawn-accepts-the-same-cookie property comes from the supervisor
+        // re-supplying the same SOURCERER_TOKEN in each spawn environment
+        // (TheiaService._spawnAndGate), not from this process re-reading
+        // process.env later -- it deliberately scrubs its own copy so no
+        // child can inherit it.
         process.stdout.write(`SOURCERER_BACKEND_READY ${JSON.stringify({ port: this.port, pid: process.pid })}\n`);
     }
 
