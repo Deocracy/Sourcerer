@@ -810,6 +810,21 @@ EOF
     result=1
   fi
 
+  # Positive control for verify-phase-04.sh's shell05 deck-state assertion:
+  # that check demands all three layers resolve to "none" after the swap, and
+  # a sentinel that reported "none" unconditionally (or a getComputedStyle
+  # that does not work headless) would satisfy it forever. This run really
+  # does put the error layer up, so its deck-state line must NOT say "none".
+  local deck_error_line
+  deck_error_line="$(sed -E 's/^\[SourcererAPI\] [a-z]+: //' "$BROWSER_LOG" | grep -E '^SOURCERER_DECK_STATE .*"where":"error"' | head -1)"
+  if [ -z "$deck_error_line" ]; then
+    echo "shell03-budget-exhausted-error: FAIL -- SHELL-03 -- no SOURCERER_DECK_STATE sentinel accompanied the error sentinel" >&2
+    result=1
+  elif grep -q '"error":"none"' <<<"$deck_error_line"; then
+    echo "shell03-budget-exhausted-error: FAIL -- SHELL-03 -- the error layer reports display:none while its own error sentinel was just written: $deck_error_line" >&2
+    result=1
+  fi
+
   stop_shell
   return "$result"
 }
