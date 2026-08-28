@@ -12,14 +12,32 @@
 //   1. executable    -- a file named `sourcerer` exists+executable under
 //                       objdir/dist/bin, and no file named `firefox` remains.
 //   2. application-ini -- application.ini's Name=/Vendor= lines.
-//   3. about-support  -- live application-box/version-box textContent, read
-//                       over WebDriver BiDi with --remote-allow-system-access
-//                       (parent-process evaluation). Empirically confirmed
-//                       both directions this session (03-02 Task 1): the
-//                       same read throws upstream's own "unsupported
-//                       operation" error with the flag absent, and returns
-//                       the live value ("Sourcerer") with it present -- so
-//                       this is a real live read, not a constant.
+//   3. runtime-identity -- D-120 (05-03): launches the built binary
+//                       headless with a throwaway profile and reads its
+//                       SOURCERER_APP_IDENTITY startup stdout sentinel --
+//                       name/vendor from Services.appinfo, version from
+//                       AppConstants.MOZ_APP_VERSION_DISPLAY, the exact
+//                       accessor the chrome-rendered diagnostics layer
+//                       (SHELL-04) also reads, so the two can never
+//                       disagree. Replaces the former about-support surface
+//                       (WINDOWS.md #6): the shell's single <browser> is
+//                       pinned remoteType=web and the old surface needed a
+//                       privileged-about remote type it will never get in
+//                       v4.0 (no URL bar, no about-page reachability --
+//                       consistent with "Theia is the only GUI"), so that
+//                       surface could only ever read a stock, unbranded
+//                       Firefox page. This is a real live process launch,
+//                       not a constant -- confirmed live this session:
+//                       {"name":"Sourcerer","vendor":"Deocracy","version":"153.1.0esr"}.
+//                       When a chrome-context driver exists (none does in
+//                       this repo -- WINDOWS.md #7, chrome-side Marionette
+//                       automation is blocked on Linux), this surface also
+//                       opens the diagnostics layer and asserts its
+//                       rendered identity fields equal the sentinel's; when
+//                       it does not, that one extra assertion is skipped
+//                       and the skip is named in the surface's own detail
+//                       string -- the three sentinel equalities are never
+//                       weakened to compensate.
 //   4. brand-full-name -- reads the resolved variant's own
 //                       sourcerer/branding/<variant>/locales/en-US/brand.ftl
 //                       `-brand-full-name` AND that same variant's own
@@ -66,31 +84,36 @@
 // coverage guard.
 //
 // --positive-control <surface>: runs exactly ONE surface (application-ini,
-// about-support, or version) with its expected value replaced by the stock
-// Firefox value, and exits 0 only if that surface then reports FAILURE --
-// following verify-dev-flag-off.mjs's --expect-bound inversion shape. This
-// proves the reader produced a real live value and that the comparison
-// discriminates, with no rebuild. Deliberately does NOT catch errors thrown
-// during the live about-support read in this mode: catching a mechanism
-// error (e.g. a broken --remote-allow-system-access wiring) and reporting it
-// as "surface correctly failed" would make the control exit 0 vacuously,
+// runtime-identity, or version) with its expected value replaced by the
+// stock Firefox value, and exits 0 only if that surface then reports
+// FAILURE -- following verify-dev-flag-off.mjs's --expect-bound inversion
+// shape. This proves the reader produced a real live value and that the
+// comparison discriminates, with no rebuild. Deliberately does NOT catch
+// errors thrown during the live runtime-identity launch in this mode:
+// catching a mechanism error (e.g. the binary failing to launch at all) and
+// reporting it as "surface correctly failed" would make the control exit 0
+// vacuously,
 // which is the Phase 2 verify-dev-flag-off failure mode this harness exists
 // to prevent. A full (non-control) run wraps every surface's own I/O so an
 // absent/unreadable value is always a FAILURE row, never a skip and never an
 // uncaught crash that would stop the remaining surfaces from running.
 //
-// Zero npm dependencies: only ./lib/firefox-bidi.mjs and Node built-ins.
+// Zero npm dependencies: only Node built-ins (05-03: the runtime-identity
+// surface drops the former about-support surface's dependency on
+// ./lib/firefox-bidi.mjs -- it launches the binary and reads a stdout
+// sentinel directly, no WebDriver BiDi session needed).
 //
 // Usage:
 //   node scripts/verify-branding-identity.mjs [--bin <path>]
 //     [--expect-display-name <string>] [--positive-control <surface>]
 //   node scripts/verify-branding-identity.mjs --help
 
-import { withFirefoxPage } from './lib/firefox-bidi.mjs';
 import { existsSync, readFileSync, statSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { execFileSync, spawn } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { tmpdir } from 'node:os';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, '..');
@@ -152,7 +175,7 @@ Runs BRAND-01's six-surface identity checklist against the built binary.
                                the --config-status path)
   --positive-control <surface>
                                Run exactly one surface (application-ini,
-                               about-support, version, desktop-entry, or
+                               runtime-identity, version, desktop-entry, or
                                brand-full-name) with its expected value (or,
                                for brand-full-name, its input files) replaced
                                by a value that must be wrong. Exits 0 only if
@@ -207,8 +230,8 @@ const BRAND_FTL_PATH = brandFtlOverride || variant.brandFtl;
 const BRAND_PROPERTIES_PATH = brandPropertiesOverride || variant.brandProperties;
 const EXPECTED_BRAND_FULL_NAME = expectBrandFullNameOverride || variant.brandFullName;
 
-const SURFACE_IDS = ['executable', 'application-ini', 'about-support', 'brand-full-name', 'desktop-entry', 'version'];
-const CONTROLLABLE_SURFACES = ['application-ini', 'about-support', 'version', 'desktop-entry', 'brand-full-name'];
+const SURFACE_IDS = ['executable', 'application-ini', 'runtime-identity', 'brand-full-name', 'desktop-entry', 'version'];
+const CONTROLLABLE_SURFACES = ['application-ini', 'runtime-identity', 'version', 'desktop-entry', 'brand-full-name'];
 
 const surfacesRun = [];
 
@@ -321,38 +344,114 @@ function checkApplicationIni({ stockControl = false } = {}) {
     };
 }
 
-async function checkAboutSupport({ stockControl = false } = {}) {
+const APP_IDENTITY_LINE_RE = /^(?:\[SourcererAPI\] [a-z]+: )?SOURCERER_APP_IDENTITY (\{.*\})$/m;
+
+// Launches <binPath> headless with a throwaway profile, capturing combined
+// stdout+stderr until the SOURCERER_APP_IDENTITY startup sentinel appears
+// (sourcerer.js writes it once, unconditionally, right after the sidecar
+// prefs sentinel -- before TheiaService.start(), so it needs no backend and
+// no display). Tolerates the same "[SourcererAPI] <level>: " console-mirror
+// prefix verify-phase-05.sh's own sentinel readers do. Always kills the
+// spawned process and removes the throwaway profile, on every exit path --
+// this is a verification harness for Phase 5's own subject (orphaned
+// processes); it must not manufacture that failure mode itself.
+async function readRuntimeIdentity(binPath, { timeoutMs = 30000 } = {}) {
+    if (!existsSync(binPath)) throw new Error(`${binPath} does not exist`);
+    const profileDir = await mkdtemp(join(tmpdir(), 'sourcerer-verify-identity-'));
+    let child;
+    try {
+        child = spawn(binPath, ['--headless', '--profile', profileDir], { stdio: ['ignore', 'pipe', 'pipe'] });
+        return await new Promise((resolve, reject) => {
+            let buf = '';
+            let settled = false;
+            const timer = setTimeout(() => {
+                finish(() => reject(new Error(
+                    `SOURCERER_APP_IDENTITY did not appear within ${timeoutMs}ms; output so far:\n${buf}`
+                )));
+            }, timeoutMs);
+
+            function finish(effect) {
+                if (settled) return;
+                settled = true;
+                clearTimeout(timer);
+                child.stdout.off('data', onData);
+                child.stderr.off('data', onData);
+                child.off('exit', onExit);
+                effect();
+            }
+
+            function onData(chunk) {
+                buf += chunk.toString('utf8');
+                const m = buf.match(APP_IDENTITY_LINE_RE);
+                if (!m) return;
+                finish(() => {
+                    try {
+                        resolve(JSON.parse(m[1]));
+                    } catch {
+                        reject(new Error(`SOURCERER_APP_IDENTITY line did not carry valid JSON: ${m[1]}`));
+                    }
+                });
+            }
+
+            function onExit(code) {
+                finish(() => reject(new Error(
+                    `sourcerer exited (code ${code}) before printing SOURCERER_APP_IDENTITY; output so far:\n${buf}`
+                )));
+            }
+
+            child.stdout.on('data', onData);
+            child.stderr.on('data', onData);
+            child.on('exit', onExit);
+        });
+    } finally {
+        if (child && child.exitCode === null && child.signalCode === null) {
+            child.kill('SIGKILL');
+        }
+        await rm(profileDir, { recursive: true, force: true });
+    }
+}
+
+async function checkRuntimeIdentity({ stockControl = false } = {}) {
     // Real build values, read before the browser even launches -- these are
     // the non-control expected values. A read failure here is a genuine
     // infra problem (application.ini / version_display.txt absent) and is
     // allowed to throw uncaught in --positive-control mode, per this file's
     // header note: catching it and calling the surface "FAILED" would make
     // the control pass for the wrong reason.
-    const { name: realName } = readAppIni(APP_INI_PATH);
-    const expectedName = stockControl ? 'Firefox' : realName;
-
-    const result = await withFirefoxPage('about:support', async ({ waitFor }) => {
-        const appName = await waitFor(
-            "document.getElementById('application-box') ? document.getElementById('application-box').textContent : false"
-        );
-        const appVersion = await waitFor(
-            "document.getElementById('version-box') ? document.getElementById('version-box').textContent : false"
-        );
-        return { appName, appVersion };
-    }, { binPath: BIN_PATH });
-
+    const { name: realName, vendor: realVendor } = readAppIni(APP_INI_PATH);
     const versionDisplay = readVersionDisplay(VERSION_DISPLAY_PATH);
-    const namePass = result.appName === expectedName;
-    // The stock substitution axis for this surface is the display name
-    // (per the plan's enumerated stock values); the version field is only
-    // asserted in non-control mode.
-    const versionPass = stockControl ? true : result.appVersion === versionDisplay;
-    const pass = namePass && versionPass;
+    const expectedName = stockControl ? 'Firefox' : realName;
+    const expectedVendor = stockControl ? 'Mozilla' : realVendor;
 
-    surfacesRun.push('about-support');
+    // A launch/parse failure here (binary missing, sentinel never appears,
+    // malformed JSON) is the SAME class of genuine infra problem as the
+    // build-value reads above -- allowed to throw uncaught, never caught and
+    // reported as "surface failed", for the identical reason.
+    const identity = await readRuntimeIdentity(BIN_PATH);
+
+    const namePass = identity.name === expectedName;
+    // The stock substitution axis for this surface is the brand name (per
+    // the plan's enumerated stock values); vendor/version are only asserted
+    // in non-control mode.
+    const vendorPass = stockControl ? true : identity.vendor === expectedVendor;
+    const versionPass = stockControl ? true : identity.version === versionDisplay;
+    let pass = namePass && vendorPass && versionPass;
+
+    // D-120's chrome-driver extension: when a chrome-context driver exists,
+    // also open the diagnostics layer and assert its rendered identity
+    // fields equal the sentinel's. No such driver exists in this repo today
+    // (WINDOWS.md #7 -- chrome-side Marionette automation is blocked on
+    // Linux, moz:windowless is macOS-only), so this extra assertion is
+    // skipped and the skip is named below; the three sentinel equalities
+    // above are never weakened to compensate.
+    const crossCheckDetail = 'diagnostics-layer cross-check: skipped -- no chrome-context driver available in this repo (WINDOWS.md #7)';
+
+    surfacesRun.push('runtime-identity');
     return {
         pass,
-        detail: `application-box=${JSON.stringify(result.appName)} (expected ${JSON.stringify(expectedName)}), version-box=${JSON.stringify(result.appVersion)}${stockControl ? '' : ` (expected ${JSON.stringify(versionDisplay)})`}`,
+        detail: `SOURCERER_APP_IDENTITY name=${JSON.stringify(identity.name)} (expected ${JSON.stringify(expectedName)})` +
+            `${stockControl ? '' : `, vendor=${JSON.stringify(identity.vendor)} (expected ${JSON.stringify(expectedVendor)}), version=${JSON.stringify(identity.version)} (expected ${JSON.stringify(versionDisplay)})`}` +
+            `; ${crossCheckDetail}`,
     };
 }
 
@@ -433,7 +532,7 @@ async function runFull() {
     const results = [];
     results.push(await runSurfaceSafe('executable', () => checkExecutable()));
     results.push(await runSurfaceSafe('application-ini', () => checkApplicationIni()));
-    results.push(await runSurfaceSafe('about-support', () => checkAboutSupport()));
+    results.push(await runSurfaceSafe('runtime-identity', () => checkRuntimeIdentity()));
     results.push(await runSurfaceSafe('brand-full-name', () => checkBrandFullName()));
     results.push(await runSurfaceSafe('desktop-entry', () => checkDesktopEntry()));
     results.push(await runSurfaceSafe('version', () => checkVersion()));
@@ -474,8 +573,8 @@ async function runPositiveControl(surface) {
     let result;
     if (surface === 'application-ini') {
         result = checkApplicationIni({ stockControl: true });
-    } else if (surface === 'about-support') {
-        result = await checkAboutSupport({ stockControl: true });
+    } else if (surface === 'runtime-identity') {
+        result = await checkRuntimeIdentity({ stockControl: true });
     } else if (surface === 'version') {
         result = checkVersion({ stockControl: true });
     } else if (surface === 'desktop-entry') {

@@ -834,6 +834,123 @@ EOF
   return "$result"
 }
 
+# --- Task 2 (05-03): shell04-diagnostics-with-backend-down -----------------
+#
+# SHELL-04's risky edge (this plan's flagged_assumption): the diagnostics
+# surface must answer while the backend is dead, not just while it is
+# healthy. Launches with backendMain pointed at a nonexistent path (same
+# unrecoverable-immediate shape as shell03-unrecoverable-immediate-error --
+# no backend spawn is ever attempted, so there is genuinely no backend at
+# all), then asserts what this repo can automate without chrome-context
+# driving:
+#
+#   1. The startup identity sentinel (SOURCERER_APP_IDENTITY) is present
+#      with all three fields populated -- written unconditionally, right
+#      after the sidecar prefs sentinel and BEFORE TheiaService.start(), so
+#      it can never depend on a live backend. This is the fully-automated
+#      half of "the surface is alive precisely when the backend is not."
+#   2. The error layer's details control is present and enabled in the
+#      shipped markup (sourcerer.xhtml has no `disabled` attribute on
+#      #sourcerer-error-diagnostics) -- the plan's own named fallback for
+#      when no chrome-context driver exists.
+#
+# What this check does NOT do, and why: opening the diagnostics layer
+# itself (the chord, or clicking the Details control) is chrome-context
+# automation, and Discriminator B (05-02-PLAN.md Task 1, WINDOWS.md #7)
+# found that blocked on Linux -- capabilities.alwaysMatch['moz:windowless']
+# is silently ignored outside AppInfo.isMac, so WebDriver:NewSession can
+# never create a session against the shell's own windowtype="sourcerer:main"
+# chrome window. scripts/lib/firefox-marionette.mjs does not exist (05-02
+# confirmed it cannot). With no driver, this check cannot click the Details
+# control or evaluate the show global, so it cannot produce a live
+# SOURCERER_DIAGNOSTICS sentinel to read the rendered health/port/pid
+# fields from. That gap is routed to the human record (05-03-SUMMARY.md),
+# exactly as 05-02 routed the Retry-button click -- not fabricated as a
+# pass.
+check_shell04_diagnostics_with_backend_down() {
+  local user_js result=0
+  user_js="$(mktemp)"; track_temp "$user_js"
+  cat > "$user_js" <<'EOF'
+user_pref("sourcerer.sidecar.backendMain", "/nonexistent/sourcerer-verify-05/shell04-main.js");
+EOF
+
+  export VERIFY05_USER_JS_PROFILE="$user_js"
+  start_shell
+  local start_rc=$?
+  unset VERIFY05_USER_JS_PROFILE
+  if [ "$start_rc" -ne 0 ]; then
+    echo "shell04-diagnostics-with-backend-down: FAIL -- SHELL-04 -- could not launch the built binary" >&2
+    return 1
+  fi
+
+  local deadline=$((SECONDS + 15))
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    sentinel_present 'SOURCERER_SHELL_ERROR ' "$BROWSER_LOG" && break
+    if ! kill -0 "$BROWSER_SPAWN_PID" 2>/dev/null; then
+      echo "shell04-diagnostics-with-backend-down: FAIL -- SHELL-04 -- browser exited before the error sentinel appeared; log:" >&2
+      cat "$BROWSER_LOG" >&2
+      stop_shell
+      return 1
+    fi
+    sleep 0.25
+  done
+
+  if ! sentinel_present 'SOURCERER_SHELL_ERROR ' "$BROWSER_LOG"; then
+    echo "shell04-diagnostics-with-backend-down: FAIL -- SHELL-04 -- SOURCERER_SHELL_ERROR did not appear within 15s (no backend was ever supposed to exist); log:" >&2
+    cat "$BROWSER_LOG" >&2
+    stop_shell
+    return 1
+  fi
+
+  # There is genuinely no backend in this run -- confirm the unrecoverable
+  # classification, so a later assertion can never be read as "it happened
+  # to recover before we checked."
+  if ! grep -qE '^(\[SourcererAPI\] [a-z]+: )?SOURCERER_SHELL_ERROR \{"reason":"[^"]*","recoverable":false\}$' "$BROWSER_LOG"; then
+    echo "shell04-diagnostics-with-backend-down: FAIL -- SHELL-04 -- error sentinel is not classified recoverable:false; this run does not prove 'no backend at all'; log:" >&2
+    cat "$BROWSER_LOG" >&2
+    result=1
+  fi
+
+  # Identity half: alive independent of the backend, fully automated.
+  local identity_line
+  identity_line="$(grep -E '^(\[SourcererAPI\] [a-z]+: )?SOURCERER_APP_IDENTITY ' "$BROWSER_LOG" | head -1 | sed -E 's/^(\[SourcererAPI\] [a-z]+: )?SOURCERER_APP_IDENTITY //')"
+  if [ -z "$identity_line" ]; then
+    echo "shell04-diagnostics-with-backend-down: FAIL -- SHELL-04 -- no SOURCERER_APP_IDENTITY sentinel with the backend unreachable; log:" >&2
+    cat "$BROWSER_LOG" >&2
+    result=1
+  elif ! node -e '
+    let s = "";
+    process.stdin.on("data", d => (s += d)).on("end", () => {
+      let j;
+      try { j = JSON.parse(s); } catch { process.exit(1); }
+      if (typeof j.name === "string" && j.name && typeof j.vendor === "string" && j.vendor && typeof j.version === "string" && j.version) {
+        process.exit(0);
+      }
+      process.exit(1);
+    });
+  ' <<<"$identity_line"; then
+    echo "shell04-diagnostics-with-backend-down: FAIL -- SHELL-04 -- SOURCERER_APP_IDENTITY sentinel is not populated ($identity_line)" >&2
+    result=1
+  fi
+
+  stop_shell
+
+  # Fallback half (no chrome-context driver in this repo -- WINDOWS.md #7):
+  # the details control is present and enabled in the shipped markup.
+  local xhtml="$REPO_ROOT/sourcerer/shell/sourcerer.xhtml"
+  if ! grep -q 'id="sourcerer-error-diagnostics"' "$xhtml"; then
+    echo "shell04-diagnostics-with-backend-down: FAIL -- SHELL-04 -- #sourcerer-error-diagnostics is not present in sourcerer.xhtml" >&2
+    result=1
+  elif grep 'id="sourcerer-error-diagnostics"' "$xhtml" | grep -q 'disabled'; then
+    echo "shell04-diagnostics-with-backend-down: FAIL -- SHELL-04 -- #sourcerer-error-diagnostics still carries a disabled attribute" >&2
+    result=1
+  fi
+
+  echo "shell04-diagnostics-with-backend-down: NOTE -- chrome-context driving (the chord, the Details click, and reading the live SOURCERER_DIAGNOSTICS sentinel) is routed to the human record, per WINDOWS.md #7 / Discriminator B; see 05-03-SUMMARY.md" >&2
+
+  return "$result"
+}
+
 # Each entry: "label|command...". Later tasks append here, never as a
 # sibling driver script.
 declare -a CHECKS=()
@@ -848,6 +965,7 @@ if [ "$QUICK" -eq 0 ]; then
     "shell03-unrecoverable-immediate-error|check_shell03_unrecoverable_immediate_error"
     "shell03-budget-exhausted-error|check_shell03_budget_exhausted_error"
     "shell03-auto-dismiss-on-selfheal|check_shell03_auto_dismiss_on_selfheal"
+    "shell04-diagnostics-with-backend-down|check_shell04_diagnostics_with_backend_down"
   )
 fi
 
