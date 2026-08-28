@@ -399,6 +399,31 @@ check_shell05_paint_before_backend() {
     result=1
   fi
 
+  # "Theia is the only GUI" is not proven by the swap sentinel: the swap
+  # genuinely happened in the build where BOTH deck overlays painted on top
+  # of it (a CSP-dropped style attribute -- see sourcerer.css's header), and
+  # every DOM/screenshot assertion in this file targets the CONTENT browsing
+  # context, which stays perfectly healthy underneath an occluding chrome
+  # overlay. The shell's own SOURCERER_DECK_STATE sentinel reports resolved
+  # visibility from inside the chrome document, the one place that can see
+  # it. Positive control lives in verify-phase-05.sh's
+  # shell03-budget-exhausted-error, so this "none" can never pass vacuously.
+  if [ -n "$swap_off" ]; then
+    local deck_off deck_line
+    deck_off="$(grep -abo -E '^(\[SourcererAPI\] [a-z]+: )?SOURCERER_DECK_STATE ' "$BROWSER_LOG" 2>/dev/null | awk -F: -v s="$swap_off" '$1 > s { print $1; exit }')"
+    if [ -z "$deck_off" ]; then
+      echo "shell05-paint-before-backend: FAIL -- SHELL-05 -- no SOURCERER_DECK_STATE sentinel after the swap (byte $swap_off); overlay occlusion is unproven; log:" >&2
+      cat "$BROWSER_LOG" >&2
+      result=1
+    else
+      deck_line="$(tail -c +$((deck_off + 1)) "$BROWSER_LOG" | head -1)"
+      if ! grep -q '"loading":"none","error":"none","diagnostics":"none"' <<<"$deck_line"; then
+        echo "shell05-paint-before-backend: FAIL -- SHELL-05 -- a deck overlay is painted over the swapped-in Theia: $deck_line" >&2
+        result=1
+      fi
+    fi
+  fi
+
   stop_shell
   return "$result"
 }

@@ -31,6 +31,28 @@ document.addEventListener(
     const diagnosticsFieldsElement = document.getElementById("sourcerer-diagnostics-fields");
     const diagnosticsLogElement = document.getElementById("sourcerer-diagnostics-log");
     const diagnosticsCloseButton = document.getElementById("sourcerer-diagnostics-close");
+    // The deck's RESOLVED visibility, on the same dump() sentinel channel as
+    // everything else here. This is the only assertion available on Linux
+    // that observes the chrome document's rendered state at all: BiDi's
+    // browsingContext tree contains only the content <browser> (so a
+    // screenshot or a #theia-app-shell query passes with Theia fully
+    // occluded), and chrome-context Marionette is platform-blocked
+    // (WINDOWS.md #7). Computed style is the right invariant because it
+    // catches a dropped inline attribute AND a bad stylesheet rule -- the two
+    // ways this deck has actually broken. Emitted from exactly two sites: the
+    // swap (where all three layers must be gone) and the error (where one
+    // must not be), which is enough for a negative assertion and its
+    // positive control without touching any other path.
+    const dumpDeckState = (where) =>
+      dump(
+        `SOURCERER_DECK_STATE ${JSON.stringify({
+          loading: window.getComputedStyle(loadingElement).display,
+          error: window.getComputedStyle(errorElement).display,
+          diagnostics: window.getComputedStyle(diagnosticsElement).display,
+          where,
+        })}\n`
+      );
+
     // WebDriver finds content browsing contexts through `win.gBrowser.tabs`
     // (remote/shared/TabManager.sys.mjs) and identifies each one by its
     // browser's `permanentKey` (remote/shared/NavigableManager.sys.mjs returns
@@ -51,6 +73,7 @@ document.addEventListener(
       dump(`SOURCERER_SHELL_SWAP ${url}\n`);
       SourcererAPI.loadURIInBrowser(browserElement, url);
       loadingElement.style.display = "none";
+      dumpDeckState("swap");
     };
 
     window.sourcererGetBrowser = function sourcererGetBrowser() {
@@ -69,6 +92,7 @@ document.addEventListener(
       errorMessageElement.textContent = reason;
       errorElement.style.display = "flex";
       dump(`SOURCERER_SHELL_ERROR ${JSON.stringify({ reason, recoverable })}\n`);
+      dumpDeckState("error");
     };
 
     window.sourcererHideError = function sourcererHideError() {
