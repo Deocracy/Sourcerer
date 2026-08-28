@@ -1407,6 +1407,123 @@ check_cr01_different_profile_backend_survives() {
   return "$result"
 }
 
+# --- shell-csp-inline-attrs -------------------------------------------------
+#
+# sourcerer.xhtml declares `default-src chrome:` with no 'unsafe-inline', and
+# Gecko applies that policy to inline style/event-handler ATTRIBUTES too:
+# nsStyledElement::ParseStyleAttribute calls nsStyleUtil::CSPAllowsInlineStyle,
+# whose STYLE_SRC_ATTR lookup falls back to default-src, and simply never
+# builds the declaration. Phase 5 hid both deck overlays with
+# `style="display:none;"`; the attributes were inert, so their `display: flex`
+# base rules won and both overlays painted over a healthy Theia at every
+# startup. Gecko logs NOTHING to stdout/stderr when it drops the declaration
+# (only nsIConsoleService, reachable via MOZ_LOG=PageMessages:5), so no
+# launch-log grep can catch this -- verified live against the pre-fix build.
+# Static markup is the only place it is observable for free.
+#
+# `setAttribute("style"|"on...")` in the shipped scripts is banned for the
+# same reason: it routes through the same CSP-checked attribute-parse path.
+# CSSOM writes (`el.style.display = ...`) are deliberately NOT banned -- they
+# never touch attribute parsing and are how the shell legitimately shows a
+# layer.
+#
+# Prints "  file:line: reason" per offense on stderr; 0 clean, 1 offenses,
+# 2 nothing was scanned (a clean sweep of an empty file list is not a pass).
+scan_inline_attrs() {
+  node -e '
+    const fs = require("fs");
+    const files = process.argv.slice(1);
+    if (!files.length) { process.exit(2); }
+    let bad = 0;
+    for (const f of files) {
+      let src;
+      try { src = fs.readFileSync(f, "utf8"); } catch { console.error(`  ${f}: unreadable`); bad++; continue; }
+      // Blank comments before matching (preserving newlines, so the reported
+      // line numbers stay exact) -- a comment explaining this very rule, or
+      // the header comment in sourcerer.css, must not flag itself.
+      const blank = (m) => m.replace(/[^\n]/g, " ");
+      src = src.replace(/<!--[\s\S]*?-->/g, blank).replace(/\/\*[\s\S]*?\*\//g, blank);
+      // Branch on extension: the markup attribute pattern applied to a script
+      // false-positives on ordinary identifiers (`once`, `only`, ...).
+      const re = /\.(xhtml|html|xul)$/i.test(f)
+        ? /[\s"\x27](style|on[a-z]+)\s*=\s*["\x27]/gi
+        : /setAttribute\s*\(\s*["\x27](style|on[a-z]+)["\x27]/gi;
+      let m;
+      while ((m = re.exec(src)) !== null) {
+        console.error(`  ${f}:${src.slice(0, m.index).split("\n").length}: inline ${m[1]}= attribute`);
+        bad++;
+      }
+    }
+    process.exit(bad ? 1 : 0);
+  ' "$@"
+}
+
+check_shell_csp_inline_attrs() {
+  local shell_dir xhtml result=0
+  shell_dir="$REPO_ROOT/sourcerer/shell"
+  xhtml="$shell_dir/sourcerer.xhtml"
+
+  # The policy is the whole justification for the ban. If it ever goes away,
+  # or gains 'unsafe-inline', that is a decision to argue explicitly -- not
+  # something this check should quietly start tolerating.
+  local csp_line
+  csp_line="$(grep -i 'http-equiv="Content-Security-Policy"' "$xhtml")"
+  if [ -z "$csp_line" ]; then
+    echo "shell-csp-inline-attrs: FAIL -- sourcerer.xhtml no longer declares a Content-Security-Policy meta" >&2
+    result=1
+  elif grep -qi 'unsafe-inline' <<<"$csp_line"; then
+    echo "shell-csp-inline-attrs: FAIL -- the shell CSP was loosened with 'unsafe-inline' ($csp_line); re-argue this check rather than weakening the policy" >&2
+    result=1
+  fi
+
+  # Self-test first: a scanner that silently matched nothing would report a
+  # clean tree forever. The fixture reproduces the pre-fix markup verbatim
+  # plus one planted handler, and a comment decoy that must NOT be counted --
+  # so "exactly 2", never "at least 1".
+  local fixture_dir fixture rc rows
+  fixture_dir="$(mktemp -d)"; track_temp "$fixture_dir"
+  fixture="$fixture_dir/fixture.xhtml"
+  cat > "$fixture" <<'EOF'
+<!-- decoy: style="display:none;" inside a comment must not be flagged -->
+<div id="sourcerer-error" style="display:none;"></div>
+<button id="sourcerer-error-retry" onclick="sourcererRetry()">Retry</button>
+<div id="sourcerer-loading">Sourcerer</div>
+EOF
+  rows="$(scan_inline_attrs "$fixture" 2>&1 >/dev/null)"
+  rc=$?
+  if [ "$rc" -ne 1 ] || [ "$(grep -c . <<<"$rows")" -ne 2 ]; then
+    echo "shell-csp-inline-attrs: FAIL -- self-test: the scanner did not report exactly 2 offenses on the known-bad fixture (rc=$rc):" >&2
+    echo "$rows" >&2
+    result=1
+  fi
+
+  # Scan every markup/script file jar.mn actually ships -- derived, never
+  # hardcoded, so a file added to the package is covered the day it lands.
+  local -a files=()
+  local rel
+  while read -r rel; do
+    [ -z "$rel" ] && continue
+    if [ ! -f "$shell_dir/$rel" ]; then
+      echo "shell-csp-inline-attrs: FAIL -- jar.mn ships '$rel' but $shell_dir/$rel does not exist" >&2
+      result=1
+      continue
+    fi
+    files+=("$shell_dir/$rel")
+  done < <(sed -E 's/#.*//' "$shell_dir/jar.mn" | grep -oE '\(([^)]+\.(xhtml|html|xul|js|mjs))\)' | tr -d '()')
+
+  if [ "${#files[@]}" -eq 0 ]; then
+    echo "shell-csp-inline-attrs: FAIL -- parsed zero shippable files out of $shell_dir/jar.mn; nothing was scanned" >&2
+    return 1
+  fi
+
+  if ! scan_inline_attrs "${files[@]}"; then
+    echo "shell-csp-inline-attrs: FAIL -- the shipped chrome surface contains inline attributes the CSP silently drops (see rows above); put the state in sourcerer.css or set it from JS via the CSSOM instead" >&2
+    result=1
+  fi
+
+  return "$result"
+}
+
 # Runs this script's own CHECKS (respecting QUICK/ONLY exactly as before),
 # prints the per-check PASS/FAIL summary table, and RETURNS (not exits) the
 # aggregate result -- factored out of the former top-level script body so
@@ -1416,7 +1533,13 @@ check_cr01_different_profile_backend_survives() {
 run_own_checks() {
   # Each entry: "label|command...". Later tasks append here, never as a
   # sibling driver script.
-  local -a CHECKS=()
+  # Registered OUTSIDE the --quick guard: it needs no browser, no display and
+  # no built tree, runs in milliseconds, and --quick would otherwise iterate
+  # an empty array and print "PASS -- all checks passed" having asserted
+  # nothing at all.
+  local -a CHECKS=(
+    "shell-csp-inline-attrs|check_shell_csp_inline_attrs"
+  )
 
   if [ "$QUICK" -eq 0 ]; then
     CHECKS+=(
