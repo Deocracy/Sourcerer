@@ -229,7 +229,7 @@ Plans:
   4. A diagnostics page shows the sidecar's port, PID, health status, and recent log output, and stays reachable while the backend is down
   5. The developer uses Sourcerer as their daily IDE on the NixOS host for a working period without a manual process cleanup or a forced relaunch
 
-**Plans**: 4/5 plans executed
+**Plans**: 5/5 plans executed
 
 Plans:
 
@@ -251,7 +251,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 05-05-PLAN.md — Single-commit combined phase gate and the working-day human record (D-126/D-127)
+- [x] 05-05-PLAN.md — Single-commit combined phase gate and the working-day human record (D-126/D-127)
 
 ## Notes
 
@@ -283,7 +283,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 (2 and 3 may run in p
 | 2. Sourcerer Theia Extensions | 7/7 | Complete   | 2026-08-20 |
 | 3. Branded Firefox Fork | 11/11 | Complete    | 2026-08-22 |
 | 4. Full-Window Theia Shell | 5/5 | Complete    | 2026-08-27 |
-| 5. Lifecycle & Failure Hardening | 4/5 | In Progress|  |
+| 5. Lifecycle & Failure Hardening | 5/5 | In Progress|  |
 
 ---
 *Roadmap created: 2026-08-20*
