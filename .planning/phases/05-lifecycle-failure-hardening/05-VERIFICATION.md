@@ -81,11 +81,66 @@ Items **A**, **B** and **C** all remain genuinely **unperformed against the fixe
 
 Recorded here and in `.planning/WINDOWS.md` (entries 9, 10, 11) so they stay tracked:
 
-- **MED-01 (open)** — `SOURCERER_SUPERVISED=1` is read by the watchdog but never deleted from `process.env`, and `_spawnAndGate` uses `environmentAppend: true`, so the marker inherits into every subprocess the Theia backend later spawns (integrated terminal, task runner, debug adapter). The same environment object already resets `SOURCERER_TOKEN_DISABLE` for exactly this hazard. Latent — nothing else in this repo reads the variable — but that fact, not scoping, is the only defence.
+- **MED-01 (~~open~~ — FIXED later the same day; see the second Post-Verification Update below)** — `SOURCERER_SUPERVISED=1` is read by the watchdog but never deleted from `process.env`, and `_spawnAndGate` uses `environmentAppend: true`, so the marker inherits into every subprocess the Theia backend later spawns (integrated terminal, task runner, debug adapter). The same environment object already resets `SOURCERER_TOKEN_DISABLE` for exactly this hazard. ~~Latent — nothing else in this repo reads the variable — but that fact, not scoping, is the only defence.~~ That "latent" assessment was wrong: `mergeProcessEnv` reads `process.env` live, so the marker was reaching every IDE terminal and `SOURCERER_TOKEN` was taking the same path.
 - **MED-02 (open)** — `_pumpOutput` buffers every backend stdout/stderr line into the diagnostics ring buffer with no redaction, and the diagnostics layer renders that buffer verbatim. The shell never logs the token itself and the sentinels are proven token-free, but any dependency that prints `process.env` (which carries `SOURCERER_TOKEN`) would flow unredacted into a now-reachable in-app panel — new exposure surface created by SHELL-04.
 - **State-file litter (open)** — the CR-01 profile-scoping fix creates one `~/.config/sourcerer/sidecar-state-<profile>.json` per profile path and nothing ever reaps them. **151** have accumulated in the real user config dir as of 2026-08-28, almost all from harness runs against `mktemp` profiles. Cheapest remedy: point `XDG_CONFIG_HOME` at the harness temp dir in `verify-phase-05.sh`'s launch helpers so test runs never touch the real config dir — `_resolveConfigDir` already honours `XDG_CONFIG_HOME` ahead of `HOME`.
 
 Also still open, untouched, and named here only so they are not lost: `sourcererRetry()` hides the error layer with a direct CSSOM write instead of calling `sourcererHideError()`, so `TheiaService._errorShown` stays true and a *failing* retry leaves the user on a blank branded splash with no message and no Retry control; the error layer's Details button is bound to a toggle; `sourcererHideDiagnostics` emits no sentinel although its own comment promises one on every call; and `--gate` mutates a tracked file as a side effect, dirtying the working tree on every run.
+
+---
+
+## Post-Verification Update #2 — 2026-08-28: MED-01 fixed, the token taken out of the environment entirely
+
+**Appended after the update above. Nothing above this line is rewritten.** This closes MED-01, which both the section above and `.planning/WINDOWS.md` entry 9 recorded as deliberately open; entry 9 is now `fixed`.
+
+### What the leak actually was
+
+MED-01 was recorded as "latent — nothing else in this repo reads the variable." That assessment was wrong about the mechanism, and the correction is the substantive new finding here.
+
+Theia's `ShellProcess` builds each terminal's environment with `EnvironmentUtils.mergeProcessEnv`, and `theia/node_modules/@theia/core/lib/node/environment-utils.js:32` reads `process.env` **live at terminal-creation time** — not from a snapshot taken at backend startup. `normalizeEnv` accepts any non-empty string. So every variable `_spawnAndGate` handed the backend with `environmentAppend: true` reached every IDE terminal, at whatever moment that terminal was opened:
+
+- **`SOURCERER_SUPERVISED=1`** armed the parent-death watchdog in any **nested** backend started from a Sourcerer terminal, which then self-terminated the instant that terminal's own stdin EOFed — hitting exactly the three unsupervised callers the watchdog's gate exists to protect (`yarn start`, `scripts/smoke-theia.sh`, `scripts/verify-phase-04.sh`), and presenting as an unexplained death.
+- **`SOURCERER_TOKEN`** took the identical path, so any process a user ran in an IDE terminal could read the backend's auth credential — for a loopback server with arbitrary file access and terminal spawn — out of its own environment.
+- **`SOURCERER_TOKEN_DISABLE: ""`** is empty, so `normalizeEnv` dropped it. That is the only reason the existing explicit-clear precedent never surfaced this bug class.
+
+The same live read is why the fix works: deleting the keys before any child is forked removes them from every later `mergeProcessEnv` call, not just from exec-time inheritance.
+
+### The fix (`86cc4e4`, `ffdc221`) and the hermeticity/guard commits (`1100e6e`, `1fdf975`)
+
+- **`86cc4e4`** — new `theia/extensions/token-gate/src/node/sourcerer-env.ts` captures every `SOURCERER_*`-prefixed key into a module-level const and deletes it from `process.env`, at **module load**, unconditionally. Both token-gate contributions read `SOURCERER_ENV[...]` instead of `process.env[...]`. Module load rather than `initialize()` is load-bearing: `EnvVariablesServerImpl` snapshots the whole `process.env` in its **constructor** and serves that copy to the frontend over `/services/envs` and to `${env:...}` resolution, and the `@theia/filesystem` watcher fork passes `env: process.env` during the `initialize()` phase, which runs under `Promise.all` with no ordering guarantee.
+- **`ffdc221`** — `delete process.env.X` does not rewrite `/proc/<pid>/environ`; that file is the exec-time snapshot and stays readable by every same-uid process for the life of the backend. On this host `ptrace_scope=1` closes `/proc/<pid>/mem` but **not** `environ`, so the scrub alone closed the inheritance path and left the credential legible to precisely the attacker MED-01 names. The supervisor therefore stopped putting the token in the environment at all: `TheiaService._spawnAndGate` writes it as one line on the backend's stdin pipe (`SourcererAPI.writeStdinLine`) and `sourcerer-env.ts` reads it back byte-at-a-time to the newline before the gate's synchronous `initialize()` decides whether to fail closed. The child's fd 0 is a blocking pipe and is left open, because the parent-death watchdog's whole signal is EOF on that same fd.
+- **`1100e6e`** — `verify-phase-05.sh`'s `side04-unsupervised-backend-survives` and `verify-phase-04.sh`'s `start_backend` now spawn with `env -u SOURCERER_SUPERVISED -u SOURCERER_TOKEN_DISABLE`. A negative control that inherits the marker it is proving absent is not a control.
+- **`1fdf975`** (later renamed and widened in `ffdc221`) — new check **`side04-token-not-in-environment`**: real `start_shell` launch, backend pid taken from the `SOURCERER_BACKEND_READY` sentinel, then a scan of the backend's **own** `/proc/<pid>/environ` for `SOURCERER_TOKEN=` and of every child's `environ` for any `SOURCERER_*` key. `VERIFY05_LEAK_CANARY` rides the identical harness → browser → backend → child chain as the non-vacuity self-test; `SOURCERER_SHELL_SWAP` is required first as a positive control, since that sentinel is printed only after a token-authenticated 200, so a clean scan cannot be bought by never delivering a token. "No children" and "no readable environ" are both FAIL. No `--gate` exclusion was added.
+
+### What this changes about the working-day soak (Item A)
+
+Before the fix, opening a terminal inside Sourcerer and running any of the three dev entry points produced a backend that started and then died for no visible reason: the inherited `SOURCERER_SUPERVISED=1` armed a watchdog against that terminal's stdin. **Developing Sourcerer inside Sourcerer broke the dev scripts.** That is now closed — a terminal opened inside Sourcerer carries no `SOURCERER_*` key at all, so `scripts/smoke-theia.sh`, `scripts/verify-phase-02.sh` (both of which set their own `SOURCERER_TOKEN_DISABLE=1`) and `scripts/verify-phase-04.sh` (which supplies its own throwaway `SOURCERER_TOKEN`) behave inside Sourcerer exactly as they do outside it.
+
+One honest consequence, not papered over: **bare `yarn start`** in `theia/applications/browser` sets neither variable, so from a Sourcerer terminal it used to silently borrow the live instance's inherited token. It now fails closed — `SourcererTokenGateContribution.initialize()` writes a `FATAL -- SOURCERER_TOKEN is not set` line and calls `process.exit(78)`. That is correct fail-closed behaviour, but it means bare `yarn start` is not a standalone dev path; use the `SOURCERER_TOKEN_DISABLE=1` bypass the other scripts use. `applications/browser/package.json` was left as-is rather than deciding that here.
+
+### Check counts and gate state
+
+`verify-phase-05.sh` is now **14** checks (was 13; `side04-token-not-in-environment` added). `verify-phase-04.sh` is unchanged at **10**. Correction to the section above: `--gate` **no longer mutates a tracked file** — `ffdc221` deleted `write_gate_runtime_to_validation`, and `verify-phase-05.sh` now contains no reference to `05-VALIDATION.md` at all, so the gate no longer dirties the working tree on every run. The runtime is printed on the run's own verdict line instead.
+
+### Evidence
+
+Red-before-green was demonstrated on the real built bundle in both forms — replanting the scrub produced named child pids (the parcel-watcher fork *and* a real bash `ShellProcess` terminal, the latter missing `SOURCERER_TOKEN_DISABLE` exactly as `normalizeEnv`'s empty-value drop predicts); replanting `SOURCERER_TOKEN` in the spawn environment produced `backend pid 2050863 carries SOURCERER_TOKEN= in its OWN /proc/<pid>/environ`.
+
+Confirmed live against the running instance while writing this update (backend pid **2085972**): its `environ` carries only `SOURCERER_SUPERVISED=1` and an empty `SOURCERER_TOKEN_DISABLE`; its two children — the parcel-watcher fork (2085987) and a real bash terminal (2086108) — carry **zero** `SOURCERER_*` keys each; and `grep -l "SOURCERER_TOKEN=" /proc/*/environ` finds the token on **no process on the machine**.
+
+Harness results are from the implementing and reviewing runs, not re-run for this records update: `verify-phase-05.sh` 14/14 PASS; `--gate` PASS at `ffdc221`, 131s, carrying the same single named known-open exclusion (`verify-endpoints`, WINDOWS.md ledger entry 5); `verify-phase-04.sh` 10/10 PASS including `side02-token-positive`/`side02-token-negative`, which are the proof the gate still authenticates with the token gone from `process.env`; `verify-phase-02.sh` 5/5; `check-internals-boundary.sh` (+ `--catalogue`, `--self-test`) and `check-patch-surface.sh` (+ `--self-test`) all PASS.
+
+### Known coverage limits of the new check
+
+- The only child the check is **guaranteed** to scan is the parcel-watcher fork, whose call site is `filesystem-backend-module.js:118` (`env: process.env`) — the same live read, but not literally `mergeProcessEnv`. Whether a bash `ShellProcess` (the call site MED-01 actually names) is among the scanned children is environment-dependent; it was present in both the red run and the live instance, but that is not guaranteed.
+- A terminal opened hours into a session is outside the check's settle window.
+- The plugin host was never observed forking during any of these runs, so that path is covered by shared mechanism (`createIpcEnv({ env: process.env })`, a live read long after module load), not by direct observation.
+
+All three are moot for the *token*, which is now in no `process.env` at any instant, and apply only to `SOURCERER_SUPERVISED` — a marker, not a credential.
+
+### Human items: still all three pending, none of them passed
+
+**Items A, B and C of `05-MANUAL-VERIFICATION.md` remain entirely unperformed against the fixed build.** This fix removes an obstacle to Item A (the working-day soak no longer breaks the dev scripts from an in-Sourcerer terminal); it does not perform it, and it touches neither Item B (the physical Retry click) nor Item C (the physical diagnostics chord). Every outcome field in `05-MANUAL-VERIFICATION.md` still reads `pending`, correctly. `status: human_needed` is unchanged.
 
 ---
 

@@ -82,7 +82,9 @@ At minimum, `_reapLeftover()` should refuse to signal a recorded pid unless the 
 
 ## Medium Issues
 
-### MED-01: `SOURCERER_SUPERVISED=1` is never cleared after being read, and propagates to every process the backend later spawns
+### MED-01 — RESOLVED 2026-08-28 (`86cc4e4`, `ffdc221`): `SOURCERER_SUPERVISED=1` is never cleared after being read, and propagates to every process the backend later spawns
+
+> **Status: RESOLVED.** Fix and guard are described at the end of this subsection. The finding text below is the original review record, left unedited — including its "latent rather than actively exploited" assessment, which later evidence contradicts.
 
 **File:** `theia/extensions/token-gate/src/node/parent-watchdog-backend-contribution.ts:24-37`, `sourcerer/shell/TheiaService.sys.mjs:325-346`
 
@@ -102,6 +104,19 @@ initialize(): void {
     process.stdin.resume();
     ...
 ```
+
+**RESOLUTION (2026-08-28).** Fixed, and wider than this finding assumed.
+
+The finding called the leak "latent rather than actively exploited" on the ground that nothing else in this repo reads the variable. That was wrong about the mechanism. `@theia/terminal`'s `ShellProcess` builds each terminal's environment with `EnvironmentUtils.mergeProcessEnv`, which reads `process.env` **live at terminal-creation time** (`theia/node_modules/@theia/core/lib/node/environment-utils.js:32`) rather than from a startup snapshot — so the marker reached every IDE terminal, and the three unsupervised callers the watchdog's gate exists to protect (`yarn start`, `scripts/smoke-theia.sh`, `scripts/verify-phase-04.sh`) each armed a watchdog in their own nested backend and self-terminated on that terminal's stdin EOF. Developing Sourcerer inside Sourcerer broke the dev scripts. The same live read is why the fix works: deleting the key before any child is forked removes it from every later `mergeProcessEnv` call, not only from exec-time inheritance.
+
+`SOURCERER_TOKEN` — the backend's auth credential — travelled the identical path and is fixed too. `SOURCERER_TOKEN_DISABLE` never leaked only because the supervisor sets it to `""` and `normalizeEnv` drops empty values, which is exactly why this bug class stayed invisible.
+
+- **`86cc4e4`** — new `theia/extensions/token-gate/src/node/sourcerer-env.ts` captures and deletes every `SOURCERER_*`-prefixed key from `process.env` at **module load**, ahead of `EnvVariablesServerImpl`'s constructor snapshot and of the `@theia/filesystem` watcher fork. Both contributions read the captured copy.
+- **`ffdc221`** — a `delete` does not rewrite `/proc/<pid>/environ`, and on this host `ptrace_scope=1` closes `/proc/<pid>/mem` but not `environ`, so the scrub alone left the token legible to any same-uid process. The supervisor now never puts it in the environment: `TheiaService._spawnAndGate` writes it as one line on the backend's stdin pipe (`SourcererAPI.writeStdinLine`) and `sourcerer-env.ts` reads it back before the gate's synchronous `initialize()` decides whether to fail closed.
+- **Guard** — `side04-token-not-in-environment` in `verify-phase-05.sh` (check 14 of 14): the backend's own `environ` carries no `SOURCERER_TOKEN=`, no backend child carries any `SOURCERER_*` key, `VERIFY05_LEAK_CANARY` rides the identical chain as the non-vacuity self-test, and `SOURCERER_SHELL_SWAP` is required first as a positive control. Proven red before green on the real built bundle.
+- **Known coverage limit** — the only child the check is guaranteed to scan is the parcel-watcher fork. Whether a bash `ShellProcess` (the `mergeProcessEnv` call site this finding names) is among the scanned children is environment-dependent, and a terminal opened after the settle window is not covered.
+
+Full record in `.planning/WINDOWS.md` entry 9.
 
 ### MED-02: Diagnostics/error surfaces render the full, unredacted backend stdout/stderr history
 
@@ -165,4 +180,4 @@ Secondary defect on the same path: `sourcerer.js` read `diagnosticsElement.style
 
 **Known residual gap in the new guard:** `shell-csp-inline-attrs` only matches `name="value"` attribute syntax. An inline `<style>` or `<script>` **element** in the shipped markup — the Phase-4 form of this same defect, dropped by `default-src chrome:` just as silently — still passes the guard clean. `SOURCERER_DECK_STATE` covers the deck-layer symptom but not the general class.
 
-**Status of this file's own findings:** CR-01 fixed (`70f9454`). MED-01, MED-02, LOW-01 and LOW-02 all still **open**, deliberately not fixed; MED-01 and MED-02 are now also carried in `.planning/WINDOWS.md` (entries 9 and 10) so they are tracked outside this report.
+**Status of this file's own findings** (updated 2026-08-28): CR-01 fixed (`70f9454`). **MED-01 fixed** (`86cc4e4` scrubs every `SOURCERER_*` key from `process.env` at module load; `ffdc221` moves the token off the environment entirely onto the backend's stdin pipe; guarded by `side04-token-not-in-environment` — see the RESOLUTION note in the MED-01 subsection above and `.planning/WINDOWS.md` entry 9, now `fixed`). MED-02, LOW-01 and LOW-02 remain **open**, deliberately not fixed; MED-02 is carried in `.planning/WINDOWS.md` entry 10, whose stated mechanism was corrected when MED-01 was fixed — no `process.env` dump can carry the token any more, and the surviving path is request-header logging, since the token still arrives as a `Cookie`.
