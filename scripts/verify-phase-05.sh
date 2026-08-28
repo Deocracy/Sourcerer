@@ -182,6 +182,25 @@ backend_ready_pids() {
     | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{for(const l of s.split("\n")){if(!l.trim())continue;try{const j=JSON.parse(l);if(typeof j.pid==="number")console.log(j.pid)}catch{}}})' 2>/dev/null
 }
 
+# The process group a pid belongs to; empty if the process is gone.
+pgid_of() {
+  ps -o pgid= -p "$1" 2>/dev/null | tr -d ' '
+}
+
+# Hermetic replacement for a machine-wide `pgrep -f 'backend/main.js'`:
+# considers ONLY backends inside process groups this run created. A backend
+# inherits its browser's process group (SourcererAPI's Subprocess does not
+# setsid the child, so browser and backend report the same PGID -- verified
+# live against a running instance) and keeps that group after the browser
+# dies, so the group is a stable, run-scoped identity for exactly the orphan
+# these checks hunt. An unscoped pattern match instead fails on any machine
+# that has a Sourcerer open -- which is the state a phase-5 session itself
+# leaves behind, making the gate unreproducible on a developer box.
+# $1: comma-separated pgid list. Prints "pid cmdline" lines, one per match.
+backends_in_groups() {
+  pgrep -a -g "$1" -f 'backend/main\.js' 2>/dev/null || true
+}
+
 # --- Task 1 (05-02): harness-display-available -----------------------------
 #
 # Discriminator A (05-02-PLAN.md): a non-headless start_shell variant.
@@ -416,6 +435,17 @@ check_side04_sigkill_no_orphan() {
     return 1
   fi
 
+  # Read the group BEFORE the kill, while the process is known alive: after
+  # the browser dies an orphan is reparented to init but keeps this group,
+  # so it is the identity the post-kill scan matches on.
+  local backend_pgid
+  backend_pgid="$(pgid_of "$backend_pid")"
+  if [ -z "$backend_pgid" ]; then
+    echo "side04-sigkill-no-orphan: FAIL -- SIDE-04 -- could not read the process group of backend pid $backend_pid before the kill" >&2
+    stop_shell
+    return 1
+  fi
+
   local result=0
 
   # Signal the browser process alone. BROWSER_SPAWN_PID is the setsid
@@ -435,9 +465,11 @@ check_side04_sigkill_no_orphan() {
     result=1
   fi
 
-  if pgrep -f 'backend/main\.js' >/dev/null 2>&1; then
-    echo "side04-sigkill-no-orphan: FAIL -- SIDE-04 -- a process matching 'backend/main.js' is still running after the browser was SIGKILLed:" >&2
-    pgrep -af 'backend/main\.js' >&2 || true
+  local orphans
+  orphans="$(backends_in_groups "$backend_pgid")"
+  if [ -n "$orphans" ]; then
+    echo "side04-sigkill-no-orphan: FAIL -- SIDE-04 -- a process matching 'backend/main.js' from this launch's process group ($backend_pgid) is still running after the browser was SIGKILLed:" >&2
+    printf '%s\n' "$orphans" >&2
     result=1
   fi
 
@@ -1139,7 +1171,8 @@ check_side05_second_launch_focuses() {
 # check's state -- --only must be able to run this alone) and asserts:
 # exactly one SOURCERER_BACKEND_READY sentinel across both launches, the
 # announced backend pid unchanged, and exactly one live process matching
-# 'backend/main.js'. Then a THIRD launch against a DIFFERENT profile must
+# 'backend/main.js' among this run's own process groups. Then a THIRD
+# launch against a DIFFERENT profile must
 # start its own window and its own backend -- proving the guard is scoped
 # to the profile, not simply "second launches never work at all."
 check_side05_no_second_backend() {
@@ -1212,11 +1245,19 @@ check_side05_no_second_backend() {
     result=1
   fi
 
-  local backend_proc_count
-  backend_proc_count="$(pgrep -fc 'backend/main\.js' 2>/dev/null || echo 0)"
+  # Two groups make up this check's world: the first launch's own group
+  # (start_shell_display setsid's it, so its backend and any orphan of that
+  # backend live there), and this script's group, where a backend spawned by
+  # the SECOND launch would land -- that launch runs in the foreground and
+  # so inherits the harness's group. A backend outside both belongs to some
+  # other Sourcerer on the machine and is not this check's business.
+  local scope_pgids backends backend_proc_count
+  scope_pgids="$(pgid_of "$first_backend_pid"),$(pgid_of $$)"
+  backends="$(backends_in_groups "$scope_pgids")"
+  backend_proc_count="$(printf '%s' "$backends" | grep -c . || true)"
   if [ "$backend_proc_count" -ne 1 ]; then
-    echo "side05-no-second-backend: FAIL -- SIDE-05 -- expected exactly one process matching 'backend/main.js' while the session is up, found $backend_proc_count:" >&2
-    pgrep -af 'backend/main\.js' >&2 || true
+    echo "side05-no-second-backend: FAIL -- SIDE-05 -- expected exactly one process matching 'backend/main.js' in this run's process groups ($scope_pgids) while the session is up, found $backend_proc_count:" >&2
+    printf '%s\n' "$backends" >&2
     result=1
   fi
 
