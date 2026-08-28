@@ -11,6 +11,20 @@
  * into nothing and paints an empty window. Keeping the rules in a real
  * chrome: file satisfies the existing CSP as written; do NOT "fix" a future
  * styling problem here by adding 'unsafe-inline' back to the policy.
+ *
+ * The same policy drops an inline style ATTRIBUTE (`style="display:none;"`)
+ * just as silently -- Gecko's style-attribute parse path runs the identical
+ * CSP check (nsStyledElement::ParseStyleAttribute ->
+ * nsStyleUtil::CSPAllowsInlineStyle -> STYLE_SRC_ATTR falling back to
+ * default-src) and simply never builds the declaration. Phase 5 hid
+ * #sourcerer-error and #sourcerer-diagnostics that way; both attributes were
+ * inert, so their `display: flex` base rules below won and BOTH overlays
+ * painted over a perfectly healthy Theia at every startup, with nothing
+ * logged. Their hidden DEFAULT therefore lives here, in the stylesheet, and
+ * the layers are shown by the CSSOM writes in sourcerer.js -- which the CSP
+ * does NOT check, because they never go through attribute parsing. Do not
+ * move a hidden default back into a style attribute in sourcerer.xhtml;
+ * scripts/verify-phase-05.sh's shell-csp-inline-attrs check fails if you do.
  */
 
 html,
@@ -47,7 +61,10 @@ body {
   position: fixed;
   inset: 0;
   z-index: 2;
-  display: flex;
+  /* Hidden by default (see the header comment). The flex properties below
+   * are inert while this is `none` and take effect the instant
+   * sourcererShowError writes `display = "flex"` on the element. */
+  display: none;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -101,7 +118,9 @@ body {
   position: fixed;
   inset: 0;
   z-index: 3;
-  display: flex;
+  /* Hidden by default (see the header comment), shown by the CSSOM write in
+   * sourcererShowDiagnostics. */
+  display: none;
   flex-direction: column;
   align-items: center;
   justify-content: center;
