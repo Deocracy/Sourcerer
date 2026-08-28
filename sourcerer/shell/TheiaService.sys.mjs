@@ -104,7 +104,14 @@ export const TheiaService = {
 
     this._configDir = this._resolveConfigDir();
     await SourcererAPI.ensureDirectory(this._configDir);
-    this._stateFilePath = `${this._configDir}/sidecar-state.json`;
+    // CR-01 fix (05-REVIEW.md): the state file name itself carries a
+    // profile-scoped suffix -- _configDir stays exactly as before (it also
+    // backs THEIA_CONFIG_DIR below, unrelated to this fix and out of
+    // scope to relocate) so two instances under different --profile paths
+    // can never share a state file, while the SAME profile launched twice
+    // (SIDE-04's own crash-leftover scenario) always resolves the same
+    // path.
+    this._stateFilePath = `${this._configDir}/sidecar-state-${this._profileStateKey()}.json`;
 
     // D-105: observe the topic that fires once quit is final and can no
     // longer be cancelled -- beginning an irreversible shutdown under a
@@ -217,6 +224,30 @@ export const TheiaService = {
     const home = SourcererAPI.getEnv("HOME");
     const base = xdg || `${home}/.config`;
     return `${base}/sourcerer`;
+  },
+
+  /**
+   * CR-01 fix (05-REVIEW.md): a filesystem-safe key derived from this
+   * launch's own profile directory (ProfD), used to suffix the state file
+   * name so two Sourcerer instances running under different `--profile`
+   * paths never share one `sidecar-state.json` -- previously
+   * `_resolveConfigDir()` was keyed only on `XDG_CONFIG_HOME`/`HOME`, so
+   * every instance under the same OS user read and wrote the exact same
+   * file regardless of profile, and a second instance's startup reap
+   * (`_reapLeftover`) would verify-and-SIGTERM a FIRST instance's live,
+   * healthy backend (its pid genuinely was alive with exactly matching
+   * start ticks -- the identity check is sound, the shared file was not).
+   * No hash needed: ProfD's own absolute path is already the identity
+   * that matters, non-alphanumeric characters are simply replaced so it's
+   * a valid filename component, and it stays human-readable in the
+   * directory listing. Falls back to the literal string "default" (never
+   * throws, never empty) when ProfD can't be read, so a `getProfileDir()`
+   * failure degrades to the pre-fix single-file behaviour rather than
+   * crashing startup.
+   */
+  _profileStateKey() {
+    const profileDir = SourcererAPI.getProfileDir();
+    return profileDir ? profileDir.replace(/[^a-zA-Z0-9]+/g, "_") : "default";
   },
 
   /**
