@@ -5,10 +5,10 @@ milestone_name: milestone
 current_phase: 05
 current_phase_name: lifecycle-failure-hardening
 status: awaiting-human-verification
-stopped_at: "Completed quick task 260829-hjj: closed WINDOWS.md 10 (token redaction, d61b27b) and 11 (sidecar-state litter, bf1d482)"
-last_updated: "2026-08-29T19:55:03.080Z"
-last_activity: 2026-08-28
-last_activity_desc: "Closed WINDOWS.md entry 9 / 05-REVIEW.md MED-01, which was worse than recorded: Theia's mergeProcessEnv reads process.env LIVE at terminal-creation time (@theia/core/lib/node/environment-utils.js:32), so SOURCERER_SUPERVISED reached every IDE terminal and killed nested yarn start / smoke-theia.sh / verify-phase-04.sh runs, and SOURCERER_TOKEN -- the backend's auth credential -- took the identical path. 86cc4e4 scrubs every SOURCERER_* key from process.env at module load (sourcerer-env.ts, before EnvVariablesServerImpl's constructor snapshot and the filesystem-watcher fork); ffdc221 stops putting the token in the environment at all, since a delete does not rewrite /proc/<pid>/environ -- the supervisor writes it on the backend's stdin pipe and sourcerer-env.ts reads it back before the gate fails closed. Guarded by the new side04-token-not-in-environment check (1fdf975, widened in ffdc221); negative controls made hermetic in 1100e6e. verify-phase-05 now 14/14, verify-phase-04 10/10, --gate PASS at ffdc221 with the one named verify-endpoints exclusion; --gate no longer dirties the tree. Confirmed live on backend 2085972: no SOURCERER_TOKEN in its own environ, zero SOURCERER_* keys in either child, and no process on the machine carries the token. WINDOWS.md entry 9 is now fixed; entries 10 (MED-02, mechanism corrected -- surviving path is request-header logging, not env dumps) and 11 remain OPEN. Items A, B and C remain unperformed against the fixed build."
+stopped_at: "Completed quick task 260829-ikk: closed WINDOWS.md 5 (endpoint-allowlist 127.0.0.1/github.com/ciscobinary.openh264.org, e13d4f2/548e762)"
+last_updated: "2026-08-29T21:22:59.166Z"
+last_activity: 2026-08-29
+last_activity_desc: "Completed quick task 260829-hjj: closed WINDOWS.md 10 (token redaction) and 11 (sidecar-state litter)"
 progress:
   total_phases: 5
   completed_phases: 5
@@ -33,10 +33,10 @@ Status: awaiting-human-verification
 Last activity: 2026-08-29 — Completed quick task 260829-hjj: closed WINDOWS.md 10 (token redaction) and 11 (sidecar-state litter)
 
 All 5 plans are complete and the automated surface is green (`verify-phase-05.sh`
-14/14, `verify-phase-04.sh` 10/10, `--gate` PASS at `ffdc221` with the one named
-known-open exclusion, `verify-endpoints` / WINDOWS.md entry 5). What blocks the
-phase is the human surface: **Items A, B and C of `05-MANUAL-VERIFICATION.md`
-are all still unperformed against the fixed build.**
+14/14, `verify-phase-04.sh` 10/10, `--gate` PASS at `e13d4f2` with no remaining
+named exclusion -- `verify-endpoints` / WINDOWS.md entry 5 is now fixed). What
+blocks the phase is the human surface: **Items A, B and C of
+`05-MANUAL-VERIFICATION.md` are all still unperformed against the fixed build.**
 
 Two defects were found and fixed by hand after verification, both by looking at
 the product rather than at the harness:
@@ -59,7 +59,18 @@ the product rather than at the harness:
    `/proc/<pid>/environ`); guarded by `side04-token-not-in-environment`.
    `.planning/WINDOWS.md` entry 9, now `fixed`.
 
-Still open and tracked: WINDOWS.md entries 1, 5 and 7. See
+3. **Ledger entry 5, the BRAND-04 endpoint allowlist** — 127.0.0.1 (allow,
+   Theia sidecar loopback) and github.com (deny, closed by
+   `network.dns.disablePrefetch`) added; ciscobinary.openh264.org's existing
+   deny reason corrected -- `media.gmp-gmpopenh264.enabled` never gated the
+   periodic auto-update path, and the per-plugin `.autoupdate` override
+   cannot be set from a default-branch pref file at all
+   (`GMPPrefs.isSet()` requires `prefHasUserValue()`); the real fix is the
+   global `extensions.update.autoUpdateDefault = false`, confirmed live and
+   confirmed safe for Widevine. Fixed in `e13d4f2`; `.planning/WINDOWS.md`
+   entry 5 now `fixed`.
+
+Still open and tracked: WINDOWS.md entries 1 and 7. See
 `05-VERIFICATION.md`'s two Post-Verification Update sections.
 
 Progress: [██████████] 100%
@@ -122,6 +133,7 @@ Progress: [██████████] 100%
 | Phase 05 P04 | 55min | 2 tasks | 6 files |
 | Phase 05 P05 | 25min | 2 tasks | 3 files |
 | Phase quick P260829-hjj | ~35min | 3 tasks | 6 files |
+| Phase quick P260829-ikk | 45min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -222,6 +234,7 @@ Recent decisions affecting current work:
 - [Phase 5] 2026-08-28: verify-phase-05.sh's backend-orphan scans are scoped to process groups the run itself created, never a machine-global `pgrep -f 'backend/main.js'` -- the unscoped form made the suite fail on any other Sourcerer instance on the box
 - [Phase ?]: [Quick 260829-hjj] TheiaService._pushLog redacts this._token before buffering (null/empty-string guarded); SourcererAPI.log console mirror in _pumpOutput stays unredacted by design
 - [Phase ?]: [Quick 260829-hjj] verify-phase-04/05.sh export a run-scoped XDG_CONFIG_HOME for the whole script run (not just per setsid call) so scripts/lib/firefox-bidi.mjs's own spawn also lands in the throwaway dir; start_backend's own config dir preserved via a REAL_XDG_CONFIG_HOME snapshot
+- [Phase ?]: 127.0.0.1 allow, github.com deny (closed by network.dns.disablePrefetch), ciscobinary.openh264.org deny reason corrected to extensions.update.autoUpdateDefault=false (media.gmp-gmpopenh264.autoupdate cannot be set from a default-branch pref file); WINDOWS.md entry 5 closed
 
 ### Pending Todos
 
@@ -248,6 +261,7 @@ None yet.
 | 2026-08-22 | repo-homes-decided | Recorded decided repo homes: powerbrowser under DeBIOS-Foundation, Sourcerer stays at Deocracy |
 | 2026-08-22 | stream-model-docs | Recorded the three-layer stream model (Power Browser as midstream platform, Sourcerer as downstream distribution) in PRODUCT-REQUIREMENTS.md and sourcerer-architecture.md |
 | 2026-08-29 | fix-windows-10-token-redaction-and-11-sidecar-state-litter | Redacted the per-launch token in TheiaService's diagnostics ring buffer (WINDOWS.md 10 / MED-02) and stopped verify-phase-04/05.sh from littering the real config dir (WINDOWS.md 11); ledger down to 3 open entries |
+| 2026-08-29 | close-windows-5-allowlist-127-0-0-1-disa | Closed WINDOWS.md ledger entry 5: added 127.0.0.1 (allow) and github.com (deny, closed by network.dns.disablePrefetch) to the BRAND-04 allowlist, and corrected ciscobinary.openh264.org's deny rationale -- the real gate is extensions.update.autoUpdateDefault, not media.gmp-gmpopenh264.autoupdate, which can't be set from a default-branch pref file; ledger down to 2 open entries |
 
 ## Deferred Items
 
@@ -259,7 +273,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-29T19:54:53.620Z
-Stopped at: Completed quick task 260829-hjj: closed WINDOWS.md 10 (token redaction, d61b27b) and 11 (sidecar-state litter, bf1d482)
+Last session: 2026-08-29T21:22:59.153Z
+Stopped at: Completed quick task 260829-ikk: closed WINDOWS.md 5 (endpoint-allowlist 127.0.0.1/github.com/ciscobinary.openh264.org, e13d4f2/548e762)
 Resume file: None
 Next action: a human performs 05-MANUAL-VERIFICATION.md Items A, B and C against a build at b30dff7 or later, and records each verdict there.
