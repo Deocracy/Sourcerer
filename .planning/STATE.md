@@ -5,8 +5,8 @@ milestone_name: milestone
 current_phase: 05
 current_phase_name: lifecycle-failure-hardening
 status: awaiting-human-verification
-stopped_at: Fixed MED-01 -- the SOURCERER_* handshake leaked into every IDE terminal, and the auth token with it; token now travels on the backend's stdin pipe, never the environment. All 3 human items still unperformed against the fixed build
-last_updated: "2026-08-28T18:40:00.000Z"
+stopped_at: "Completed quick task 260829-hjj: closed WINDOWS.md 10 (token redaction, d61b27b) and 11 (sidecar-state litter, bf1d482)"
+last_updated: "2026-08-29T19:55:03.080Z"
 last_activity: 2026-08-28
 last_activity_desc: "Closed WINDOWS.md entry 9 / 05-REVIEW.md MED-01, which was worse than recorded: Theia's mergeProcessEnv reads process.env LIVE at terminal-creation time (@theia/core/lib/node/environment-utils.js:32), so SOURCERER_SUPERVISED reached every IDE terminal and killed nested yarn start / smoke-theia.sh / verify-phase-04.sh runs, and SOURCERER_TOKEN -- the backend's auth credential -- took the identical path. 86cc4e4 scrubs every SOURCERER_* key from process.env at module load (sourcerer-env.ts, before EnvVariablesServerImpl's constructor snapshot and the filesystem-watcher fork); ffdc221 stops putting the token in the environment at all, since a delete does not rewrite /proc/<pid>/environ -- the supervisor writes it on the backend's stdin pipe and sourcerer-env.ts reads it back before the gate fails closed. Guarded by the new side04-token-not-in-environment check (1fdf975, widened in ffdc221); negative controls made hermetic in 1100e6e. verify-phase-05 now 14/14, verify-phase-04 10/10, --gate PASS at ffdc221 with the one named verify-endpoints exclusion; --gate no longer dirties the tree. Confirmed live on backend 2085972: no SOURCERER_TOKEN in its own environ, zero SOURCERER_* keys in either child, and no process on the machine carries the token. WINDOWS.md entry 9 is now fixed; entries 10 (MED-02, mechanism corrected -- surviving path is request-header logging, not env dumps) and 11 remain OPEN. Items A, B and C remain unperformed against the fixed build."
 progress:
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 Phase: 05 (lifecycle-failure-hardening) — EXECUTING
 Plan: 5 of 5
 Status: awaiting-human-verification
-Last activity: 2026-08-28 — MED-01 fixed: the `SOURCERER_*` handshake, token included, is out of the backend's environment
+Last activity: 2026-08-29 — Completed quick task 260829-hjj: closed WINDOWS.md 10 (token redaction) and 11 (sidecar-state litter)
 
 All 5 plans are complete and the automated surface is green (`verify-phase-05.sh`
 14/14, `verify-phase-04.sh` 10/10, `--gate` PASS at `ffdc221` with the one named
@@ -47,6 +47,7 @@ the product rather than at the harness:
    05-02/05-03 used to hide them. Fixed in `014b0d9`; guarded by `def0143`
    (`shell-csp-inline-attrs`) and `b3a287d` (`SOURCERER_DECK_STATE`).
    `.planning/WINDOWS.md` entry 8.
+
 2. **MED-01, the `SOURCERER_*` environment leak** — worse than the review
    recorded it. `mergeProcessEnv` reads `process.env` live at terminal-creation
    time, so `SOURCERER_SUPERVISED` reached every IDE terminal and killed nested
@@ -58,9 +59,7 @@ the product rather than at the harness:
    `/proc/<pid>/environ`); guarded by `side04-token-not-in-environment`.
    `.planning/WINDOWS.md` entry 9, now `fixed`.
 
-Still open and tracked: WINDOWS.md entries 1, 5, 7, 10 (MED-02, diagnostics ring
-buffer unredacted — mechanism corrected, the surviving path is request-header
-logging, not `process.env` dumps) and 11 (sidecar-state-file litter). See
+Still open and tracked: WINDOWS.md entries 1, 5 and 7. See
 `05-VERIFICATION.md`'s two Post-Verification Update sections.
 
 Progress: [██████████] 100%
@@ -122,6 +121,7 @@ Progress: [██████████] 100%
 | Phase 05 P03 | 70min | 2 tasks | 8 files |
 | Phase 05 P04 | 55min | 2 tasks | 6 files |
 | Phase 05 P05 | 25min | 2 tasks | 3 files |
+| Phase quick P260829-hjj | ~35min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -220,6 +220,8 @@ Recent decisions affecting current work:
 - [Phase 5] 2026-08-28: visibility is read with `window.getComputedStyle(el).display`, never `el.style.display` -- the inline-attribute read returns `""` for a stylesheet-driven default and inverted the diagnostics toggle on first press
 - [Phase 5] 2026-08-28: the shell's own rendered chrome state is now observable to automation via the `SOURCERER_DECK_STATE` stdout sentinel -- BiDi can only see the content `<browser>` and chrome-context Marionette is platform-blocked, so a screenshot photographs Theia UNDERNEATH any chrome overlay; a sentinel is the only instrument this repo has for that surface
 - [Phase 5] 2026-08-28: verify-phase-05.sh's backend-orphan scans are scoped to process groups the run itself created, never a machine-global `pgrep -f 'backend/main.js'` -- the unscoped form made the suite fail on any other Sourcerer instance on the box
+- [Phase ?]: [Quick 260829-hjj] TheiaService._pushLog redacts this._token before buffering (null/empty-string guarded); SourcererAPI.log console mirror in _pumpOutput stays unredacted by design
+- [Phase ?]: [Quick 260829-hjj] verify-phase-04/05.sh export a run-scoped XDG_CONFIG_HOME for the whole script run (not just per setsid call) so scripts/lib/firefox-bidi.mjs's own spawn also lands in the throwaway dir; start_backend's own config dir preserved via a REAL_XDG_CONFIG_HOME snapshot
 
 ### Pending Todos
 
@@ -232,8 +234,8 @@ None yet.
 - All phases: Theia has no API stability tier. Review every `@theia/*` import against `doc/Migration.md` and record it in INTERNAL-APIS.md.
 - Phase 4: this executor's sandboxed session cannot get a Firefox content process past RenderCompositorSWGL/IPC channel setup in headless or Xvfb mode (reproduced on the untouched Phase-3 binary too) -- blocks live launch verification for plans 04-03's own <verify> and 04-04's kill-and-recover check; try a different runner/interactive session.
 - Phase 5, CLOSED 2026-08-28 (WINDOWS.md 9, review MED-01): `SOURCERER_SUPERVISED=1` inheriting into every backend subprocess is fixed -- `theia/extensions/token-gate/src/node/sourcerer-env.ts` captures and deletes every `SOURCERER_*` key from `process.env` at module load, and `verify-phase-05.sh`'s `side04-token-not-in-environment` asserts it from outside the process on a real supervised launch.
-- Phase 5, OPEN (WINDOWS.md 10, review MED-02): the diagnostics layer renders the backend stdout/stderr ring buffer unredacted. The originally-named mechanism is gone -- `SOURCERER_TOKEN` is no longer in the backend's environment at all (it is handed over the stdin pipe), so no `process.env` dump can carry it. The narrower surviving path: the token arrives on every request as a `Cookie` header, so anything that logs request headers puts it on stdout and `_pumpOutput` copies stdout into that buffer verbatim. Deliberately not fixed.
-- Phase 5, OPEN (WINDOWS.md 11): the CR-01 profile-scoping fix leaves one `~/.config/sourcerer/sidecar-state-<profile>.json` per profile path and nothing reaps them -- 151 accumulated from harness runs against `mktemp` profiles as of 2026-08-28. Cheapest remedy: point `XDG_CONFIG_HOME` at the harness temp dir so test runs never touch the real config dir.
+- Phase 5, CLOSED 2026-08-29 (WINDOWS.md 10, review MED-02): the diagnostics layer rendered the backend stdout/stderr ring buffer unredacted. Fixed in `d61b27b` -- `TheiaService._pushLog` now redacts `this._token` (null- and empty-string-guarded) before buffering; guarded by `shell04-log-redacts-token`, proven red before green against the real shipped module. The `SourcererAPI.log` console mirror in `_pumpOutput` stays deliberately unredacted (same sink the text already came from, not a new surface).
+- Phase 5, CLOSED 2026-08-29 (WINDOWS.md 11): the CR-01 profile-scoping fix left one `~/.config/sourcerer/sidecar-state-<profile>.json` per profile path with nothing reaping them -- 307 accumulated from harness runs against `mktemp` profiles. Fixed in `bf1d482` -- both verify harnesses mint a run-scoped `HARNESS_CONFIG_HOME` and export it as `XDG_CONFIG_HOME` for the whole run (also covers `scripts/lib/firefox-bidi.mjs`'s own spawn, missed by the original two-call-site scope); `verify-phase-04.sh`'s `start_backend()` config dir preserved unchanged via a pre-export snapshot. 305 stale files deleted, the 2 real-profile files survive, `verify-phase-04.sh` confirmed 10/10 with the file count unchanged across a real run.
 - Phase 5, OPEN: the new `shell-csp-inline-attrs` guard matches only `name="value"` attribute syntax -- an inline `<style>` or `<script>` ELEMENT in the shipped markup (the Phase-4 form of the same defect) still passes it clean.
 - Phase 5, CLOSED 2026-08-28: `05-PATTERNS.md` had prescribed the defective `style="display:none;"` markup as the deck-layer template (a future agent following it would reintroduce the bug). The snippet is corrected and carries a dated CORRECTED note naming the CSP and the `getComputedStyle` rule.
 - Phase 5, CLOSED 2026-08-28: `--gate` no longer mutates a tracked file — `write_gate_runtime_to_validation` is deleted, the measured wall time is printed in the run output only, and 05-VALIDATION.md's runtime cell points at that line instead of carrying a number that goes stale on the next added check.
@@ -245,6 +247,7 @@ None yet.
 |------|------|-------------|
 | 2026-08-22 | repo-homes-decided | Recorded decided repo homes: powerbrowser under DeBIOS-Foundation, Sourcerer stays at Deocracy |
 | 2026-08-22 | stream-model-docs | Recorded the three-layer stream model (Power Browser as midstream platform, Sourcerer as downstream distribution) in PRODUCT-REQUIREMENTS.md and sourcerer-architecture.md |
+| 2026-08-29 | fix-windows-10-token-redaction-and-11-sidecar-state-litter | Redacted the per-launch token in TheiaService's diagnostics ring buffer (WINDOWS.md 10 / MED-02) and stopped verify-phase-04/05.sh from littering the real config dir (WINDOWS.md 11); ledger down to 3 open entries |
 
 ## Deferred Items
 
@@ -256,7 +259,7 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-28T16:30:00.000Z
-Stopped at: Fixed the deck-overlay CSP regression exposed by the first hand-attempt at 05-MANUAL-VERIFICATION.md Item C (014b0d9, guarded by def0143 + b3a287d; orphan scans made hermetic in b30dff7). Items A, B and C all remain unperformed against the fixed build.
+Last session: 2026-08-29T19:54:53.620Z
+Stopped at: Completed quick task 260829-hjj: closed WINDOWS.md 10 (token redaction, d61b27b) and 11 (sidecar-state litter, bf1d482)
 Resume file: None
 Next action: a human performs 05-MANUAL-VERIFICATION.md Items A, B and C against a build at b30dff7 or later, and records each verdict there.
