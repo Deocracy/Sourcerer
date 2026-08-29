@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-08-19)
 Phase: 05 (lifecycle-failure-hardening) — EXECUTING
 Plan: 5 of 5
 Status: awaiting-human-verification
-Last activity: 2026-08-29 — Completed quick task 260829-hjj: closed WINDOWS.md 10 (token redaction) and 11 (sidecar-state litter)
+Last activity: 2026-08-29 — Completed quick task 260829-ikk: closed WINDOWS.md 5 (endpoint allowlist: 127.0.0.1 allowed, github.com prefetch closed, openh264 autoupdate path closed)
 
 All 5 plans are complete and the automated surface is green (`verify-phase-05.sh`
 14/14, `verify-phase-04.sh` 10/10, `--gate` PASS at `e13d4f2` with no remaining
@@ -261,6 +261,7 @@ None yet.
 | 2026-08-22 | repo-homes-decided | Recorded decided repo homes: powerbrowser under DeBIOS-Foundation, Sourcerer stays at Deocracy |
 | 2026-08-22 | stream-model-docs | Recorded the three-layer stream model (Power Browser as midstream platform, Sourcerer as downstream distribution) in PRODUCT-REQUIREMENTS.md and sourcerer-architecture.md |
 | 2026-08-29 | fix-windows-10-token-redaction-and-11-sidecar-state-litter | Redacted the per-launch token in TheiaService's diagnostics ring buffer (WINDOWS.md 10 / MED-02) and stopped verify-phase-04/05.sh from littering the real config dir (WINDOWS.md 11); ledger down to 3 open entries |
+| 2026-08-29 | close-windows-5-allowlist | Closed WINDOWS.md 5: allowed 127.0.0.1 (Theia sidecar loopback), closed github.com via network.dns.disablePrefetch, closed the OpenH264 periodic-autoupdate path via extensions.update.autoUpdateDefault=false; verify-endpoints fully green, ledger down to 2 open entries |
 | 2026-08-29 | close-windows-5-allowlist-127-0-0-1-disa | Closed WINDOWS.md ledger entry 5: added 127.0.0.1 (allow) and github.com (deny, closed by network.dns.disablePrefetch) to the BRAND-04 allowlist, and corrected ciscobinary.openh264.org's deny rationale -- the real gate is extensions.update.autoUpdateDefault, not media.gmp-gmpopenh264.autoupdate, which can't be set from a default-branch pref file; ledger down to 2 open entries |
 
 ## Deferred Items
