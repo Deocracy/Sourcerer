@@ -68,6 +68,20 @@ BACKEND_SPAWN_PID=""
 BROWSER_SPAWN_PID=""
 declare -a TEMP_PATHS=()
 track_temp() { TEMP_PATHS+=("$1"); }
+
+# WINDOWS.md 11: one run-scoped throwaway config home for every launch this
+# script makes that doesn't explicitly override it (CR-01's plant_leftover
+# still points its own launches at its own parent dir via
+# VERIFY05_XDG_CONFIG_HOME). Without this, TheiaService._resolveConfigDir()
+# falls through to the real $HOME/.config/sourcerer and litters it with one
+# sidecar-state-<profile>.json per mktemp profile this harness ever used.
+# Exported (not just passed to start_shell/start_shell_display's own setsid
+# env) so scripts/lib/firefox-bidi.mjs's own child_process.spawn -- which
+# inherits process.env by default and is invoked from inline node scripts
+# this script itself spawns -- lands in the throwaway dir too; start_shell's
+# explicit VERIFY05_XDG_CONFIG_HOME override still wins for its own launch.
+HARNESS_CONFIG_HOME="$(mktemp -d)"; track_temp "$HARNESS_CONFIG_HOME"
+export XDG_CONFIG_HOME="$HARNESS_CONFIG_HOME"
 cleanup() {
   if [ -n "$CURRENT_CHECK_PID" ]; then
     kill -- "-$CURRENT_CHECK_PID" 2>/dev/null || kill "$CURRENT_CHECK_PID" 2>/dev/null || true
@@ -136,10 +150,7 @@ start_shell() {
   fi
   BROWSER_LOG="$log"
 
-  local -a env_args=()
-  if [ -n "${VERIFY05_XDG_CONFIG_HOME:-}" ]; then
-    env_args+=(env "XDG_CONFIG_HOME=$VERIFY05_XDG_CONFIG_HOME")
-  fi
+  local -a env_args=(env "XDG_CONFIG_HOME=${VERIFY05_XDG_CONFIG_HOME:-$HARNESS_CONFIG_HOME}")
   if [ -n "${VERIFY05_USER_JS_PROFILE:-}" ]; then
     mkdir -p "$profile"
     cp "$VERIFY05_USER_JS_PROFILE" "$profile/user.js"
@@ -311,7 +322,7 @@ start_shell_display() {
     cp "$VERIFY05_USER_JS_PROFILE" "$profile/user.js"
   fi
 
-  setsid env "DISPLAY=$display_to_use" "$bin" --profile "$profile" >"$log" 2>&1 &
+  setsid env "DISPLAY=$display_to_use" "XDG_CONFIG_HOME=${VERIFY05_XDG_CONFIG_HOME:-$HARNESS_CONFIG_HOME}" "$bin" --profile "$profile" >"$log" 2>&1 &
   BROWSER_SPAWN_PID=$!
   DISPLAY_IN_USE="$display_to_use"
   return 0
