@@ -118,7 +118,9 @@ The finding called the leak "latent rather than actively exploited" on the groun
 
 Full record in `.planning/WINDOWS.md` entry 9.
 
-### MED-02: Diagnostics/error surfaces render the full, unredacted backend stdout/stderr history
+### MED-02 — RESOLVED 2026-08-29 (`d61b27b`): Diagnostics/error surfaces render the full, unredacted backend stdout/stderr history
+
+> **Status: RESOLVED.** Fix and guard are described at the end of this subsection. The finding text below is the original review record, left unedited.
 
 **File:** `sourcerer/shell/TheiaService.sys.mjs:704-710` (`_pumpOutput`'s `handleLine`, unconditional `this._pushLog(line)`), `sourcerer/shell/sourcerer.js:138` (`diagnosticsLogElement.textContent = log.join("\n")`)
 
@@ -133,6 +135,16 @@ _pushLog(line) {
   ...
 }
 ```
+
+**RESOLUTION (2026-08-29).** Fixed as proposed, one line narrower than the finding's literal fix sketch.
+
+`_pushLog` now runs `this._token ? line.replaceAll(this._token, "[redacted]") : line` before buffering — the same shape the finding proposed, with two guard cases the sketch didn't spell out: `_token` is `null` until `start()` mints it (`replaceAll(null, ...)` would match the literal string `"null"`), and an empty-string token (`replaceAll("", ...)` splices the replacement between every character of the line). Both are covered by the null-token-guard branch. The narrower surviving mechanism WINDOWS.md entry 10 corrected — the token arriving as a `Cookie` request header rather than a `process.env` dump — is what this line actually catches, since the token is no longer in the backend's environment at all (MED-01/entry 9).
+
+**Guard** — `shell04-log-redacts-token` in `verify-phase-05.sh` (registered outside `--quick`, needs no browser/display/build): imports the shipped `TheiaService.sys.mjs` under plain node after stubbing its one `ChromeUtils.importESModule` dependency, then drives `_pushLog` directly on a bare receiver. Three cases: a real token is redacted with a `[redacted]` marker present, a `null` token leaves the line unchanged without throwing, and an empty-string token leaves the line unchanged (the case that catches the splicing bug). Proven red before green: reverting the redaction line makes the check FAIL, restoring it makes it PASS, on the real shipped file.
+
+**Scope boundary, deliberately kept** — the sibling `SourcererAPI.log("log", line)` mirror in `_pumpOutput` stays unredacted. That line goes to the browser's own stdout, the same sink the text already came from; the ring buffer is the surface SHELL-04 newly made reachable in-app, and it is the one this finding names.
+
+Full record in `.planning/WINDOWS.md` entry 10.
 
 ## Low Issues
 
@@ -180,4 +192,4 @@ Secondary defect on the same path: `sourcerer.js` read `diagnosticsElement.style
 
 **Known residual gap in the new guard:** `shell-csp-inline-attrs` only matches `name="value"` attribute syntax. An inline `<style>` or `<script>` **element** in the shipped markup — the Phase-4 form of this same defect, dropped by `default-src chrome:` just as silently — still passes the guard clean. `SOURCERER_DECK_STATE` covers the deck-layer symptom but not the general class.
 
-**Status of this file's own findings** (updated 2026-08-28): CR-01 fixed (`70f9454`). **MED-01 fixed** (`86cc4e4` scrubs every `SOURCERER_*` key from `process.env` at module load; `ffdc221` moves the token off the environment entirely onto the backend's stdin pipe; guarded by `side04-token-not-in-environment` — see the RESOLUTION note in the MED-01 subsection above and `.planning/WINDOWS.md` entry 9, now `fixed`). MED-02, LOW-01 and LOW-02 remain **open**, deliberately not fixed; MED-02 is carried in `.planning/WINDOWS.md` entry 10, whose stated mechanism was corrected when MED-01 was fixed — no `process.env` dump can carry the token any more, and the surviving path is request-header logging, since the token still arrives as a `Cookie`.
+**Status of this file's own findings** (updated 2026-08-29): CR-01 fixed (`70f9454`). **MED-01 fixed** (`86cc4e4` scrubs every `SOURCERER_*` key from `process.env` at module load; `ffdc221` moves the token off the environment entirely onto the backend's stdin pipe; guarded by `side04-token-not-in-environment` — see the RESOLUTION note in the MED-01 subsection above and `.planning/WINDOWS.md` entry 9, now `fixed`). **MED-02 fixed** (`d61b27b` redacts `this._token` in `_pushLog` before buffering, guarded by `shell04-log-redacts-token`; see the RESOLUTION note in the MED-02 subsection above and `.planning/WINDOWS.md` entry 10, now `fixed`). LOW-01 and LOW-02 remain **open**, deliberately not fixed.
