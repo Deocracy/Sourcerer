@@ -110,6 +110,55 @@ pref("extensions.addonAbuseReport.url", "");
 // rather than waived. ---
 pref("network.connectivity-service.enabled", false);
 
+// --- BRAND-04 ledger entry 5 fix (2026-08-29): Gecko speculatively
+// DNS-prefetches link targets rendered by the Theia frontend --
+// network.dns.disablePrefetch defaults false
+// (modules/libpref/init/StaticPrefList.yaml:15308) and
+// network.dns.disablePrefetchFromHTTPS also defaults false (:15161), so
+// the origin scheme is irrelevant. Root cause traced to
+// theia/extensions/branding/src/browser/sourcerer-welcome-widget.tsx:13's
+// SOURCERER_REPO_URL link to github.com. Disabled rather than removing
+// the link -- the link is a real, wanted affordance, and an explicit
+// click is a user request this pref does not block, only the
+// speculative prefetch. github.com stays a `deny` entry in
+// endpoint-allowlist.json so a regression fails the check. ---
+pref("network.dns.disablePrefetch", true);
+
+// --- BRAND-04 ledger entry 5 fix (2026-08-29): media.gmp-gmpopenh264.enabled
+// (above) does not stop the periodic auto-update task from resolving
+// ciscobinary.openh264.org. GMPProvider.findUpdates()
+// (toolkit/mozapps/extensions/internal/GMPProvider.sys.mjs:380-451) runs
+// on the general periodic AddonManager update timer regardless of
+// .enabled -- that pref only feeds GMPUtils.isPluginHidden/userDisabled,
+// and permissions (GMPProvider.sys.mjs:299-307) grants PERM_CAN_UPGRADE
+// unconditionally for a non-EME plugin like OpenH264. The real gate is
+// AddonManager.shouldAutoUpdate() (AddonManager.sys.mjs:4577-4598), which
+// falls through to this.autoUpdateDefault whenever the addon's own
+// applyBackgroundUpdates getter reports AUTOUPDATE_DEFAULT rather than an
+// explicit ENABLE/DISABLE -- and it always does here, because that getter
+// (GMPProvider.sys.mjs:347-358) gates on GMPPrefs.isSet(), which calls
+// Services.prefs.prefHasUserValue() and is therefore permanently false for
+// any value this default-branch pref file sets (media.gmp-gmpopenh264.
+// autoupdate cannot be closed from here at all -- confirmed live: setting
+// it false via this file had zero effect on the resolution). This global
+// switch is the one lever that IS a plain default-branch-readable bool
+// pref. Confirmed safe for Widevine: its own findUpdates() never reaches
+// this fallback at all -- media.eme.enabled defaults false on Linux
+// (StaticPrefList.yaml:12162-12175), so GMPProvider.appDisabled is true
+// for the EME plugin, and shouldAutoUpdate() returns false at the
+// PERM_CAN_UPGRADE check (line 4588) before applyBackgroundUpdates is
+// even read; a real EME/DRM request instead drives checkForUpdates() ->
+// simpleCheckAndInstall() (GMPProvider.sys.mjs:557-574), a separate call
+// path gated by its own media.gmp-widevinecdm.enabled default (true),
+// untouched by this pref. Traced live: with this pref at its stock true,
+// findUpdates() ran checkForAddons() ->
+// downloadLocalConfig(chrome://global/content/gmp-sources/openh264.json)
+// -> installAddon(), genuinely downloading and extracting the OpenH264
+// zip from ciscobinary.openh264.org; with it false, that call never ran.
+// media.gmp-gmpopenh264.enabled stays false too -- still correct, still
+// wanted, just not sufficient alone. ---
+pref("extensions.update.autoUpdateDefault", false);
+
 // Number of usages of the web console.
 // If this is less than 5, then pasting code into the web console is disabled
 pref("devtools.selfxss.count", 5);
