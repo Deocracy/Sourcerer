@@ -889,7 +889,18 @@ export const TheiaService = {
    */
   _pushLog(line) {
     const max = SourcererAPI.getIntPref("sourcerer.sidecar.logBufferLines", 500);
-    this._log.push(`[${Date.now()}] ${line}`);
+    // MED-02 / WINDOWS.md 10: the diagnostics ring buffer is in-app reachable
+    // (SHELL-04), so a line carrying the per-launch token (it arrives on
+    // every request as a Cookie header, and _pumpOutput copies stdout here
+    // verbatim) must never buffer verbatim. The `this._token ?` guard is
+    // load-bearing, not defensive: `_token` is null until start() mints it,
+    // and `replaceAll(null, ...)` would match the literal string "null"
+    // while `replaceAll("", ...)` splices the replacement between every
+    // character of the line. Scope boundary: the sibling SourcererAPI.log
+    // mirror in _pumpOutput stays unredacted -- it goes to the browser's own
+    // stdout, the same sink the text already came from, not a new surface.
+    const safe = this._token ? line.replaceAll(this._token, "[redacted]") : line;
+    this._log.push(`[${Date.now()}] ${safe}`);
     while (this._log.length > max) {
       this._log.shift();
     }

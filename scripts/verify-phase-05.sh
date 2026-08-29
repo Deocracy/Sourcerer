@@ -1072,6 +1072,89 @@ EOF
   return "$result"
 }
 
+# --- MED-02 / WINDOWS.md 10: shell04-log-redacts-token ----------------------
+#
+# Behavioral (not a grep) proof that TheiaService._pushLog scrubs the
+# per-launch token before buffering a line into the SHELL-04 diagnostics ring
+# buffer. Imports the shipped module directly under plain node after
+# stubbing its one chrome dependency (ChromeUtils.importESModule), then
+# drives _pushLog on a bare receiver -- no browser, no display, no built
+# tree needed.
+check_shell04_log_redacts_token() {
+  local shipped="$REPO_ROOT/sourcerer/shell/TheiaService.sys.mjs"
+  local out result=0
+  out="$(SHIPPED_THEIA_SERVICE="$shipped" node --input-type=module -e '
+    globalThis.ChromeUtils = { importESModule: () => ({ SourcererAPI: { getIntPref: (_k, d) => d } }) };
+    const { TheiaService } = await import(process.env.SHIPPED_THEIA_SERVICE);
+
+    if (typeof TheiaService._pushLog !== "function") {
+      console.error("FAIL -- TheiaService._pushLog is not a function (renamed or removed)");
+      process.exit(1);
+    }
+
+    // (a) real token, real line -- token must not survive, and a redaction
+    // marker must be present.
+    {
+      const receiver = { _token: "TOK-11111111", _log: [] };
+      TheiaService._pushLog.call(receiver, "Cookie: sourcerer-token=TOK-11111111");
+      const entry = receiver._log[receiver._log.length - 1];
+      if (receiver._log.length !== 1) {
+        console.error("FAIL -- case (a): expected exactly one buffered entry, got " + receiver._log.length);
+        process.exit(1);
+      }
+      if (entry.includes("TOK-11111111")) {
+        console.error("FAIL -- case (a): token survived unredacted: " + entry);
+        process.exit(1);
+      }
+      if (!entry.includes("[redacted]")) {
+        console.error("FAIL -- case (a): no redaction marker in: " + entry);
+        process.exit(1);
+      }
+    }
+
+    // (b) null token -- must not throw, line must survive unchanged.
+    {
+      const receiver = { _token: null, _log: [] };
+      const line = "an ordinary log line";
+      TheiaService._pushLog.call(receiver, line);
+      const entry = receiver._log[receiver._log.length - 1];
+      if (receiver._log.length !== 1) {
+        console.error("FAIL -- case (b): expected exactly one buffered entry, got " + receiver._log.length);
+        process.exit(1);
+      }
+      if (!entry.endsWith(line)) {
+        console.error("FAIL -- case (b): null-token line was altered: " + entry);
+        process.exit(1);
+      }
+    }
+
+    // (c) empty-string token -- the splicing-bug case. replaceAll("", X)
+    // would splice X between every character.
+    {
+      const receiver = { _token: "", _log: [] };
+      const line = "an ordinary log line";
+      TheiaService._pushLog.call(receiver, line);
+      const entry = receiver._log[receiver._log.length - 1];
+      if (receiver._log.length !== 1) {
+        console.error("FAIL -- case (c): expected exactly one buffered entry, got " + receiver._log.length);
+        process.exit(1);
+      }
+      if (!entry.endsWith(line)) {
+        console.error("FAIL -- case (c): empty-token line was spliced/altered: " + entry);
+        process.exit(1);
+      }
+    }
+
+    console.log("PASS");
+  ' 2>&1)" || result=1
+
+  if [ "$result" -ne 0 ] || ! grep -q "^PASS$" <<<"$out"; then
+    echo "shell04-log-redacts-token: FAIL -- MED-02 -- $out" >&2
+    return 1
+  fi
+  return 0
+}
+
 # --- Task 2 (05-04): side05-second-launch-focuses / side05-no-second-backend
 #
 # SIDE-05: a second launch against the SAME profile must focus the already-
@@ -1771,6 +1854,7 @@ run_own_checks() {
   # nothing at all.
   local -a CHECKS=(
     "shell-csp-inline-attrs|check_shell_csp_inline_attrs"
+    "shell04-log-redacts-token|check_shell04_log_redacts_token"
   )
 
   if [ "$QUICK" -eq 0 ]; then
