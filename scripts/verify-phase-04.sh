@@ -48,6 +48,21 @@ BACKEND_SPAWN_PID=""
 BROWSER_SPAWN_PID=""
 declare -a TEMP_PATHS=()
 track_temp() { TEMP_PATHS+=("$1"); }
+
+# WINDOWS.md 11: one run-scoped throwaway config home for start_shell()'s
+# launches, so this harness never litters the real $HOME/.config/sourcerer
+# with a sidecar-state-<profile>.json per mktemp profile. start_backend()'s
+# own THEIA_CONFIG_DIR is left alone -- out of scope, see start_shell() below.
+# Exported (not just passed to start_shell's own setsid env) so
+# scripts/lib/firefox-bidi.mjs's own child_process.spawn -- inherited
+# process.env, invoked from inline node scripts this script itself spawns --
+# lands in the throwaway dir too. REAL_XDG_CONFIG_HOME preserves whatever
+# the caller's shell had (possibly unset) BEFORE this export, so
+# start_backend()'s own config_dir line -- explicitly out of scope -- keeps
+# resolving against the real value, not the harness override.
+REAL_XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-}"
+HARNESS_CONFIG_HOME="$(mktemp -d)"; track_temp "$HARNESS_CONFIG_HOME"
+export XDG_CONFIG_HOME="$HARNESS_CONFIG_HOME"
 cleanup() {
   if [ -n "$CURRENT_CHECK_PID" ]; then
     kill -- "-$CURRENT_CHECK_PID" 2>/dev/null || kill "$CURRENT_CHECK_PID" 2>/dev/null || true
@@ -121,7 +136,7 @@ start_backend() {
   track_temp "$log"
   BACKEND_LOG="$log"
 
-  local config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/sourcerer"
+  local config_dir="${REAL_XDG_CONFIG_HOME:-$HOME/.config}/sourcerer"
   mkdir -p "$config_dir"
 
   # -u: this is one of the three unsupervised callers the watchdog's marker
@@ -316,7 +331,7 @@ start_shell() {
   profile="$(mktemp -d)"; track_temp "$profile"
   BROWSER_LOG="$log"
 
-  setsid "$bin" --headless --profile "$profile" >"$log" 2>&1 &
+  setsid env "XDG_CONFIG_HOME=$HARNESS_CONFIG_HOME" "$bin" --headless --profile "$profile" >"$log" 2>&1 &
   BROWSER_SPAWN_PID=$!
   return 0
 }
