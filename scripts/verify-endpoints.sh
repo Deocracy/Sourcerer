@@ -360,9 +360,20 @@ run_layer3_impl() {
   # restore) now restores the pref file before the process exits.
   if [ "$control" -eq 1 ]; then
     track_pref_backup "$BRANDING_PREF_FILE"
+    # media.gmp-gmpopenh264.enabled=true alone is a vacuous control after the
+    # BRAND-04 ledger-entry-5 fix (2026-08-29): the ciscobinary.openh264.org
+    # resolution comes from GMPProvider.findUpdates()'s periodic auto-update
+    # task, which never reads .enabled at all -- it is gated by the global
+    # extensions.update.autoUpdateDefault (the branding pref file now sets
+    # false), since the per-plugin override cannot be set from a
+    # default-branch pref file (GMPPrefs.isSet() requires prefHasUserValue()).
+    # Re-enabling autoUpdateDefault here is what actually reproduces the
+    # violation; .enabled=true is kept alongside it for continuity with the
+    # plugin's user-facing visibility, though it is inert for this path.
     cat >> "$BRANDING_PREF_FILE" <<'PREFEOF'
 
 pref("media.gmp-gmpopenh264.enabled", true);
+pref("extensions.update.autoUpdateDefault", true);
 PREFEOF
   fi
 

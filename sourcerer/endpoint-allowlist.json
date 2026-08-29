@@ -69,7 +69,17 @@
     {
       "host": "ciscobinary.openh264.org",
       "disposition": "deny",
-      "reason": "D-87: Cisco's OpenH264 codec download host (toolkit/content/gmp-sources/openh264.json). This is the one genuinely unattended download at startup on stock Firefox (media.gmp-gmpopenh264.enabled defaults true unconditionally, browser/app/profile/firefox.js:2393-2394) -- disabled via media.gmp-gmpopenh264.enabled = false."
+      "reason": "D-87, corrected 2026-08-29 (ledger entry 5): media.gmp-gmpopenh264.enabled = false alone does not stop this resolution once a real Theia content page is loaded and the periodic AddonManager update timer fires. GMPProvider.findUpdates() (toolkit/mozapps/extensions/internal/GMPProvider.sys.mjs:380-451) runs on that periodic reason (UPDATE_WHEN_PERIODIC_UPDATE) regardless of .enabled -- the same correction already recorded for Widevine on the update.googleapis.com entry: GMPUtils.isPluginHidden (toolkit/modules/GMPUtils.sys.mjs:27-41) reads media.{id}.visible, not .enabled, and findUpdates() consults neither. The real gate is AddonManager.shouldAutoUpdate() (AddonManager.sys.mjs:4577-4598) falling through to the global extensions.update.autoUpdateDefault -- the addon's own per-plugin applyBackgroundUpdates override (GMPProvider.sys.mjs:347-358, media.gmp-gmpopenh264.autoupdate) cannot be set from this repo's default-branch pref files at all, because that getter gates on GMPPrefs.isSet() -> Services.prefs.prefHasUserValue(), which a pref() call in a branding file never satisfies (confirmed live: setting media.gmp-gmpopenh264.autoupdate = false via the branding file had zero effect on the resolution). extensions.update.autoUpdateDefault = false is the one lever that is a plain default-branch-readable bool and is confirmed safe for Widevine: its own findUpdates() never reaches this fallback (media.eme.enabled defaults false on Linux, so GMPProvider.appDisabled is true for the EME plugin and shouldAutoUpdate() returns false earlier, at the PERM_CAN_UPGRADE check), and a real EME/DRM request instead drives the separate checkForUpdates() -> simpleCheckAndInstall() path (GMPProvider.sys.mjs:557-574), untouched by this pref. Traced live against the real built binary: with extensions.update.autoUpdateDefault at its stock true, findUpdates() ran checkForAddons() -> downloadLocalConfig(chrome://global/content/gmp-sources/openh264.json) -> installAddon(), genuinely downloading and extracting the OpenH264 zip from this host; with it false, that call never ran. media.gmp-gmpopenh264.enabled stays false too -- still correct, still wanted, just not sufficient on its own."
+    },
+    {
+      "host": "127.0.0.1",
+      "disposition": "allow",
+      "reason": "The Theia sidecar loopback -- architecture, not a concession. The phase-04 shell (sourcerer/shell/TheiaService.sys.mjs) supervises a bundled Node + Theia browser-target backend on localhost and presents it full-window as the only GUI; a build that could not reach loopback would have no GUI at all. A literal loopback address, so no name resolution leaves the machine. Exact-string match only (allowlist_host_allowed, scripts/verify-endpoints.sh:340-352 -- suffix matching requires a leading literal dot in the allowlist entry), so this entry admits the one literal address 127.0.0.1 and nothing else."
+    },
+    {
+      "host": "github.com",
+      "disposition": "deny",
+      "reason": "Root cause: theia/extensions/branding/src/browser/sourcerer-welcome-widget.tsx:13 exports SOURCERER_REPO_URL = 'https://github.com/Deocracy/Sourcerer' and renders it as a link; Gecko speculatively DNS-prefetches link targets (network.dns.disablePrefetch defaults false, modules/libpref/init/StaticPrefList.yaml:15308; network.dns.disablePrefetchFromHTTPS also defaults false, :15161, so the http-vs-https origin of the Theia frontend does not matter). Closed by network.dns.disablePrefetch = true, not by removing the link -- the link is a real, wanted affordance and a user who clicks it is making an explicit request, the same allow-the-capability/deny-the-unattended-callout distinction the geo.provider.network.url and dom.push.enabled entries already draw. Kept as `deny` rather than absent so the file stays the single source of truth: an observation of this host is a failure either way, and this reason records why it is not expected."
     },
     {
       "host": "cloudflare-dns.com",
@@ -232,6 +242,16 @@
       "name": "extensions.addonAbuseReport.url",
       "expect": "",
       "reason": "Belt-and-braces: blanks the abuse-report submission URL, the same AMO host as the four prefs above."
+    },
+    {
+      "name": "network.dns.disablePrefetch",
+      "expect": true,
+      "reason": "BRAND-04 ledger entry 5 fix, 2026-08-29: stops Gecko's speculative DNS prefetch of Theia-rendered link targets -- specifically the github.com repo link in sourcerer-welcome-widget.tsx. Defaults false (modules/libpref/init/StaticPrefList.yaml:15308); network.dns.disablePrefetchFromHTTPS also defaults false (:15161), so the origin scheme does not matter."
+    },
+    {
+      "name": "extensions.update.autoUpdateDefault",
+      "expect": false,
+      "reason": "BRAND-04 ledger entry 5 fix, 2026-08-29: the real gate on GMPProvider.findUpdates()'s periodic auto-update task (AddonManager.shouldAutoUpdate() falling through to this global default), which downloads and installs OpenH264 from ciscobinary.openh264.org regardless of media.gmp-gmpopenh264.enabled. The per-plugin override (media.gmp-gmpopenh264.autoupdate) cannot be set from a default-branch pref file at all (GMPPrefs.isSet() requires prefHasUserValue()), which is why this global switch is used instead; confirmed safe for Widevine (see the ciscobinary.openh264.org host entry above for the full trace and the Widevine-safety argument)."
     }
   ]
 }
